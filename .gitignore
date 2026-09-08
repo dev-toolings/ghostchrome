@@ -22,6 +22,10 @@ Thumbs.db
 *.test
 *.out
 
+# Bun workspace (root store + per-package symlink trees)
+node_modules/
+*.tsbuildinfo
+
 # Python SDK artifacts
 __pycache__/
 *.pyc

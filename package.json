@@ -1,0 +1,15 @@
+{
+  "name": "ghostchrome-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bun workspace root for the ghostchrome JavaScript packages (SDK + npm distribution wrappers). The Go binary is built with the justfile, not from here.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dev-toolings/ghostchrome.git"
+  },
+  "workspaces": [
+    "sdk/typescript",
+    "packages/npm/*"
+  ]
+}
