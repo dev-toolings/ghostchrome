@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/pagesetup"
 	"github.com/dev-toolings/ghostchrome/internal/core/proxy"
 	"github.com/dev-toolings/ghostchrome/internal/core/storage"

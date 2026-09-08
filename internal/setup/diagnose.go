@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 // Check is one line of the runtime diagnostic reported by `ghostchrome doctor`.

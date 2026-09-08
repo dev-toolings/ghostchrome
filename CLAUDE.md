@@ -36,7 +36,7 @@ main.go → cmd/ (cobra commands) → engine/ (Rod/CDP logic) → Chrome
 
 ```bash
 go build -o ghostchrome ./cmd/ghostchrome
-go test ./engine/...
+go test ./internal/core/engine/...
 ./ghostchrome preview https://example.com
 ```
 

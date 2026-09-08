@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 	"github.com/dev-toolings/ghostchrome/internal/runtime"
 	"github.com/spf13/cobra"

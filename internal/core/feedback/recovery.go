@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/go-rod/rod"
 )
 

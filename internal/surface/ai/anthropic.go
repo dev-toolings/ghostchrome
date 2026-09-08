@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 // AnthropicProvider talks directly to the Messages API. Stays HTTP-native to

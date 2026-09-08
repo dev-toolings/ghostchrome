@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/go-rod/rod"
 )
 

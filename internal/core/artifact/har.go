@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 // HAR follows the HAR 1.2 specification (W3C Web Performance Working Group).

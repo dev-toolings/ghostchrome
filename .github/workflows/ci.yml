@@ -54,7 +54,7 @@ jobs:
           chrome-version: stable
       # The release gate is the real 10k-op loop, not the 20-op developer
       # default used by the ordinary integration suite.
-      - run: GHOSTCHROME_CONFORMANCE_OPS=10000 go test ./engine -run TestConformanceCoreLoop -count=1 -timeout 30m
+      - run: GHOSTCHROME_CONFORMANCE_OPS=10000 go test ./internal/core/engine -run TestConformanceCoreLoop -count=1 -timeout 30m
 
   integration:
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
           go-version-file: 'go.mod'
       # Keep browser-backed coverage on pull requests as well as main pushes;
       # the regular macOS job only runs -short and cannot catch CDP regressions.
-      - run: go test ./engine -run 'TestConformanceCoreLoop|TestNavigateUsesEventHub|TestStartEventHubIdempotent|TestCaptureMutationWaitsForXHR|TestClickIframeLinkWaitsForFrameNav|TestExtractClickNestedIframeRef|TestClickFileInputInIframeDoesNotHang|TestClickFileInputInIframeAfterNavigationDoesNotHang|TestDialogAfterNavigationDoesNotHang|TestHandleNextDialogWaitsForAndHandlesDialogs|TestDialogAutoHandlerAcceptsTwoAlerts|TestResolveRefReportsStaleSnapshots' -count=1 -timeout 30m
+      - run: go test ./internal/core/engine -run 'TestConformanceCoreLoop|TestNavigateUsesEventHub|TestStartEventHubIdempotent|TestCaptureMutationWaitsForXHR|TestClickIframeLinkWaitsForFrameNav|TestExtractClickNestedIframeRef|TestClickFileInputInIframeDoesNotHang|TestClickFileInputInIframeAfterNavigationDoesNotHang|TestDialogAfterNavigationDoesNotHang|TestHandleNextDialogWaitsForAndHandlesDialogs|TestDialogAutoHandlerAcceptsTwoAlerts|TestResolveRefReportsStaleSnapshots' -count=1 -timeout 30m
 
   windows-smoke:
     runs-on: windows-latest

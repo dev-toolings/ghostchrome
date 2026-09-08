@@ -52,11 +52,11 @@ e2e url="https://www.chronovet.fr/":
 # Chrome-backed reliability loop (skipped under go test -short).
 # Override count with GHOSTCHROME_CONFORMANCE_OPS=10000.
 conformance:
-    go test ./engine -run 'TestConformanceCoreLoop|TestNavigateUsesEventHub|TestStartEventHubIdempotent' -count=1 -timeout 20m
+    go test ./internal/core/engine -run 'TestConformanceCoreLoop|TestNavigateUsesEventHub|TestStartEventHubIdempotent' -count=1 -timeout 20m
 
 # 10k-op soak. Requires Chrome.
 soak:
-    GHOSTCHROME_SOAK=1 GHOSTCHROME_CONFORMANCE_OPS=10000 go test ./engine -run TestConformanceSoak -count=1 -timeout 2h
+    GHOSTCHROME_SOAK=1 GHOSTCHROME_CONFORMANCE_OPS=10000 go test ./internal/core/engine -run TestConformanceSoak -count=1 -timeout 2h
 
 # Latest agent-browser click numbers.
 bench-ab:
@@ -64,4 +64,4 @@ bench-ab:
 
 # 8h duration soak. Requires Chrome.
 soak-8h:
-    GHOSTCHROME_SOAK=1 GHOSTCHROME_SOAK_DURATION=8h go test ./engine -run TestConformanceDuration -count=1 -timeout 9h -v
+    GHOSTCHROME_SOAK=1 GHOSTCHROME_SOAK_DURATION=8h go test ./internal/core/engine -run TestConformanceDuration -count=1 -timeout 9h -v

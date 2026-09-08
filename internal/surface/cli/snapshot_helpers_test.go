@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 func TestPlaywrightSnapshotFilename(t *testing.T) {

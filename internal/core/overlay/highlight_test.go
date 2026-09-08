@@ -3,8 +3,8 @@ package overlay
 import (
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/coretest"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 func TestHighlightTargetPersistsAndHides(t *testing.T) {

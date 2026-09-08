@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/interact"
 	"github.com/dev-toolings/ghostchrome/internal/core/overlay"
 	"github.com/dev-toolings/ghostchrome/internal/runtime"

@@ -18,10 +18,14 @@ func TestDirectTestLaunchersAreIsolated(t *testing.T) {
 	if !ok {
 		t.Fatal("resolve test source path")
 	}
-	repoRoot := filepath.Dir(filepath.Dir(currentFile))
+	// currentFile is <repo>/internal/core/engine/<this file>.
+	repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(currentFile))))
 
 	var launchers int
-	for _, relRoot := range []string{"engine", filepath.Join("internal", "surface", "cli")} {
+	for _, relRoot := range []string{
+		filepath.Join("internal", "core", "engine"),
+		filepath.Join("internal", "surface", "cli"),
+	} {
 		err := filepath.WalkDir(filepath.Join(repoRoot, relRoot), func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err

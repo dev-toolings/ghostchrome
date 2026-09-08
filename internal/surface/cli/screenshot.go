@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/media"
 	"github.com/dev-toolings/ghostchrome/internal/core/overlay"
 	"github.com/spf13/cobra"

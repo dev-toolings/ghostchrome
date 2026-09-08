@@ -3,7 +3,7 @@ package cli
 import (
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 func TestLocatorFromEngineLocator(t *testing.T) {

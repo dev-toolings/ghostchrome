@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/compat/playwright"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/spf13/cobra"
 )

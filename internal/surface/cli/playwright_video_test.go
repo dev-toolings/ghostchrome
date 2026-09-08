@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 func TestVideoManifestPath(t *testing.T) {

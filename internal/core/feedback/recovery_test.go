@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/coretest"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 // TestRecoverStaleRefRefusesRetry verifies that RecoverStaleRef never signals

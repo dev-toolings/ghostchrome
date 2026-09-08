@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 func TestAgentWriteRedactsPayloadAndPreservesProtocol(t *testing.T) {

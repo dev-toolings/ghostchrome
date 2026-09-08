@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/compat/playwright"
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
 func TestRenderOutputBytesRawAndJSON(t *testing.T) {
