@@ -1,20 +1,20 @@
 {
-  "name": "@ghostchrome/cli-linux-arm64",
+  "name": "@ghostchrome/cli-win32-x64",
   "version": "0.5.0",
-  "description": "ghostchrome prebuilt binary for linux-arm64.",
+  "description": "ghostchrome prebuilt binary for win32-x64.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dev-toolings/ghostchrome.git",
-    "directory": "packages/npm/cli-linux-arm64"
+    "directory": "dist/npm/cli-win32-x64"
   },
   "license": "MIT",
   "os": [
-    "linux"
+    "win32"
   ],
   "cpu": [
-    "arm64"
+    "x64"
   ],
   "files": [
-    "bin/ghostchrome"
+    "bin/ghostchrome.exe"
   ]
 }

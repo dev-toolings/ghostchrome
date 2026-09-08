@@ -36,9 +36,9 @@ for the 6 packages. Requires the `NPM_TOKEN` repository secret.
 
 ```bash
 # from repo root, with a freshly built ./ghostchrome
-mkdir -p packages/npm/cli-linux-x64/bin
-cp ghostchrome packages/npm/cli-linux-x64/bin/ghostchrome
-cd packages/npm/cli
+mkdir -p dist/npm/cli-linux-x64/bin
+cp ghostchrome dist/npm/cli-linux-x64/bin/ghostchrome
+cd dist/npm/cli
 mkdir -p node_modules/@ghostchrome
 ln -s ../../../cli-linux-x64 node_modules/@ghostchrome/cli-linux-x64
 bun bin/cli.mjs --version     # should print the binary's version

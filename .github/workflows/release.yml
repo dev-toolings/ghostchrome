@@ -62,7 +62,9 @@ jobs:
       - name: Create checksums
         run: |
           cd dist
-          sha256sum * > checksums.txt
+          # Only the release artifacts: `dist/npm/` is a tracked directory of
+          # npm manifests, and `sha256sum *` would fail on it.
+          sha256sum ghostchrome-* > checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3.0.2
@@ -84,7 +86,7 @@ jobs:
             exit 0
           fi
           VER="${{ github.ref_name }}"; VER="${VER#v}"   # v0.3.0 -> 0.3.0
-          NPM_DIR=packages/npm
+          NPM_DIR=dist/npm
 
           # Copy the matching Go binary into each platform package.
           copy_bin() { mkdir -p "$NPM_DIR/$1/bin"; cp "dist/$2" "$NPM_DIR/$1/bin/$3"; chmod +x "$NPM_DIR/$1/bin/$3"; }

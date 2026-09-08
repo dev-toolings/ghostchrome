@@ -5,7 +5,7 @@
     "": {
       "name": "ghostchrome-monorepo",
     },
-    "packages/npm/cli": {
+    "dist/npm/cli": {
       "name": "@ghostchrome/cli",
       "version": "0.5.0",
       "bin": {
@@ -19,23 +19,23 @@
         "@ghostchrome/cli-win32-x64": "0.5.0",
       },
     },
-    "packages/npm/cli-darwin-arm64": {
+    "dist/npm/cli-darwin-arm64": {
       "name": "@ghostchrome/cli-darwin-arm64",
       "version": "0.5.0",
     },
-    "packages/npm/cli-darwin-x64": {
+    "dist/npm/cli-darwin-x64": {
       "name": "@ghostchrome/cli-darwin-x64",
       "version": "0.5.0",
     },
-    "packages/npm/cli-linux-arm64": {
+    "dist/npm/cli-linux-arm64": {
       "name": "@ghostchrome/cli-linux-arm64",
       "version": "0.5.0",
     },
-    "packages/npm/cli-linux-x64": {
+    "dist/npm/cli-linux-x64": {
       "name": "@ghostchrome/cli-linux-x64",
       "version": "0.5.0",
     },
-    "packages/npm/cli-win32-x64": {
+    "dist/npm/cli-win32-x64": {
       "name": "@ghostchrome/cli-win32-x64",
       "version": "0.5.0",
     },
@@ -49,17 +49,17 @@
     },
   },
   "packages": {
-    "@ghostchrome/cli": ["@ghostchrome/cli@workspace:packages/npm/cli"],
+    "@ghostchrome/cli": ["@ghostchrome/cli@workspace:dist/npm/cli"],
 
-    "@ghostchrome/cli-darwin-arm64": ["@ghostchrome/cli-darwin-arm64@workspace:packages/npm/cli-darwin-arm64"],
+    "@ghostchrome/cli-darwin-arm64": ["@ghostchrome/cli-darwin-arm64@workspace:dist/npm/cli-darwin-arm64"],
 
-    "@ghostchrome/cli-darwin-x64": ["@ghostchrome/cli-darwin-x64@workspace:packages/npm/cli-darwin-x64"],
+    "@ghostchrome/cli-darwin-x64": ["@ghostchrome/cli-darwin-x64@workspace:dist/npm/cli-darwin-x64"],
 
-    "@ghostchrome/cli-linux-arm64": ["@ghostchrome/cli-linux-arm64@workspace:packages/npm/cli-linux-arm64"],
+    "@ghostchrome/cli-linux-arm64": ["@ghostchrome/cli-linux-arm64@workspace:dist/npm/cli-linux-arm64"],
 
-    "@ghostchrome/cli-linux-x64": ["@ghostchrome/cli-linux-x64@workspace:packages/npm/cli-linux-x64"],
+    "@ghostchrome/cli-linux-x64": ["@ghostchrome/cli-linux-x64@workspace:dist/npm/cli-linux-x64"],
 
-    "@ghostchrome/cli-win32-x64": ["@ghostchrome/cli-win32-x64@workspace:packages/npm/cli-win32-x64"],
+    "@ghostchrome/cli-win32-x64": ["@ghostchrome/cli-win32-x64@workspace:dist/npm/cli-win32-x64"],
 
     "@ghostchrome/sdk": ["@ghostchrome/sdk@workspace:sdk/typescript"],
 

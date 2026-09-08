@@ -10,6 +10,6 @@
   },
   "workspaces": [
     "sdk/typescript",
-    "packages/npm/*"
+    "dist/npm/*"
   ]
 }

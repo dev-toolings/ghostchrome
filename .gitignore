@@ -1,7 +1,12 @@
 # Binaries (anchored to repo root so they don't shadow .claude/skills/ghostchrome/)
 /ghostchrome
 /ghostchrome-mcp
-dist/
+# Build output. Anchored to the repo root so the release binaries CI drops in
+# `/dist/` stay out of the index, while `/dist/npm/` (the six versioned npm
+# distribution manifests) stays tracked: it is release metadata, not output.
+# `sdk/typescript/dist/` is covered by sdk/typescript/.gitignore.
+/dist/*
+!/dist/npm/
 
 # IDE
 .idea/
