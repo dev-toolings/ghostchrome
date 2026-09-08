@@ -1,4 +1,4 @@
-package engine
+package inspect
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 )
@@ -308,7 +309,7 @@ func MultiCollect(browser *rod.Browser, urls []string, limit int, stealth bool, 
 
 			// Apply stealth per tab
 			if stealth {
-				if err := ApplyStealth(page); err != nil {
+				if err := engine.ApplyStealth(page); err != nil {
 					results[idx] = SiteResult{URL: targetURL, Error: "stealth: " + err.Error()}
 					return
 				}
@@ -383,5 +384,5 @@ func FormatMultiCollect(r *MultiCollectResult) string {
 }
 
 func truncateCollectURL(u string) string {
-	return TruncateURL(u, 60)
+	return engine.TruncateURL(u, 60)
 }

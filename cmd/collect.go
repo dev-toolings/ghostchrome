@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/inspect"
 	"github.com/spf13/cobra"
 )
 
@@ -46,12 +47,12 @@ func runSingleCollect(targetURL string) {
 
 	navigateIfRequested(page, targetURL, "stable")
 
-	result, err := engine.Collect(page, flagCollectLimit)
+	result, err := inspect.Collect(page, flagCollectLimit)
 	if err != nil {
 		exitErr("collect", err)
 	}
 
-	text := engine.FormatCollect(result)
+	text := inspect.FormatCollect(result)
 	output(result, text)
 }
 
@@ -68,9 +69,9 @@ func runMultiCollect(urls []string) {
 		exitErr("collect", errors.New("no browser available"))
 	}
 
-	result := engine.MultiCollect(rodBrowser, urls, flagCollectLimit, flagStealth, flagCollectParallel)
+	result := inspect.MultiCollect(rodBrowser, urls, flagCollectLimit, flagStealth, flagCollectParallel)
 
-	text := engine.FormatMultiCollect(result)
+	text := inspect.FormatMultiCollect(result)
 	output(result, text)
 }
 

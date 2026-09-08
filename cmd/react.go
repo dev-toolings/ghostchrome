@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/inspect"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ Examples:
 			navigateIfRequested(page, args[0], "load")
 		}
 
-		tree, err := engine.ReactTree(page, flagReactDepth)
+		tree, err := inspect.ReactTree(page, flagReactDepth)
 		if err != nil {
 			exitErr("react tree", err)
 		}
@@ -58,7 +58,7 @@ var reactSuspenseCmd = &cobra.Command{
 			navigateIfRequested(page, args[0], "load")
 		}
 
-		boundaries, err := engine.ReactSuspense(page)
+		boundaries, err := inspect.ReactSuspense(page)
 		if err != nil {
 			exitErr("react suspense", err)
 		}
@@ -77,7 +77,7 @@ var reactSuspenseCmd = &cobra.Command{
 	},
 }
 
-func printTree(sb *strings.Builder, components []engine.ReactComponent, indent int) {
+func printTree(sb *strings.Builder, components []inspect.ReactComponent, indent int) {
 	prefix := strings.Repeat("  ", indent)
 	for _, c := range components {
 		propsStr := ""
