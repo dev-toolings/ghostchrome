@@ -403,20 +403,35 @@ func (s *Session) opEval(raw json.RawMessage) (any, error) {
 	if a.Expr == "" {
 		return nil, errors.New("eval: expr required")
 	}
-	b, page, err := s.EnsurePage()
-	if err != nil {
-		return nil, err
-	}
-	var out string
-	err = s.withRefRetry(b, page, func(snap *engine.PageSnapshot) error {
-		v, err := engine.EvalJS(page, a.Expr, a.Ref, snap)
-		out = v
-		return err
-	})
+	out, err := s.EvalTimeout(a.Expr, a.Ref, 0)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]string{"value": out}, nil
+}
+
+// EvalTimeout evaluates an expression in the page, resolving an optional @ref
+// through the session ref table with the usual recovery. d <= 0 means no
+// per-call deadline, which is what the JSONL "eval" op uses (the loop's
+// --timeout governs it). MCP's eval tool has its own timeout_ms argument and
+// passes it here rather than resolving the ref itself.
+func (s *Session) EvalTimeout(expr, ref string, d time.Duration) (string, error) {
+	b, page, err := s.EnsurePage()
+	if err != nil {
+		return "", err
+	}
+	var out string
+	// Op name "ref" is what the JSONL eval path has always reported in a
+	// stale-ref recovery error; keep it so the message does not change.
+	err = s.withRecovery(b, page, "ref", func(snap *engine.PageSnapshot) error {
+		v, evalErr := engine.EvalJSTimeout(page, expr, ref, snap, d)
+		out = v
+		return evalErr
+	})
+	if err != nil {
+		return "", err
+	}
+	return out, nil
 }
 
 func (s *Session) opScreenshot(raw json.RawMessage) (any, error) {
@@ -429,15 +444,11 @@ func (s *Session) opScreenshot(raw json.RawMessage) (any, error) {
 	if err := unmarshalArgs(raw, &a); err != nil {
 		return nil, err
 	}
-	b, page, err := s.EnsurePage()
-	if err != nil {
-		return nil, err
-	}
-	var data []byte
-	err = s.withRefRetry(b, page, func(snap *engine.PageSnapshot) error {
-		d, err := engine.TakeScreenshotScaled(page, a.FullPage, a.Ref, a.Quality, a.Scale, snap)
-		data = d
-		return err
+	data, err := s.CaptureScreenshot(ScreenshotSpec{
+		FullPage: a.FullPage,
+		Ref:      a.Ref,
+		Quality:  a.Quality,
+		Scale:    a.Scale,
 	})
 	if err != nil {
 		return nil, err
@@ -450,6 +461,44 @@ func (s *Session) opScreenshot(raw json.RawMessage) (any, error) {
 		"mime":   mime,
 		"base64": base64.StdEncoding.EncodeToString(data),
 	}, nil
+}
+
+// ScreenshotSpec describes one capture.
+//
+// Format and Scale come from two different engine entry points and are
+// mutually exclusive: Format is the MCP surface's explicit image format
+// ("webp" | "jpeg" | "png"), Scale is the JSONL surface's device scale factor.
+// Format wins when both are set.
+type ScreenshotSpec struct {
+	FullPage bool
+	Ref      string
+	Format   string
+	Quality  int
+	Scale    float64
+}
+
+// CaptureScreenshot takes a screenshot, resolving an optional @ref through the
+// session ref table with the usual recovery. Both the JSONL "screenshot" op and
+// MCP's screenshot tool go through it, so neither resolves refs on its own.
+func (s *Session) CaptureScreenshot(spec ScreenshotSpec) ([]byte, error) {
+	b, page, err := s.EnsurePage()
+	if err != nil {
+		return nil, err
+	}
+	var data []byte
+	err = s.withRefRetry(b, page, func(snap *engine.PageSnapshot) error {
+		var shotErr error
+		if spec.Format != "" {
+			data, shotErr = engine.TakeScreenshotFormat(page, spec.FullPage, spec.Ref, spec.Format, spec.Quality, snap)
+		} else {
+			data, shotErr = engine.TakeScreenshotScaled(page, spec.FullPage, spec.Ref, spec.Quality, spec.Scale, snap)
+		}
+		return shotErr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func (s *Session) opWait(raw json.RawMessage) (any, error) {

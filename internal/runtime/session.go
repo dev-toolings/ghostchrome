@@ -11,6 +11,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -105,6 +106,11 @@ type Session struct {
 	// "navigate" opts into SSR — not every extract until the next navigate.
 	challengeRecovered bool
 	dialogPolicy       *engine.DialogAutoPolicy
+
+	// external is set by Bind: the browser and the page belong to a surface
+	// that manages the Chrome lifecycle itself. Such a session must never
+	// launch a browser and never close one.
+	external bool
 }
 
 // New constructs a session ready to be driven op by op. The browser is opened
@@ -125,8 +131,12 @@ func (s *Session) Observer() *engine.Observer { return s.observer }
 // LastObservation returns the observation built by the previous RunOp call.
 func (s *Session) LastObservation() *feedback.Observation { return s.lastObservation }
 
-// Shutdown releases the browser, the observer and the sidecar file.
+// Shutdown releases the browser, the observer and the sidecar file. It is a
+// no-op on a bound session: the surface that owns the browser closes it.
 func (s *Session) Shutdown() {
+	if s.external {
+		return
+	}
 	if s.rt != nil {
 		s.rt.Close()
 		s.rt = nil
@@ -154,6 +164,12 @@ func (s *Session) Shutdown() {
 func (s *Session) EnsurePage() (*engine.Browser, *rod.Page, error) {
 	if s.page != nil {
 		return s.browser, s.page, nil
+	}
+	if s.external {
+		// Bound sessions never launch: the surface owns the lifecycle and
+		// rebinds before every op, so a missing page means the surface has
+		// torn Chrome down rather than that one should be started here.
+		return nil, nil, errors.New("runtime: no page bound (the surface owns the browser lifecycle)")
 	}
 	opts := s.cfg.browserOpts()
 	b, err := engine.NewBrowserWith(opts)
