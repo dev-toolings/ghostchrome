@@ -8,6 +8,7 @@
 //
 //	contracts/commands.json            the frozen contract the SDKs are typed against
 //	internal/surface/mcp/tools_gen.go  MCP tool schemas paired with their handlers
+//	internal/surface/ai/tools_gen.go   AI tool specs
 //
 // The generated Go files bind to hand-written methods and never contain behaviour:
 // a new op in the catalog produces a binding that does not compile until its
@@ -46,6 +47,7 @@ func main() {
 	root := repoRoot()
 	writeContract(root, catalog)
 	writeGo(filepath.Join(root, "internal", "surface", "mcp", "tools_gen.go"), mcpTools(catalog))
+	writeGo(filepath.Join(root, "internal", "surface", "ai", "tools_gen.go"), aiTools(catalog))
 }
 
 // ── contract ───────────────────────────────────────────────────────────────────
@@ -165,6 +167,100 @@ func mcpArg(op string, arg ops.SurfaceArg) string {
 		fatal("mcp: op %q arg %q: unsupported default %T", op, arg.Name, arg.Default)
 	}
 	return strings.Join(parts, ", ") + ")"
+}
+
+// ── AI surface ─────────────────────────────────────────────────────────────────
+
+func aiTools(catalog []ops.Op) []byte {
+	specs := make([]ops.Op, 0, len(catalog))
+	for _, op := range catalog {
+		if on(op, "ai") {
+			specs = append(specs, op)
+		}
+	}
+	// Order carries a weak recall bias for the model, so the catalog fixes it.
+	// Ops that declare no order (0) fall to the end, alphabetically.
+	sort.SliceStable(specs, func(i, j int) bool {
+		a, b := specs[i].AI.Order, specs[j].AI.Order
+		switch {
+		case a == b:
+			return specs[i].Name < specs[j].Name
+		case a == 0:
+			return false
+		case b == 0:
+			return true
+		}
+		return a < b
+	})
+
+	var b bytes.Buffer
+	header(&b, "ai")
+	b.WriteString(`
+// ToolSpecs returns the tool catalog exposed to the LLM. The names match the
+// JSONL ops dispatched by internal/runtime.Session.Dispatch — this is
+// intentional: the LLM can read CLAUDE.md / agent docs and pick the same op
+// names a human operator would.
+//
+// Schemas are deliberately minimal — overspec'd schemas hurt model recall
+// (extra fields the model has to reason about) without buying us safety beyond
+// what the agent ops already enforce at runtime. That is why an op's AI schema
+// is narrower than its JSONL contract: internal/ops declares both.
+func ToolSpecs() []ToolSpec {
+	return []ToolSpec{
+`)
+	for _, op := range specs {
+		spec := op.AI
+		b.WriteString("\t\t{\n")
+		fmt.Fprintf(&b, "\t\t\tName:        %q,\n", op.Name)
+		fmt.Fprintf(&b, "\t\t\tDescription: %s,\n", quote(spec.Description))
+		b.WriteString("\t\t\tInputSchema: map[string]any{\n")
+		b.WriteString("\t\t\t\t\"type\": \"object\",\n")
+		if len(spec.Args) == 0 {
+			b.WriteString("\t\t\t\t\"properties\": map[string]any{},\n")
+		} else {
+			b.WriteString("\t\t\t\t\"properties\": map[string]any{\n")
+			for _, arg := range spec.Args {
+				fmt.Fprintf(&b, "\t\t\t\t\t%q: %s,\n", arg.Name, aiSchema(op.Name, arg))
+			}
+			b.WriteString("\t\t\t\t},\n")
+		}
+		var required []string
+		for _, arg := range spec.Args {
+			if arg.Required {
+				required = append(required, fmt.Sprintf("%q", arg.Name))
+			}
+		}
+		if len(required) > 0 {
+			fmt.Fprintf(&b, "\t\t\t\t\"required\": []string{%s},\n", strings.Join(required, ", "))
+		}
+		b.WriteString("\t\t\t},\n\t\t},\n")
+	}
+	b.WriteString("\t}\n}\n")
+	return b.Bytes()
+}
+
+// aiSchema renders one argument as a JSON Schema fragment. The AI surface
+// hand-rolls its schemas as maps rather than going through a helper library,
+// so the generator emits the same map literals the file used to hold.
+func aiSchema(op string, arg ops.SurfaceArg) string {
+	parts := []string{fmt.Sprintf("\"type\": %q", string(arg.Type))}
+	if arg.Description != "" {
+		parts = append(parts, fmt.Sprintf("\"description\": %s", quote(arg.Description)))
+	}
+	if len(arg.Enum) > 0 {
+		quoted := make([]string, len(arg.Enum))
+		for i, v := range arg.Enum {
+			quoted[i] = fmt.Sprintf("%q", v)
+		}
+		parts = append(parts, fmt.Sprintf("\"enum\": []string{%s}", strings.Join(quoted, ", ")))
+	}
+	if arg.Type == ops.ArgArray {
+		parts = append(parts, fmt.Sprintf("\"items\": map[string]any{\"type\": %q}", string(arg.Items)))
+	}
+	if arg.Default != nil {
+		fatal("ai: op %q arg %q: the AI schema carries no default keyword", op, arg.Name)
+	}
+	return "map[string]any{" + strings.Join(parts, ", ") + "}"
 }
 
 // ── shared ─────────────────────────────────────────────────────────────────────
