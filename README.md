@@ -287,7 +287,7 @@ your agent → ghostchrome CLI → Rod (Go) → Chrome DevTools Protocol → Chr
 4. **Output is text first** — no JSON wrapping unless you ask for `--json`. The agent reads what a human would read in DevTools.
 5. **Transparent daemon** — auto-spawns a persistent background Chrome on first use. Named sessions (`-s work`, `-s research`) run parallel isolated browsers. No `serve` needed.
 
-Architecture, CLI reference, MCP server, anti-bot, and fast-path docs live in `docs/` (local only, not published to the repo).
+Architecture, CLI reference, MCP server, anti-bot, and fast-path docs live in [`docs/`](docs/README.md).
 
 ---
 
@@ -353,7 +353,7 @@ Explicit non-goals: WebKit/Firefox, `run-code` (Playwright runtime),
 `pause-at`/`resume`/`step-over` (Playwright debug protocol), Playwright Trace
 Viewer-compatible `trace.zip`.
 
-Full parity matrix: `docs/playwright-cli-parity.md` (local).
+Full parity matrix: [`docs/playwright-cli-parity.md`](docs/playwright-cli-parity.md).
 
 ---
 
@@ -535,7 +535,7 @@ Agents
   mcp                           Run as an MCP server (stdio, 16 tools)
 ```
 
-Full details: `docs/cli.md` (local).
+Full details: [`docs/cli.md`](docs/cli.md).
 
 </details>
 
@@ -563,7 +563,7 @@ dotenv secrets file before it reaches stdout or an overflow artifact. Structural
 Playwright-runtime features such as Firefox/WebKit, `run-code`, debugger stepping,
 and Trace Viewer-compatible archives remain explicit `unsupported` boundaries.
 
-The tracked source-of-truth matrix is `docs/playwright-cli-parity.md` (local).
+The tracked source-of-truth matrix is [`docs/playwright-cli-parity.md`](docs/playwright-cli-parity.md).
 It separates compatible commands from partial matches and explicit gaps so the
 project does not claim parity that is not implemented.
 
