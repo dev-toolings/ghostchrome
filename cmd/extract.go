@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/overlay"
 	"github.com/spf13/cobra"
 )
 
@@ -113,7 +114,7 @@ Extraction levels:
 		}
 		result = engine.LimitExtractionDepth(result, flagSnapshotDepth)
 		if isSnapshot && flagSnapshotBoxes {
-			engine.AddExtractionBoxes(page, result)
+			overlay.AddExtractionBoxes(page, result)
 		}
 
 		profile := renderProfile()

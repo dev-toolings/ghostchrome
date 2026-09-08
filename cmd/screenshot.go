@@ -8,6 +8,7 @@ import (
 
 	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/media"
+	"github.com/dev-toolings/ghostchrome/internal/core/overlay"
 	"github.com/spf13/cobra"
 )
 
@@ -74,7 +75,7 @@ Examples:
 		}
 
 		if flagAnnotate && snapshot != nil {
-			data, err = engine.AnnotateScreenshot(page, snapshot, data)
+			data, err = overlay.AnnotateScreenshot(page, snapshot, data)
 			if err != nil {
 				exitErr("annotate", err)
 			}

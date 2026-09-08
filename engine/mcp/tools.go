@@ -19,6 +19,7 @@ import (
 	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
 	"github.com/dev-toolings/ghostchrome/internal/core/interact"
+	"github.com/dev-toolings/ghostchrome/internal/core/overlay"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
@@ -471,7 +472,7 @@ func (s *Server) handleScreenshot(ctx context.Context, req mcpgo.CallToolRequest
 			return errResult(fmt.Errorf("screenshot: %w", err))
 		}
 		if annotate && snap != nil {
-			data, err = engine.AnnotateScreenshot(page, snap, data)
+			data, err = overlay.AnnotateScreenshot(page, snap, data)
 			if err != nil {
 				return errResult(fmt.Errorf("annotate: %w", err))
 			}

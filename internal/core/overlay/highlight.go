@@ -1,16 +1,17 @@
-package engine
+package overlay
 
 import (
 	"fmt"
 
+	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/go-rod/rod"
 )
 
 // HighlightTarget draws a persistent, pointer-transparent overlay around a
 // target. The overlay belongs to the document, so it remains visible when a
 // later CLI invocation reconnects to the same page.
-func HighlightTarget(page *rod.Page, target, style string, snapshot *PageSnapshot) error {
-	el, err := ResolveTarget(page, target, snapshot)
+func HighlightTarget(page *rod.Page, target, style string, snapshot *engine.PageSnapshot) error {
+	el, err := engine.ResolveTarget(page, target, snapshot)
 	if err != nil {
 		return err
 	}
@@ -22,14 +23,14 @@ func HighlightTarget(page *rod.Page, target, style string, snapshot *PageSnapsho
 
 // HideHighlights removes an overlay for target. When target is empty it
 // removes every ghostchrome highlight in the current document.
-func HideHighlights(page *rod.Page, target string, snapshot *PageSnapshot) error {
+func HideHighlights(page *rod.Page, target string, snapshot *engine.PageSnapshot) error {
 	if target == "" {
 		if _, err := page.Eval(hideAllHighlightsScript); err != nil {
 			return fmt.Errorf("hide highlights: %w", err)
 		}
 		return nil
 	}
-	el, err := ResolveTarget(page, target, snapshot)
+	el, err := engine.ResolveTarget(page, target, snapshot)
 	if err != nil {
 		return err
 	}

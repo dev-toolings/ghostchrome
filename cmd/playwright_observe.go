@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/overlay"
 	"github.com/spf13/cobra"
 )
 
@@ -465,14 +466,14 @@ applied to the overlay, for example 'border-color: #22c55e; border-width: 5px'.`
 		}
 
 		if flagHighlightHide {
-			if err := engine.HideHighlights(page, target, snapshot); err != nil {
+			if err := overlay.HideHighlights(page, target, snapshot); err != nil {
 				exitIfStaleRef(err, "highlight")
 				exitErr("highlight", err)
 			}
 			output(map[string]any{"action": "hide", "target": target}, "highlight hidden")
 			return
 		}
-		if err := engine.HighlightTarget(page, target, flagHighlightStyle, snapshot); err != nil {
+		if err := overlay.HighlightTarget(page, target, flagHighlightStyle, snapshot); err != nil {
 			exitIfStaleRef(err, "highlight")
 			exitErr("highlight", err)
 		}

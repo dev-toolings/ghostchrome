@@ -1,13 +1,18 @@
-package engine
+package overlay
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/coretest"
+)
 
 func TestHighlightTargetPersistsAndHides(t *testing.T) {
 	if testing.Short() {
 		t.Skip("requires Chrome")
 	}
-	_, page := newIsolatedPage(t)
-	if _, err := Navigate(page, dataURL(`<!doctype html><button id="target">Target</button><button id="second">Second</button>`), "load"); err != nil {
+	_, page := coretest.NewIsolatedPage(t)
+	if _, err := engine.Navigate(page, coretest.DataURL(`<!doctype html><button id="target">Target</button><button id="second">Second</button>`), "load"); err != nil {
 		t.Fatalf("navigate: %v", err)
 	}
 

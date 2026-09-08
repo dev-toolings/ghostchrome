@@ -1,4 +1,4 @@
-package engine
+package overlay
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 )
@@ -20,11 +21,11 @@ import (
 // AddExtractionBoxes enriches interactive nodes with viewport-relative CSS
 // pixel rectangles. Missing or detached nodes are skipped because pages may
 // mutate while their boxes are being collected.
-func AddExtractionBoxes(page *rod.Page, result *ExtractionResult) {
+func AddExtractionBoxes(page *rod.Page, result *engine.ExtractionResult) {
 	if page == nil || result == nil || len(result.Refs) == 0 {
 		return
 	}
-	boxes := make(map[string]ElementBox, len(result.Refs))
+	boxes := make(map[string]engine.ElementBox, len(result.Refs))
 	for ref, node := range result.Refs {
 		if node.BackendNodeID == 0 {
 			continue
@@ -38,7 +39,7 @@ func AddExtractionBoxes(page *rod.Page, result *ExtractionResult) {
 		minY := minF(border[1], border[3], border[5], border[7])
 		maxX := maxF(border[0], border[2], border[4], border[6])
 		maxY := maxF(border[1], border[3], border[5], border[7])
-		box := ElementBox{
+		box := engine.ElementBox{
 			X:      int(math.Round(minX)),
 			Y:      int(math.Round(minY)),
 			Width:  int(math.Round(maxX - minX)),
@@ -54,7 +55,7 @@ func AddExtractionBoxes(page *rod.Page, result *ExtractionResult) {
 	applyBoxesToNodes(result.Nodes, boxes)
 }
 
-func applyBoxesToNodes(nodes []ExtractedNode, boxes map[string]ElementBox) {
+func applyBoxesToNodes(nodes []engine.ExtractedNode, boxes map[string]engine.ElementBox) {
 	for i := range nodes {
 		if box, ok := boxes[nodes[i].Ref]; ok {
 			copy := box
@@ -83,7 +84,7 @@ var annotationPalette = [...]color.NRGBA{
 
 // AnnotateScreenshot overlays numbered borders on each interactive element
 // identified by the snapshot's refs. Input must be PNG; output is always PNG.
-func AnnotateScreenshot(page *rod.Page, snapshot *PageSnapshot, screenshotPNG []byte) ([]byte, error) {
+func AnnotateScreenshot(page *rod.Page, snapshot *engine.PageSnapshot, screenshotPNG []byte) ([]byte, error) {
 	if snapshot == nil || len(snapshot.Refs) == 0 {
 		return screenshotPNG, nil
 	}
@@ -129,7 +130,7 @@ func devicePixelRatio(page *rod.Page) float64 {
 	return v
 }
 
-func collectRefBoxes(page *rod.Page, snapshot *PageSnapshot, dpr float64, imgBounds image.Rectangle) []annotationBox {
+func collectRefBoxes(page *rod.Page, snapshot *engine.PageSnapshot, dpr float64, imgBounds image.Rectangle) []annotationBox {
 	var boxes []annotationBox
 	for refStr, refInfo := range snapshot.Refs {
 		if refInfo.BackendNodeID == 0 {
