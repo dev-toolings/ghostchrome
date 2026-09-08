@@ -193,7 +193,7 @@ For Codex, Cursor, Aider, or a custom loop see [Using it with LLM agents](#using
 - **Prebuilt binaries** — macOS (Intel/ARM), Linux (amd64/arm64), Windows on the
   [Releases](https://github.com/dev-toolings/ghostchrome/releases) page (`ghostchrome` +
   `ghostchrome-mcp`, with `checksums.txt`).
-- **From source** — `git clone https://github.com/dev-toolings/ghostchrome && cd ghostchrome && go build -o ghostchrome .`
+- **From source** — `git clone https://github.com/dev-toolings/ghostchrome && cd ghostchrome && go build -o ghostchrome ./cmd/ghostchrome`
 
 > **Note:** `go install …@latest` is not supported on this repo. Versioning was
 > reset to `v0.1.0`, but the earlier `v1.0.0` is pinned immutably in the Go module

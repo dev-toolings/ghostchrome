@@ -48,7 +48,7 @@ export PATH="$HOME/.local/go/bin:$PATH"
 
 echo "[bench] building ghostchrome"
 mkdir -p bin
-go build -o "$ROOT/bin/ghostchrome" .
+go build -o "$ROOT/bin/ghostchrome" ./cmd/ghostchrome
 GHOSTBIN="$ROOT/bin/ghostchrome"
 
 echo "[bench] building microbench"

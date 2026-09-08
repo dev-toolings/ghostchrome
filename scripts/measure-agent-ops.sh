@@ -18,7 +18,7 @@ BIN="${GHOSTCHROME_BIN:-./ghostchrome}"
 URL="${1:-https://example.com}"
 
 if [ ! -x "$BIN" ]; then
-  go build -o ghostchrome .
+  go build -o ghostchrome ./cmd/ghostchrome
   BIN=./ghostchrome
 fi
 

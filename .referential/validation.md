@@ -43,7 +43,7 @@ The measured output is ground truth for runtime result shapes.
 Requires a running Chrome on port 9222:
 
 ```bash
-go build -o ghostchrome .
+go build -o ghostchrome ./cmd/ghostchrome
 GHOSTCHROME_BIN="$PWD/ghostchrome" bun run examples/typescript/chronovet.ts https://www.chronovet.fr/
 GHOSTCHROME_BIN="$PWD/ghostchrome" python3 examples/python/chronovet.py https://www.chronovet.fr/
 ```

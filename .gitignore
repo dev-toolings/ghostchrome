@@ -57,19 +57,19 @@ benchmark/results-warm.json
 .claude/worktrees/
 
 # Private scraping recipes — kept on disk, never committed.
-# Composed into the binary only via `go build -tags recipes .`
+# Composed into the binary only via `go build -tags recipes ./cmd/ghostchrome`
 # (build tag already excludes them from the default binary).
 /packages/leboncoin/
 /packages/linkedin/
 /packages/instagram/
 /packages/cars-listings/
 /packages/websearch/
-/cmd/leboncoin.go
-/cmd/linkedin.go
-/cmd/instagram.go
-/cmd/cars_listings.go
-/cmd/websearch.go
-/cmd/websearch_mcp.go
+/internal/surface/cli/leboncoin.go
+/internal/surface/cli/linkedin.go
+/internal/surface/cli/instagram.go
+/internal/surface/cli/cars_listings.go
+/internal/surface/cli/websearch.go
+/internal/surface/cli/websearch_mcp.go
 
 # Documentation of the private recipes above: the commands they describe are
 # gitignored and built only with `-tags recipes`, so their manuals stay local

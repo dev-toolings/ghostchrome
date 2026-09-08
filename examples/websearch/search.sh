@@ -9,7 +9,7 @@
 # one object per line — ready to pipe into an LLM agent.
 #
 # Requires a ghostchrome binary built with recipes:
-#   go build -tags recipes -o ghostchrome .
+#   go build -tags recipes -o ghostchrome ./cmd/ghostchrome
 set -euo pipefail
 
 QUERY="${1:?usage: search.sh \"<query>\" [results] [extra flags...]}"
@@ -23,7 +23,7 @@ if [[ -z "$BIN" ]]; then
   BIN="$(cd "$(dirname "$0")/../.." && pwd)/ghostchrome"
 fi
 if [[ ! -x "$BIN" ]]; then
-  echo "error: ghostchrome binary not found. Build it with: go build -tags recipes -o ghostchrome ." >&2
+  echo "error: ghostchrome binary not found. Build it with: go build -tags recipes -o ghostchrome ./cmd/ghostchrome" >&2
   exit 1
 fi
 

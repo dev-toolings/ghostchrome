@@ -33,7 +33,7 @@ test-all: test sdk-ts sdk-py
 # CGO_ENABLED=0 → a truly static binary (matches the "static Go binary" promise);
 # -X main.version stamps the real version instead of "dev".
 install:
-    CGO_ENABLED=0 go build -ldflags="-s -w -X main.version={{version}}" -o ghostchrome .
+    CGO_ENABLED=0 go build -ldflags="-s -w -X main.version={{version}}" -o ghostchrome ./cmd/ghostchrome
     ./ghostchrome install
 
 # Uninstall everything (binary + data + skills)
@@ -44,7 +44,7 @@ uninstall:
 # Usage: just e2e            -> https://www.chronovet.fr/
 #        just e2e <url>
 e2e url="https://www.chronovet.fr/":
-    CGO_ENABLED=0 go build -ldflags="-X main.version={{version}}" -o ghostchrome .
+    CGO_ENABLED=0 go build -ldflags="-X main.version={{version}}" -o ghostchrome ./cmd/ghostchrome
     GHOSTCHROME_BIN="$PWD/ghostchrome" bun run examples/typescript/chronovet.ts {{url}}
     GHOSTCHROME_BIN="$PWD/ghostchrome" python3 examples/python/chronovet.py {{url}}
 

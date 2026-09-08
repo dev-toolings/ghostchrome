@@ -39,7 +39,7 @@ need python3
 # ---------- build ghostchrome ----------
 echo "[bench] building ghostchrome…"
 mkdir -p bin
-go build -o "$ROOT/bin/ghostchrome" .
+go build -o "$ROOT/bin/ghostchrome" ./cmd/ghostchrome
 GHOSTBIN="$ROOT/bin/ghostchrome"
 
 # ---------- pre-build microbench ----------

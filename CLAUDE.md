@@ -30,12 +30,12 @@ main.go → cmd/ (cobra commands) → engine/ (Rod/CDP logic) → Chrome
 - `contracts/commands.json` — Generated op contract the SDKs are typed against
 - `sdk/typescript/`, `sdk/python/` — In-repo typed SDKs; thin clients that spawn a persistent `ghostchrome agent` subprocess and speak the JSONL protocol over stdio
 - `examples/` — Runnable end-to-end examples (TS + Python) attaching via `--connect=auto`
-- `packages/<site>/` + `cmd/<site>.go` — Site scrapers, **gitignored** (kept on disk, never committed), compiled in only via `go build -tags recipes .`
+- `packages/<site>/` + `internal/surface/cli/<site>.go` — Site scrapers, **gitignored** (kept on disk, never committed), compiled in only via `go build -tags recipes ./cmd/ghostchrome`
 
 ## Build & test
 
 ```bash
-go build -o ghostchrome .
+go build -o ghostchrome ./cmd/ghostchrome
 go test ./engine/...
 ./ghostchrome preview https://example.com
 ```

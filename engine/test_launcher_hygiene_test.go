@@ -11,7 +11,8 @@ import (
 
 // TestDirectTestLaunchersAreIsolated prevents integration tests from silently
 // repopulating launcher.DefaultUserDataDirPrefix. Every direct Rod launcher in
-// engine/cmd tests must select an explicit test-owned profile and clean it.
+// engine and CLI surface tests must select an explicit test-owned profile and
+// clean it.
 func TestDirectTestLaunchersAreIsolated(t *testing.T) {
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
@@ -20,7 +21,7 @@ func TestDirectTestLaunchersAreIsolated(t *testing.T) {
 	repoRoot := filepath.Dir(filepath.Dir(currentFile))
 
 	var launchers int
-	for _, relRoot := range []string{"engine", "cmd"} {
+	for _, relRoot := range []string{"engine", filepath.Join("internal", "surface", "cli")} {
 		err := filepath.WalkDir(filepath.Join(repoRoot, relRoot), func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err

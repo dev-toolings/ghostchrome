@@ -52,7 +52,7 @@ Throughput: 693 vehicles/s. Coût: 1,44 ms par véhicule. 0 Chrome.
 ```bash
 go install github.com/MakFly/ghostchrome@latest
 # or build from source:
-go build -o ghostchrome .
+go build -o ghostchrome ./cmd/ghostchrome
 ```
 
 ## Conventions

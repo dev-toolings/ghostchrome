@@ -56,7 +56,7 @@ error — probe the JSON endpoint instead.
 Then the recipe:
 
 ```bash
-go build -tags recipes -o ghostchrome .
+go build -tags recipes -o ghostchrome ./cmd/ghostchrome
 ./ghostchrome websearch query "golang concurrency" --provider searxng
 ```
 
