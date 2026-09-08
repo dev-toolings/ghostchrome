@@ -69,3 +69,17 @@ Do not start a local dev server unless the user explicitly asks for it.
 | Python SDK | `cd sdk/python && python3 -m unittest discover -s tests -q`. |
 | Cross-surface behavior | `just test-all`, then targeted e2e if browser-visible. |
 
+
+## CI and release checks
+
+The CI workflow runs on branch pushes, release tags, pull requests to main, and
+manual dispatch. It includes Linux/macOS race tests, lint, the 10k-operation
+conformance loop, Linux integration, macOS/Windows smoke tests, and both SDKs.
+Match the Go version in `go.mod` and the Bun/linter versions in
+`.github/workflows/ci.yml` when reproducing a CI failure.
+
+The security workflow uses `bun install --frozen-lockfile --ignore-scripts`
+and `bun audit --audit-level=high`. It must fail on installation or audit
+errors. Run it when changing workspace manifests, the lockfile, or its workflow.
+Check the branch runs before creating a release tag, then verify the tag's CI,
+security, and release runs. A successful build alone does not prove CI passed.

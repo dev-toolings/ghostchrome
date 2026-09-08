@@ -5,6 +5,19 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-08
+
+### Fixed
+- Audit the Bun workspace from its frozen lockfile instead of attempting npm
+  and Yarn installs of platform-specific distribution packages.
+- Run the complete CI suite on development branches and release tags, including
+  browser integration and TypeScript/Python SDK validation.
+- Use launcher-owned temporary Chrome profiles in runtime regression tests so
+  shutdown finishes before profile cleanup.
+- Document the intentional trusted-operator URL boundary at the two FastFetch
+  request sites flagged by the SSRF linter.
+
+
 ## [0.7.0] - 2026-09-08
 
 ### Changed

@@ -4,25 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"net/url"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 )
 
-// localChromeConfig returns a Config that launches a throwaway headless Chrome
-// under a temp profile — no named session, no daemon, no --connect.
-func localChromeConfig(t *testing.T) Config {
-	t.Helper()
-	dir := filepath.Join(t.TempDir(), "chrome")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		t.Fatal(err)
-	}
+// localChromeConfig uses a Rod-owned temporary profile. Browser.Close waits
+// for Chrome to exit before deleting it, so test cleanup cannot race profile writes.
+func localChromeConfig() Config {
 	return Config{
 		BrowserOpts: func() engine.BrowserOpts {
-			return engine.BrowserOpts{Headless: true, TimeoutSec: 15, UserDataDir: dir}
+			return engine.BrowserOpts{Headless: true, TimeoutSec: 15}
 		},
 		TimeoutSec: 15,
 	}
@@ -64,7 +57,7 @@ func TestAgentRetainsDialogPolicyAndErrors(t *testing.T) {
 		t.Skip("requires Chrome")
 	}
 	t.Setenv("HOME", t.TempDir())
-	s := New(localChromeConfig(t))
+	s := New(localChromeConfig())
 	t.Cleanup(s.Shutdown)
 	if _, err := s.Dispatch("dialog", json.RawMessage(`{"action":"dismiss"}`)); err != nil {
 		t.Fatal(err)
@@ -131,19 +124,7 @@ func TestMutationAdvancesRefsWithEmbeddedChrome(t *testing.T) {
 		t.Skip("requires Chrome")
 	}
 	t.Setenv("HOME", t.TempDir())
-	// Not t.TempDir for the profile: Chrome may still be releasing it when the
-	// cleanup runs, and a failed RemoveAll would fail an otherwise green test.
-	dir, err := os.MkdirTemp("", "gc-runtime-refs")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
-	s := New(Config{
-		BrowserOpts: func() engine.BrowserOpts {
-			return engine.BrowserOpts{Headless: true, TimeoutSec: 15, UserDataDir: dir}
-		},
-		TimeoutSec: 15,
-	})
+	s := New(localChromeConfig())
 	t.Cleanup(s.Shutdown)
 
 	page := "data:text/html," + url.PathEscape(`<input id=i type=text><button id=b>Go</button>`)

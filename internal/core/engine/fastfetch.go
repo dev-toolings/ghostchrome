@@ -23,7 +23,7 @@ type FastFetchOpts struct {
 }
 
 // FastResult is what FastFetch returns. Blocked means "this page is gated by
-// an anti-bot challenge — do NOT trust the body, fall back to a real browser".
+// an anti-bot challenge : do NOT trust the body, fall back to a real browser".
 //
 // NextData is the raw __NEXT_DATA__ JSON when present; SSRPayloads holds the
 // full set of structured data islands found in the body (Next, Nuxt, Apollo,
@@ -45,6 +45,8 @@ type FastResult struct {
 // the response for SSR data and anti-bot markers. It's a best-effort fast
 // path: callers must check (Blocked || NextData == nil) and decide whether
 // to fall back to a Chrome-driven recipe.
+// The target is selected by the local CLI operator or trusted recipe code;
+// local and private network URLs are supported intentionally.
 func FastFetch(ctx context.Context, url string, opts FastFetchOpts) (*FastResult, error) {
 	timeout := opts.Timeout
 	if timeout <= 0 {
@@ -100,7 +102,7 @@ func fastFetch(ctx context.Context, url string, opts FastFetchOpts, browserTLS b
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil) // #nosec G704 -- Trusted operator-selected URL; private network targets are intentional.
 	if err != nil {
 		return nil, fmt.Errorf("fastfetch: build request: %w", err)
 	}
@@ -130,7 +132,7 @@ func fastFetch(ctx context.Context, url string, opts FastFetchOpts, browserTLS b
 		resp, err = doChromeTLS(req, opts)
 	} else {
 		defer client.CloseIdleConnections()
-		resp, err = client.Do(req)
+		resp, err = client.Do(req) // #nosec G704 -- This CLI fetches trusted operator-selected URLs, including local targets.
 	}
 	if err != nil {
 		return nil, fmt.Errorf("fastfetch: do: %w", err)
@@ -209,7 +211,7 @@ func readResponseBody(resp *http.Response) ([]byte, error) {
 func ExtractNextData(html string) []byte { return extractNextData(html) }
 
 // extractNextData scans for the canonical Next.js SSR data island. We do a
-// fast string search rather than HTML parsing — the marker is unique and
+// fast string search rather than HTML parsing : the marker is unique and
 // the script body never contains a literal "</script>" (Next.js escapes it).
 func extractNextData(html string) []byte {
 	const marker = `<script id="__NEXT_DATA__" type="application/json">`
@@ -255,7 +257,7 @@ func detectAntiBot(status int, html string) (bool, string) {
 	if strings.Contains(lower, "geo.captcha-delivery.com") || strings.Contains(lower, "dd_cookie_test") {
 		// The DataDome SDK (`/tags.js`) is loaded on virtually every
 		// autoscout24 / leboncoin page, even successful ones. Only flag
-		// when the page is clearly the challenge interstitial — i.e.
+		// when the page is clearly the challenge interstitial : i.e.
 		// the body is short and has no real content frame.
 		if len(html) < 30_000 && (strings.Contains(lower, "you have been blocked") ||
 			strings.Contains(lower, "interstitial") ||

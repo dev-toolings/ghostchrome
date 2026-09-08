@@ -1,6 +1,6 @@
 {
   "name": "@ghostchrome/cli-win32-x64",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "ghostchrome prebuilt binary for win32-x64.",
   "repository": {
     "type": "git",

@@ -7,41 +7,41 @@
     },
     "sdk/npm/cli": {
       "name": "@ghostchrome/cli",
-      "version": "0.5.0",
+      "version": "0.7.1",
       "bin": {
         "ghostchrome": "bin/cli.mjs",
       },
       "optionalDependencies": {
-        "@ghostchrome/cli-darwin-arm64": "0.5.0",
-        "@ghostchrome/cli-darwin-x64": "0.5.0",
-        "@ghostchrome/cli-linux-arm64": "0.5.0",
-        "@ghostchrome/cli-linux-x64": "0.5.0",
-        "@ghostchrome/cli-win32-x64": "0.5.0",
+        "@ghostchrome/cli-darwin-arm64": "0.7.1",
+        "@ghostchrome/cli-darwin-x64": "0.7.1",
+        "@ghostchrome/cli-linux-arm64": "0.7.1",
+        "@ghostchrome/cli-linux-x64": "0.7.1",
+        "@ghostchrome/cli-win32-x64": "0.7.1",
       },
     },
     "sdk/npm/cli-darwin-arm64": {
       "name": "@ghostchrome/cli-darwin-arm64",
-      "version": "0.5.0",
+      "version": "0.7.1",
     },
     "sdk/npm/cli-darwin-x64": {
       "name": "@ghostchrome/cli-darwin-x64",
-      "version": "0.5.0",
+      "version": "0.7.1",
     },
     "sdk/npm/cli-linux-arm64": {
       "name": "@ghostchrome/cli-linux-arm64",
-      "version": "0.5.0",
+      "version": "0.7.1",
     },
     "sdk/npm/cli-linux-x64": {
       "name": "@ghostchrome/cli-linux-x64",
-      "version": "0.5.0",
+      "version": "0.7.1",
     },
     "sdk/npm/cli-win32-x64": {
       "name": "@ghostchrome/cli-win32-x64",
-      "version": "0.5.0",
+      "version": "0.7.1",
     },
     "sdk/typescript": {
       "name": "@ghostchrome/sdk",
-      "version": "0.5.0",
+      "version": "0.7.1",
       "devDependencies": {
         "@types/bun": "latest",
         "typescript": "^5.4.0",

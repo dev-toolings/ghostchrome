@@ -148,6 +148,23 @@ commands directly. Use targeted checks for narrow changes. Browser integration
 checks require Chrome; `just e2e` requires an attachable Chrome on port 9222.
 Documentation-only changes require path and diff checks, not a full test run.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on branch pushes, version tags, pull requests
+to main, and manual dispatch. It checks Linux/macOS builds with race detection,
+lint, the 10,000-operation browser loop, Linux integration tests, macOS and
+Windows smoke tests, and both SDKs.
+
+`.github/workflows/security-audit.yml` installs the frozen Bun workspace with
+scripts disabled and runs `bun audit --audit-level=high`, plus the JavaScript
+configuration scan. It runs daily, manually, and for relevant manifest,
+lockfile, workflow, or configuration changes. Installation and audit errors
+must fail the job; do not mask them or substitute another package manager.
+
+Use Go from `go.mod` and the Bun and golangci-lint versions pinned in the
+workflows when reproducing CI. Verify the branch CI and security runs before
+pushing a release tag, then follow the tag's CI, security, and release runs.
+
 ## Key design decisions
 
 - **CLI-first interface**: Shell integration is the default; MCP is an alternative transport.
@@ -209,7 +226,8 @@ Release versions come from Git tags and are embedded with `-X main.version`.
 When preparing a release, update `CHANGELOG.md`, the TypeScript SDK manifest,
 all `sdk/npm/*/package.json` versions and internal optional dependencies, and
 both the Python `pyproject.toml` version and `ghostchrome/__init__.py` version.
-Run `bun install` to refresh the workspace lockfile. Build and validate before
+Run `bun install` and verify workspace versions in `bun.lock` match the
+manifests; version-only changes can retain old workspace metadata. Build and validate before
 pushing the release tag; the tag triggers binary, npm, and PyPI release jobs.
 
 ## SDK synchronization

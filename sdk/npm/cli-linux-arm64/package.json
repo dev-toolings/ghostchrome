@@ -1,6 +1,6 @@
 {
   "name": "@ghostchrome/cli-linux-arm64",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "ghostchrome prebuilt binary for linux-arm64.",
   "repository": {
     "type": "git",

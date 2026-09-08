@@ -7,54 +7,44 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - ".github/workflows/security-audit.yml"
       - "package.json"
-      - "package-lock.json"
       - "bun.lock"
-      - "yarn.lock"
-      - "pnpm-lock.yaml"
-      - "composer.lock"
-      - "requirements*.txt"
-      - "poetry.lock"
+      - "sdk/**/package.json"
+      - "**/*.config.js"
+      - "**/*.config.mjs"
+      - "**/*.config.cjs"
+      - "**/.eslintrc.js"
+      - "**/.prettierrc.js"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/security-audit.yml"
+      - "package.json"
+      - "bun.lock"
+      - "sdk/**/package.json"
+      - "**/*.config.js"
+      - "**/*.config.mjs"
+      - "**/*.config.cjs"
+      - "**/.eslintrc.js"
+      - "**/.prettierrc.js"
 
 permissions:
   contents: read
 
 jobs:
-  npm-audit:
-    name: NPM Audit
+  bun-audit:
+    name: Bun Dependency Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - name: Check for package.json
-        id: check
-        run: test -f package.json && echo "exists=true" >> "$GITHUB_OUTPUT" || echo "exists=false" >> "$GITHUB_OUTPUT"
-
-      - name: Setup Node
-        if: steps.check.outputs.exists == 'true'
-        uses: actions/setup-node@v6
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "lts/*"
-
-      - name: Install dependencies
-        if: steps.check.outputs.exists == 'true'
-        run: npm install --ignore-scripts || yarn install --ignore-scripts || true
-
-      - name: Run npm audit
-        if: steps.check.outputs.exists == 'true'
-        id: audit
-        run: |
-          OUTPUT=$(npm audit 2>&1) || true
-          echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "found 0 vulnerabilities"; then
-            echo "status=clean" >> "$GITHUB_OUTPUT"
-          else
-            echo "status=vulnerable" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Fail if critical/high vulnerabilities
-        if: steps.check.outputs.exists == 'true' && steps.audit.outputs.status == 'vulnerable'
-        run: npm audit --audit-level=high
+          bun-version: "1.3.14"
+      - name: Install the locked workspace dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Reject high and critical vulnerabilities
+        run: bun audit --audit-level=high
 
   obfuscation-scan:
     name: JS Obfuscation Scan
@@ -68,7 +58,7 @@ jobs:
           for f in $(find . -maxdepth 2 -name "*.config.js" -o -name "*.config.mjs" -o -name "*.config.cjs" -o -name ".eslintrc.js" -o -name ".prettierrc.js" | grep -v node_modules); do
             MAX_LINE=$(awk '{ if (length > max) max = length } END { print max }' "$f")
             if [ "${MAX_LINE:-0}" -gt 500 ]; then
-              echo "::error file=$f::Line longer than 500 chars — possible obfuscated payload"
+              echo "::error file=$f::Line longer than 500 chars : possible obfuscated payload"
               FOUND=1
             fi
             if grep -qP 'global\[|_\$_[0-9a-f]' "$f" 2>/dev/null; then

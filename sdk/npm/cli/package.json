@@ -1,6 +1,6 @@
 {
   "name": "@ghostchrome/cli",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Ultra-light browser automation CLI for LLM agents. Single static Go binary, native CDP, playwright-cli-style ergonomics. This package installs the right prebuilt binary for your platform.",
   "keywords": [
     "browser",
@@ -28,11 +28,11 @@
     "bin/cli.mjs"
   ],
   "optionalDependencies": {
-    "@ghostchrome/cli-linux-x64": "0.7.0",
-    "@ghostchrome/cli-linux-arm64": "0.7.0",
-    "@ghostchrome/cli-darwin-x64": "0.7.0",
-    "@ghostchrome/cli-darwin-arm64": "0.7.0",
-    "@ghostchrome/cli-win32-x64": "0.7.0"
+    "@ghostchrome/cli-linux-x64": "0.7.1",
+    "@ghostchrome/cli-linux-arm64": "0.7.1",
+    "@ghostchrome/cli-darwin-x64": "0.7.1",
+    "@ghostchrome/cli-darwin-arm64": "0.7.1",
+    "@ghostchrome/cli-win32-x64": "0.7.1"
   },
   "engines": {
     "node": ">=18"
