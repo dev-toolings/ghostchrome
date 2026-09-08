@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
-	enginemcp "github.com/dev-toolings/ghostchrome/engine/mcp"
+	mcpsurface "github.com/dev-toolings/ghostchrome/internal/surface/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
 )
@@ -91,7 +91,7 @@ The server speaks MCP 2025-11-25 and exposes 16 tools:
 			flagConnect = ws
 			engine.TouchSessionLease(flagSession)
 		}
-		opts := enginemcp.Options{
+		opts := mcpsurface.Options{
 			Connect:        flagConnect,
 			Headless:       flagHeadless,
 			Invisible:      flagInvisible,
@@ -109,7 +109,7 @@ The server speaks MCP 2025-11-25 and exposes 16 tools:
 			// default (15m) so idle sessions can't squat memory indefinitely.
 			IdleTimeout: mcpIdleTimeout(),
 		}
-		s := enginemcp.New(opts)
+		s := mcpsurface.New(opts)
 		defer s.Close()
 		s.StartIdleReaper()
 

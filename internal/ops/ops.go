@@ -4,7 +4,7 @@
 // and which surfaces expose each op. The three live surfaces are:
 //
 //   - "jsonl" — cmd/agent.go JSONL loop (dispatch switch)
-//   - "mcp"   — engine/mcp/tools.go (registerTools)
+//   - "mcp"   — internal/surface/mcp/tools.go (registerTools)
 //   - "ai"    — engine/ai/tools.go (ToolSpecs)
 //
 // IMPORTANT: this file is additive. The three surface files are NOT modified

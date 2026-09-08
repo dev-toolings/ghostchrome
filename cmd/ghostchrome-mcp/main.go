@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	enginemcp "github.com/dev-toolings/ghostchrome/engine/mcp"
+	mcpsurface "github.com/dev-toolings/ghostchrome/internal/surface/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 )
 
@@ -36,7 +36,7 @@ func main() {
 		fmt.Println(version)
 		return
 	}
-	opts := enginemcp.Options{
+	opts := mcpsurface.Options{
 		Connect:     os.Getenv("GHOSTCHROME_CONNECT"),
 		Headless:    envBool("GHOSTCHROME_HEADLESS", true),
 		Stealth:     envBool("GHOSTCHROME_STEALTH", false) || hasArg("--stealth"),
@@ -46,7 +46,7 @@ func main() {
 		IdleTimeout: mcpIdleTimeout(),
 	}
 
-	s := enginemcp.New(opts)
+	s := mcpsurface.New(opts)
 	defer s.Close()
 	s.StartIdleReaper()
 
