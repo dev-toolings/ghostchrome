@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dev-toolings/ghostchrome/internal/core/media"
 	"github.com/go-rod/rod/lib/proto"
 )
 
@@ -82,7 +83,7 @@ func RunVideoRuntime(ctx context.Context, opts VideoRuntimeOpts) (err error) {
 	if err := writeVideoRuntimeStatus(opts.StatusPath, VideoRuntimeStatus{State: "starting"}); err != nil {
 		return err
 	}
-	var recorder *ScreenRecorder
+	var recorder *media.ScreenRecorder
 	var startedAt time.Time
 	defer func() {
 		if err == nil {
@@ -119,7 +120,7 @@ func RunVideoRuntime(ctx context.Context, opts VideoRuntimeOpts) (err error) {
 		return fmt.Errorf("video runtime bring target to front: %w", err)
 	}
 
-	recorder = NewScreenRecorder(page, ScreenRecorderOpts{OutputDir: opts.FramesDir})
+	recorder = media.NewScreenRecorder(page, media.ScreenRecorderOpts{OutputDir: opts.FramesDir})
 	if err := recorder.Start(); err != nil {
 		return err
 	}

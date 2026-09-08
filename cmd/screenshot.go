@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/media"
 	"github.com/spf13/cobra"
 )
 
@@ -108,12 +109,12 @@ Examples:
 		sizeBytes := len(data)
 
 		type screenshotResult struct {
-			Path      string                  `json:"path"`
-			SizeBytes int                     `json:"size_bytes"`
-			Diff      *engine.ImageDiffResult `json:"diff,omitempty"`
+			Path      string                 `json:"path"`
+			SizeBytes int                    `json:"size_bytes"`
+			Diff      *media.ImageDiffResult `json:"diff,omitempty"`
 		}
 
-		var diffResult *engine.ImageDiffResult
+		var diffResult *media.ImageDiffResult
 		if flagScreenshotBaseline != "" {
 			diffResult = runScreenshotDiff(outPath, data)
 		}
@@ -144,7 +145,7 @@ func defaultScreenshotDir() (string, error) {
 // runScreenshotDiff compares currentPNG to the baseline file on disk and
 // exits 1 when the diff ratio exceeds --threshold. If --update is set, the
 // current PNG replaces the baseline and the function returns nil.
-func runScreenshotDiff(currentPath string, current []byte) *engine.ImageDiffResult {
+func runScreenshotDiff(currentPath string, current []byte) *media.ImageDiffResult {
 	// Validate baseline path
 	baselinePath, err := validateOutputPath(flagScreenshotBaseline)
 	if err != nil {
@@ -183,7 +184,7 @@ func runScreenshotDiff(currentPath string, current []byte) *engine.ImageDiffResu
 		diffPath = validatedDiffPath
 	}
 
-	res, err := engine.DiffImages(baseline, current, flagScreenshotTolerance, diffPath)
+	res, err := media.DiffImages(baseline, current, flagScreenshotTolerance, diffPath)
 	if err != nil {
 		exitErr("screenshot diff", err)
 	}
