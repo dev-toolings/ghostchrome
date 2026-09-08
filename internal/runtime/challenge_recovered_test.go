@@ -1,4 +1,4 @@
-package cmd
+package runtime
 
 import "testing"
 
@@ -6,7 +6,7 @@ import "testing"
 // opt-in flag resets it: only the "extract" immediately after a recovered
 // "navigate" should see it as true.
 func TestConsumeChallengeRecoveredIsOneShot(t *testing.T) {
-	s := &agentSession{challengeRecovered: true}
+	s := &Session{challengeRecovered: true}
 
 	if got := s.consumeChallengeRecovered(); !got {
 		t.Fatal("expected first consume to observe the recovered flag")
@@ -41,15 +41,15 @@ func TestResetsChallengeRecoveredOpList(t *testing.T) {
 }
 
 // TestDispatchResetsChallengeRecoveredOnPageChangingOp exercises the actual
-// dispatch() entry point: a page-changing op must reset the flag even when
+// Dispatch() entry point: a page-changing op must reset the flag even when
 // the handler itself errors out early on invalid args (i.e. before ever
 // touching a page), so this stays a network-free, browser-free unit test.
 func TestDispatchResetsChallengeRecoveredOnPageChangingOp(t *testing.T) {
-	s := &agentSession{challengeRecovered: true}
+	s := &Session{challengeRecovered: true}
 
 	// "click" validates its ref before calling ensurePage(); an empty ref
 	// short-circuits with an error and never launches a browser.
-	if _, err := s.dispatch(agentRequest{Op: "click", Args: nil}); err == nil {
+	if _, err := s.Dispatch("click", nil); err == nil {
 		t.Fatal("expected click with no ref to error out")
 	}
 	if s.challengeRecovered {
@@ -60,9 +60,9 @@ func TestDispatchResetsChallengeRecoveredOnPageChangingOp(t *testing.T) {
 // TestDispatchDoesNotResetChallengeRecoveredOnNonPageChangingOp mirrors the
 // above for an op that must NOT touch the flag.
 func TestDispatchDoesNotResetChallengeRecoveredOnNonPageChangingOp(t *testing.T) {
-	s := &agentSession{challengeRecovered: true}
+	s := &Session{challengeRecovered: true}
 
-	if _, err := s.dispatch(agentRequest{Op: "hover", Args: nil}); err == nil {
+	if _, err := s.Dispatch("hover", nil); err == nil {
 		t.Fatal("expected hover with no ref to error out")
 	}
 	if !s.challengeRecovered {

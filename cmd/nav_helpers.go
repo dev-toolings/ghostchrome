@@ -25,7 +25,7 @@ import (
 var navChallengeRecovered bool
 
 // consumeNavChallengeRecovered returns the current flag and resets it to
-// false, mirroring agentSession.consumeChallengeRecovered.
+// false, mirroring runtime.Session.consumeChallengeRecovered.
 func consumeNavChallengeRecovered() bool {
 	v := navChallengeRecovered
 	navChallengeRecovered = false

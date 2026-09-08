@@ -1,7 +1,7 @@
 package ai
 
 // ToolSpecs returns the tool catalog exposed to the LLM. The names match
-// the JSONL ops dispatched by cmd/agent.go's agentSession.dispatch — this
+// the JSONL ops dispatched by internal/runtime.Session.Dispatch — this
 // is intentional: the LLM can read CLAUDE.md / agent docs and pick the
 // same op names a human operator would.
 //

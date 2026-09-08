@@ -10,6 +10,7 @@ import (
 
 	"github.com/dev-toolings/ghostchrome/engine/ai"
 	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
+	"github.com/dev-toolings/ghostchrome/internal/runtime"
 	"github.com/spf13/cobra"
 )
 
@@ -71,10 +72,10 @@ func runAI(_ *cobra.Command, args []string) {
 	}
 
 	sess := newAgentSession()
-	defer sess.shutdown()
+	defer sess.Shutdown()
 
 	// Open the browser (reuses --connect / --user-profile / --stealth).
-	if _, _, err := sess.ensurePage(); err != nil {
+	if _, _, err := sess.EnsurePage(); err != nil {
 		exitErr("ai", err)
 	}
 
@@ -82,7 +83,7 @@ func runAI(_ *cobra.Command, args []string) {
 	// shaves a step and keeps the first observation grounded.
 	if aiURL != "" {
 		raw, _ := json.Marshal(map[string]string{"url": aiURL, "wait": "load"})
-		if _, _, _, err := sess.runOp("navigate", raw); err != nil {
+		if _, _, _, err := sess.RunOp("navigate", raw); err != nil {
 			exitErr("ai navigate", err)
 		}
 	}
@@ -109,19 +110,21 @@ func runAI(_ *cobra.Command, args []string) {
 	emitAIResult(result)
 }
 
-// agentRunner is the bridge between engine/ai and the cmd-local agentSession.
-type agentRunner struct{ sess *agentSession }
+// agentRunner is the bridge between engine/ai and the shared internal/runtime
+// session: the `ai` loop drives exactly the same ops as the JSONL loop.
+type agentRunner struct{ sess *runtime.Session }
 
 func (r *agentRunner) RunOp(op string, args json.RawMessage) (any, *feedback.Observation, error) {
-	result, obs, _, err := r.sess.runOp(op, args)
+	result, obs, _, err := r.sess.RunOp(op, args)
 	return result, obs, err
 }
 
 func (r *agentRunner) CurrentURL() string {
-	if r.sess.page == nil {
+	page := r.sess.Page()
+	if page == nil {
 		return ""
 	}
-	info, _ := r.sess.page.Info()
+	info, _ := page.Info()
 	if info == nil {
 		return ""
 	}

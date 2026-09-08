@@ -57,7 +57,7 @@ type ToolSpec struct {
 }
 
 // Runner is the adapter the loop uses to actually execute tools against the
-// browser. cmd/ai.go provides an implementation that wraps an agentSession.
+// browser. cmd/ai.go provides an implementation that wraps a runtime.Session.
 type Runner interface {
 	RunOp(op string, args json.RawMessage) (result any, obs *feedback.Observation, err error)
 	CurrentURL() string
