@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/proxy"
 	"github.com/go-rod/rod"
 )
 
@@ -331,7 +332,7 @@ func applyStealthIfNeeded(page *rod.Page) {
 		scancel()
 	}
 	if flagProxy != "" && flagConnect == "" {
-		if err := engine.ApplyProxyAuth(page, flagProxy); err != nil {
+		if err := proxy.ApplyProxyAuth(page, flagProxy); err != nil {
 			exitErr("proxy-auth", err)
 		}
 	}
