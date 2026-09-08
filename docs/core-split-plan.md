@@ -1,6 +1,6 @@
 # ghostchrome, phase 1 domain extraction: interfaces to extract, 1c decision, follow-ups
 
-Companion to `ARCHITECTURE-AUDIT.md`. Measured at `2808f29`, right after the
+Companion to `docs/architecture-audit.md`. Measured at `2808f29`, right after the
 phase 1 domain extraction. It answers one question: what has to happen for the
 remaining 54-file `engine` core to be split, and in which order.
 
@@ -412,7 +412,7 @@ if argued; here is the argument.
 
 Renaming package `engine` to `core` at path `internal/core` places a package of
 roughly 230 exported symbols **at the root of `internal/core`**. The phase 1
-acceptance criterion in `ARCHITECTURE-AUDIT.md` says, verbatim:
+acceptance criterion in `docs/architecture-audit.md` says, verbatim:
 
 > exports de `internal/core` (racine) = 0
 
@@ -516,7 +516,7 @@ measured: `go install github.com/MakFly/ghostchrome@latest` in a documentation
 file is not something a Go build would ever surface.
 
 There is a coherent explanation for why those two lines are new to the tracked
-set: `docs/` was gitignored until very recently. `ARCHITECTURE-AUDIT.md` finding
+set: `docs/` was gitignored until very recently. `docs/architecture-audit.md` finding
 F8 records that `.gitignore:65` contained `docs/` and that only 2 of 11 doc files
 were versioned. Commit `19525a0` ("docs: version the documentation directory")
 brought the rest in. Those two stale install commands were therefore invisible to
@@ -546,7 +546,7 @@ describing the pre-`771066c` layout, with `engine/policy/`, `engine/vault/`,
 
 - `docs/architecture.md:72,154,155,156,157,158,235,240`
 - `.referential/project-map.md:45`
-- `ARCHITECTURE-AUDIT.md:19,20,95` (historical by nature, arguably fine as-is)
+- `docs/architecture-audit.md:19,20,95` (historical by nature, arguably fine as-is)
 
 I deliberately left all of them alone: `yamato-hygiene` was working `docs/` at the
 time and `docs/architecture.md` additionally needs the Unicode box-drawing to

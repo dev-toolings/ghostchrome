@@ -26,13 +26,15 @@ The project optimizes for:
 | `internal/compat/playwright/` | Playwright CLI config schema and value rules. |
 | `internal/ops/` | Canonical operation catalog; `internal/ops/gen` renders every surface registration from it. |
 | `contracts/` | Generated command/op contract consumed by SDK coverage tests. |
+| `tools/deploy/` | Deployment helpers. |
+| `.local/` | Ignored binaries, browser captures, and scratch notes. |
 | `docs/` | Human documentation for architecture, CLI, MCP, anti-bot, fast path, recipes. |
 | `sdk/typescript/` | TypeScript JSONL agent client, Bun-based tests/build. |
 | `sdk/python/` | Python JSONL agent client, stdlib runtime and unittest tests. |
-| `examples/` | End-to-end SDK examples. |
-| `benchmark/` | Benchmark fixtures, runner, and result docs. |
+| `sdk/examples/` | End-to-end SDK examples. |
+| `tools/benchmark/` | Benchmark fixtures, runner, and result docs. |
 | `recipes/<site>/` | Private site scrapers. Gitignored, built only with `-tags recipes`. |
-| `dist/npm/` | Six versioned npm distribution manifests (`@ghostchrome/cli` + 5 platforms). |
+| `sdk/npm/` | Six versioned npm distribution manifests (`@ghostchrome/cli` + 5 platforms). |
 | `.claude/skills/ghostchrome/` | Embedded agent skill bundled into the binary. |
 
 ## Engine Responsibilities

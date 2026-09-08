@@ -1,0 +1,40 @@
+{
+  "name": "@ghostchrome/cli",
+  "version": "0.7.0",
+  "description": "Ultra-light browser automation CLI for LLM agents. Single static Go binary, native CDP, playwright-cli-style ergonomics. This package installs the right prebuilt binary for your platform.",
+  "keywords": [
+    "browser",
+    "automation",
+    "cdp",
+    "chrome",
+    "llm",
+    "agent",
+    "playwright",
+    "scraping",
+    "cli"
+  ],
+  "homepage": "https://github.com/dev-toolings/ghostchrome#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dev-toolings/ghostchrome.git",
+    "directory": "sdk/npm/cli"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ghostchrome": "bin/cli.mjs"
+  },
+  "files": [
+    "bin/cli.mjs"
+  ],
+  "optionalDependencies": {
+    "@ghostchrome/cli-linux-x64": "0.7.0",
+    "@ghostchrome/cli-linux-arm64": "0.7.0",
+    "@ghostchrome/cli-darwin-x64": "0.7.0",
+    "@ghostchrome/cli-darwin-arm64": "0.7.0",
+    "@ghostchrome/cli-win32-x64": "0.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

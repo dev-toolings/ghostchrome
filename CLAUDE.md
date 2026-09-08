@@ -1,4 +1,4 @@
-# CLAUDE.md — ghostchrome
+# CLAUDE.md: ghostchrome
 
 ## Project overview
 
@@ -11,45 +11,146 @@ first for the current source-of-truth map, then use `.referential/project-map.md
 `.referential/change-workflows.md`, and `.referential/validation.md` as the local
 working reference for architecture, change workflows, and validation scope.
 
-## Architecture
+## Keep this document current
 
+This file is a maintained project reference. Update it as part of the same change
+whenever you add, remove, rename, or move a directory, change module ownership,
+alter a runtime or installation flow, change a development command, or change
+the SDK, contract, generation, or release workflow. Do not leave this work for a
+later cleanup or wait for the user to request a documentation update.
+
+Before completing a task:
+
+1. Compare the final implementation and repository layout with this document.
+2. Correct affected paths, responsibilities, commands, and policies here.
+3. Update the relevant pages in `.referential/` and `docs/`, and the public
+   `README.md` when the change affects their content.
+4. Check that documented paths exist and commands match the current scripts.
+   Report what you actually validated; do not claim unrun checks passed.
+
+Describe the current implementation separately from proposed work. Verify facts
+against source files and executable behavior rather than copying historical
+reports. Read versions from package manifests and coverage from tests instead
+of keeping an unverified status snapshot here.
+
+`AGENTS.md` is a symlink to `CLAUDE.md`. Preserve that link so both agent entry
+points use the same instructions. Keep this entire document in English.
+
+## Repository architecture
+
+```text
+ghostchrome/
++-- cmd/
+|   +-- ghostchrome/          CLI entry point
+|   +-- ghostchrome-mcp/      Standalone MCP entry point
++-- internal/
+|   +-- surface/
+|   |   +-- cli/             Cobra commands and JSONL agent loop
+|   |   +-- mcp/             MCP protocol adapter
+|   |   +-- ai/              LLM tool adapter
+|   +-- runtime/             Shared operation dispatch and handlers
+|   +-- core/                Browser engine and supporting packages
+|   +-- ops/                 Operation catalog and generators
+|   +-- setup/               Installation, skills, and diagnostics
+|   +-- compat/playwright/   Playwright CLI configuration contract
++-- contracts/               Generated operation contract
++-- sdk/
+|   +-- typescript/          Typed TypeScript JSONL client
+|   +-- python/              Typed Python JSONL client
+|   +-- examples/            SDK and integration examples
+|   +-- npm/                 CLI distribution package manifests and launcher
++-- tools/
+|   +-- benchmark/           Fixtures, runners, reports, and comparison tools
+|   +-- deploy/              Deployment helpers, including SearXNG
++-- scripts/                 Installers and validation scripts
++-- docs/                    Documentation, architecture audit, and plans
++-- recipes/                 Private local scraping implementations
++-- .claude/skills/ghostchrome/  Canonical embedded agent skill
++-- .github/workflows/       CI and release automation
++-- .referential/            Agent reference and validation guides
++-- .local/                  Ignored binaries, captures, and scratch notes
 ```
-cmd/ghostchrome/ -> internal/surface/cli/ -> internal/core/engine/ -> Chrome
-```
 
-- `cmd/ghostchrome/`, `cmd/ghostchrome-mcp/` — thin mains, nothing else lives here
-- `skillbundle.go` — the repo-root package that owns the `//go:embed` of
-  `.claude/skills/ghostchrome`; embed patterns cannot escape their own directory
-- `internal/surface/cli/*.go` — One file per cobra command
-- `internal/surface/mcp/`, `internal/surface/ai/` — the other wire surfaces
-- `internal/runtime/` — one op implementation, shared by every surface
-- `internal/setup/` — installation, transports, skills, diagnostics
-- `internal/compat/playwright/` — the Playwright CLI config contract
-- `internal/core/engine/browser.go` — Browser lifecycle (connect/launch/close)
-- `internal/core/engine/navigator.go` — Page navigation with wait strategies
-- `internal/core/engine/extractor.go` — CDP Accessibility tree → compact DOM with refs (@1, @2)
-- `internal/core/engine/interactor.go` — Click, type, hover, select, press, viewport, tabs, dialog
-- `internal/core/engine/errors.go` — Console + network error collection
-- `internal/core/engine/preview.go` — All-in-one page health report
-- `internal/core/engine/stealth.go` — Anti-detection patches
-- `internal/core/antibot/cookies.go` — Cookie banner auto-dismiss
-- `internal/ops/` — Canonical op catalog (single source of truth); `go generate` emits `contracts/commands.json` **and** the JSONL/MCP/AI registrations, so a surface cannot expose an op the catalog does not declare
-- `contracts/commands.json` — Generated op contract the SDKs are typed against
-- `sdk/typescript/`, `sdk/python/` — In-repo typed SDKs; thin clients that spawn a persistent `ghostchrome agent` subprocess and speak the JSONL protocol over stdio
-- `examples/` — Runnable end-to-end examples (TS + Python) attaching via `--connect=auto`
-- `recipes/<site>/` + `internal/surface/cli/<site>.go` — Site scrapers, **gitignored** (kept on disk, never committed), compiled in only via `go build -tags recipes ./cmd/ghostchrome`
+### Ownership and execution
 
-## Build & test
+- `cmd/` contains thin executable entry points. Application logic belongs in
+  `internal/`.
+- `internal/surface/cli/` owns Cobra commands and the JSONL agent loop.
+  `internal/surface/mcp/` and `internal/surface/ai/` adapt their respective
+  protocols. Shared catalog operations use `internal/runtime/`; CLI commands
+  may also call core packages directly.
+- `internal/runtime/` owns the shared operation handlers and dispatch table.
+  SDKs spawn a persistent `ghostchrome agent` subprocess and exchange JSONL
+  messages over standard input and output.
+- `internal/core/engine/` owns browser lifecycle, navigation, extraction,
+  interaction, and observation through Rod and CDP. Key files include
+  `browser.go`, `navigator.go`, `extractor.go`, `interactor.go`,
+  `errors.go`, `preview.go`, and `stealth.go`.
+- Supporting core packages are `antibot`, `artifact`, `coretest`,
+  `dashboard`, `feedback`, `inspect`, `interact`, `media`, `overlay`,
+  `pagesetup`, `policy`, `provider`, `proxy`, `sites`, `storage`,
+  and `vault`. Keep features with their owning package.
+- `internal/ops/ops.go` is the canonical operation catalog. Its generators
+  emit `contracts/commands.json`, `internal/runtime/handlers_gen.go`,
+  `internal/surface/mcp/tools_gen.go`, and
+  `internal/surface/ai/tools_gen.go`. Change the catalog and generator
+  inputs, then regenerate; do not hand-edit generated files.
+- `internal/setup/` owns installation modes, transports, skills, and
+  diagnostics. The root `skillbundle.go` embeds
+  `.claude/skills/ghostchrome/` because Go embed patterns cannot escape
+  their declaring package directory.
+- Private scrapers live under `recipes/<site>/`, with command adapters under
+  `internal/surface/cli/`. Keep private recipe files gitignored and compile
+  their adapters only with `go build -tags recipes ./cmd/ghostchrome`.
+
+### Keep the root small
+
+Keep root files only when they are required by tooling or provide a public entry
+point: Go module files, `skillbundle.go`, Bun workspace files, `justfile`,
+`install.sh`, repository configuration, `README.md`, `CHANGELOG.md`,
+`LICENSE`, and agent instructions.
+
+Place new documentation and reports in `docs/`, development and deployment
+tools in `tools/`, SDK examples in `sdk/examples/`, and npm distribution
+sources in `sdk/npm/`. Place local binaries in `.local/bin/` and local
+captures or scratch notes in `.local/`. Do not commit private artifacts or
+recreate the former root-level benchmark, deploy, or examples directories.
+
+Bun manages the root `node_modules/` directory. Release CI writes generated
+artifacts to the ignored root `dist/` directory; npm package sources stay in
+`sdk/npm/`.
+
+## Build and validation
+
+Run from the repository root unless a command explicitly changes directories:
 
 ```bash
-go build -o ghostchrome ./cmd/ghostchrome
-go test ./internal/core/engine/...
-./ghostchrome preview https://example.com
+# Compile all packages without emitting a root binary.
+go build ./...
+
+# Build a local executable.
+go build -o .local/bin/ghostchrome ./cmd/ghostchrome
+
+# Run the hermetic Go suite.
+go test -short ./...
+
+# Check private recipe compilation when changing its paths or adapters.
+go build -tags recipes ./...
+
+# Run the SDK suites.
+(cd sdk/typescript && bun install && bunx tsc --noEmit && bun test)
+(cd sdk/python && python3 -m unittest discover -s tests -q)
 ```
+
+The root `justfile` provides `build`, `test`, `test-all`, `contract`,
+`install`, and `e2e` shortcuts. If `just` is unavailable, run the equivalent
+commands directly. Use targeted checks for narrow changes. Browser integration
+checks require Chrome; `just e2e` requires an attachable Chrome on port 9222.
+Documentation-only changes require path and diff checks, not a full test run.
 
 ## Key design decisions
 
-- **CLI over MCP**: CLI is the 2026 trend for browser-LLM integration. Simpler, no JSON-RPC overhead.
+- **CLI-first interface**: Shell integration is the default; MCP is an alternative transport.
 - **Rod over chromedp**: Decode-on-demand, no zombie processes, native iframe support.
 - **Filtered accessibility tree**: Only interactive elements get refs. 7-25x fewer tokens than full a11y tree.
 - **Three extraction levels**: skeleton (minimal) / content (text) / full (everything named).
@@ -91,8 +192,11 @@ global AGENTS/CLAUDE instruction edits explicit with `setup instructions --write
 
 - Language: English for code, comments, and commits
 - Commits: Conventional Commits (`feat:`, `fix:`, `chore:`, etc.)
-- Package manager: Go modules only
-- No external runtime dependencies (single static binary)
+- Dependencies: Go modules for Go; Bun for the JavaScript workspace. Do not use npm or npx.
+- The Go executable is a single static binary; browser operations require Chrome.
+- Use English for documentation and project instructions as well.
+- Do not use em dashes or en dashes as sentence asides. Rewrite with commas,
+  parentheses, a colon, or separate sentences.
 
 ## Versioning
 
@@ -101,17 +205,20 @@ Follow SemVer (vMAJOR.MINOR.PATCH):
 - MINOR: New commands or flags (backward compatible)
 - PATCH: Bug fixes, performance improvements
 
+Release versions come from Git tags and are embedded with `-X main.version`.
+When preparing a release, update `CHANGELOG.md`, the TypeScript SDK manifest,
+all `sdk/npm/*/package.json` versions and internal optional dependencies, and
+both the Python `pyproject.toml` version and `ghostchrome/__init__.py` version.
+Run `bun install` to refresh the workspace lockfile. Build and validate before
+pushing the release tag; the tag triggers binary, npm, and PyPI release jobs.
+
 ## SDK synchronization
 
 The SDKs live **in this repo** under `sdk/typescript/` and `sdk/python/` (TypeScript
-and Python only — no external `../ghostchrome-sdk` repo, no PHP). They are typed
+and Python only: no external `../ghostchrome-sdk` repo, no PHP). They are typed
 against the generated contract and driven by the JSONL `agent` loop.
 
-Status: both SDKs are at **v0.5.0**, cover **100% of the JSONL-surface ops**, are
-publish-ready (TS `bun run build` → `dist/`; Python ships `py.typed`), and their
-result types are matched to what the binary actually emits.
-
-### Stay in the truth — ALWAYS re-measure, never guess
+### Stay in the truth: ALWAYS re-measure, never guess
 
 The op *names / args / surfaces* have a single source of truth: `internal/ops/`
 (the canonical catalog, which generates `contracts/commands.json`). But the op
@@ -125,12 +232,14 @@ Rule: before changing the SDK or the contract, **measure the live binary**:
 ```bash
 # 1. start a Chrome the agent can attach to
 google-chrome --headless=new --remote-debugging-port=9222 --user-data-dir=/tmp/gc-measure about:blank &
-# 2. print the REAL result shape of every JSONL op
-scripts/measure-agent-ops.sh
+# 2. build the binary being measured and inspect the script's sampled ops
+go build -o .local/bin/ghostchrome ./cmd/ghostchrome
+GHOSTCHROME_BIN="$PWD/.local/bin/ghostchrome" scripts/measure-agent-ops.sh
 ```
 
-The shapes it prints are ground truth (read from the binary, cannot drift). Make
-the SDK types match that output, not your assumptions.
+The measured shapes are evidence for that binary and those sampled operations.
+Measure any changed operation missing from the script separately. Make SDK types
+match the observed output, not assumptions.
 
 ### Change workflow
 
@@ -142,11 +251,10 @@ the SDK types match that output, not your assumptions.
 3. Update the typed wrappers in `sdk/typescript/src/` and `sdk/python/ghostchrome/`
    plus their hermetic tests (`bun test`, `python -m unittest discover -s tests`).
    Each SDK has a contract-coverage test asserting every JSONL op has a method.
-4. Update or add an `examples/` script if usage changed; re-run the e2e
+4. Update or add an `sdk/examples/` script if usage changed; re-run the e2e
    (`just e2e` against a live Chrome) so real shapes flow through both SDKs.
-5. The three surfaces are generated, so they cannot drift from the catalog.
-   `internal/ops/gen` has the one test that still matters: it fails if the
-   committed generated files are not what the current catalog produces.
+5. Run `go test ./internal/ops/...` to verify catalog consistency and generated
+   file freshness, alongside the relevant runtime and SDK tests.
 
 Build/test everything via the root `justfile` (`build`, `test`, `test-all`,
 `contract`, `e2e`) or directly: `go test ./...`, then the two SDK suites.

@@ -80,7 +80,7 @@ other direction the rule is not yet absolute. `internal/surface/cli`,
 `internal/surface/mcp` and `internal/surface/ai` all import
 `internal/runtime` **and** `internal/core/*` directly, so a surface can still
 reach past the orchestrator. That is the remaining gap between this tree and
-the target described in `ARCHITECTURE-AUDIT.md`, and it is stated here rather
+the target described in `docs/architecture-audit.md`, and it is stated here rather
 than drawn as if it were already closed.
 
 ## The catalog generates the surfaces
@@ -246,10 +246,10 @@ Legend:
 | `internal/setup/` | Installation state, CLI/MCP transport selection, global instructions, `doctor`, embedded skill copy. |
 | `internal/compat/playwright/` | The Playwright CLI config schema and its value rules. |
 | `sdk/typescript/`, `sdk/python/` | Thin clients that spawn `ghostchrome agent` and speak the JSONL protocol. |
-| `dist/npm/` | Six versioned npm distribution manifests: the `@ghostchrome/cli` meta package plus five per-platform packages. Not build output. |
+| `sdk/npm/` | Six versioned npm distribution manifests: the `@ghostchrome/cli` meta package plus five per-platform packages. Not build output. |
 | `recipes/<site>/` | Private site scrapers, gitignored, compiled in only with `go build -tags recipes`. Their cobra entry points are `internal/surface/cli/<site>.go`, also gitignored. |
-| `benchmark/` | Fixtures, runner and recorded results. |
-| `examples/` | Runnable end-to-end TypeScript and Python examples. |
+| `tools/benchmark/` | Fixtures, runner and recorded results. |
+| `sdk/examples/` | Runnable end-to-end TypeScript and Python examples. |
 
 ## Execution modes
 

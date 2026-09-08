@@ -43,9 +43,9 @@ The measured output is ground truth for runtime result shapes.
 Requires a running Chrome on port 9222:
 
 ```bash
-go build -o ghostchrome ./cmd/ghostchrome
-GHOSTCHROME_BIN="$PWD/ghostchrome" bun run examples/typescript/chronovet.ts https://www.chronovet.fr/
-GHOSTCHROME_BIN="$PWD/ghostchrome" python3 examples/python/chronovet.py https://www.chronovet.fr/
+go build -o .local/bin/ghostchrome ./cmd/ghostchrome
+GHOSTCHROME_BIN="$PWD/.local/bin/ghostchrome" bun run sdk/examples/typescript/chronovet.ts https://www.chronovet.fr/
+GHOSTCHROME_BIN="$PWD/.local/bin/ghostchrome" python3 sdk/examples/python/chronovet.py https://www.chronovet.fr/
 ```
 
 Or use the shortcut:

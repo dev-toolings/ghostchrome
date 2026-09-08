@@ -41,7 +41,7 @@ latency to the click hot path.
 
 | Gate | Acceptance | Evidence |
 |---|---|---|
-| Warm latency | p95 ≤ agent-browser baseline + 10% on n=100 | `benchmark/results-agent-browser-click.md` |
+| Warm latency | p95 ≤ agent-browser baseline + 10% on n=100 | `tools/benchmark/results-agent-browser-click.md` |
 | Core correctness | ≥99.9% successful operations over 10,000 clicks/diffs | `TestConformanceCoreLoop` |
 | Soak | 8 h continuous loop, zero failures | `TestConformanceDuration` |
 | Stability | zero deadlocks/crashes during soak and targeted browser tests | test logs + CI |
@@ -54,12 +54,12 @@ long-running stress check reached 35,327 operations with 0 failures before it
 was intentionally stopped; it is an optional last-resort release check, not a
 runtime prerequisite.
 
-At the 29:00–30:00 minute stability sample, the test process stayed at 25
+At the 29:00-30:00 minute stability sample, the test process stayed at 25
 threads and 9 file descriptors (RSS 31.4 MiB); the engine child stayed at 20
 threads and 13 descriptors (RSS 45.1→45.7 MiB). This is a short sample, not a
 substitute for the full soak leak gate.
 
-A later 37:38–38:44 minute sample held at 20 engine threads and 13 file
+A later 37:38-38:44 minute sample held at 20 engine threads and 13 file
 descriptors, with RSS 52.4→52.5 MiB; the test process remained at 25 threads,
 9 descriptors, and 31.4 MiB RSS.
 
@@ -101,7 +101,7 @@ descriptors, with RSS 52.4→52.5 MiB; the test process remained at 25 threads,
 go test -short -count=1 -race ./...
 go test ./engine -run 'TestConformanceCoreLoop|TestCaptureMutationWaitsForXHR' \
   -count=1 -timeout 20m
-PLAYWRIGHT_CLI_BIN=/bin/false python3 benchmark/click-vs-agent-browser.py 100
+PLAYWRIGHT_CLI_BIN=/bin/false python3 tools/benchmark/click-vs-agent-browser.py 100
 GHOSTCHROME_SOAK=1 GHOSTCHROME_SOAK_DURATION=8h \
   go test ./engine -run TestConformanceDuration -count=1 -timeout 9h -v
 ```

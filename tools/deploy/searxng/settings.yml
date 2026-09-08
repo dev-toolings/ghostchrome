@@ -1,0 +1,55 @@
+# SearXNG override settings for the ghostchrome websearch provider.
+# Only the keys below override the image defaults (use_default_settings: true).
+#
+# Key requirements for a machine-consumable JSON search API:
+#   - search.formats must include `json` (else: 403 "format not enabled")
+#   - server.limiter must be false (the bot limiter blocks non-browser clients,
+#     which is exactly what our HTTP provider is)
+#   - valkey.url points at the shared infra-redis (base 3)
+use_default_settings:
+  engines:
+    # Only REMOVE engines with no network aliases. Tor hidden-service engines
+    # cannot load without a Tor proxy ("can't register engine") and nothing
+    # else references their network : safe to drop.
+    remove:
+      - ahmia
+      - torch
+
+general:
+  instance_name: "ghostchrome-websearch"
+  # Keep the instance private-ish: no public stats leakage.
+  enable_metrics: false
+
+server:
+  # Replaced at container start by the SEARXNG_SECRET env var (see compose).
+  secret_key: "ultrasecretkey"
+  # Disable the bot limiter so the JSON API is reachable from our HTTP client.
+  # Safe because this instance is NOT exposed publicly (dev/perso, cf. PRD §7).
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+search:
+  # Enable the JSON output format consumed by recipes/websearch/searxng.go.
+  formats:
+    - html
+    - json
+  # Reasonable defaults for LLM-facing results.
+  default_lang: "auto"
+  safe_search: 0
+
+valkey:
+  # Shared infra cache, isolated on logical DB 3. (redis:// scheme is accepted
+  # by the valkey client : infra-redis is protocol-compatible.)
+  url: redis://infra-redis:6379/3
+
+engines:
+  # DISABLE (not remove) these : other engines alias their network, so removing
+  # them crashes init (KeyError). Disabled = never queried, so no runtime noise:
+  #   brave      : rate-limits this instance ("Too many request").
+  #   duckduckgo : CAPTCHA-gated from datacenter IPs : and the recipe already
+  #                has a first-class DDG fallback provider of its own.
+  - name: brave
+    disabled: true
+  - name: duckduckgo
+    disabled: true

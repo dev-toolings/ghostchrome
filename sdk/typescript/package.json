@@ -1,7 +1,7 @@
 {
   "name": "@ghostchrome/sdk",
-  "version": "0.5.0",
-  "description": "TypeScript SDK for ghostchrome — typed JSONL agent client",
+  "version": "0.7.0",
+  "description": "TypeScript SDK for ghostchrome \u2014 typed JSONL agent client",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -39,6 +39,11 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {},
-  "keywords": ["ghostchrome", "browser-automation", "cdp", "llm"],
+  "keywords": [
+    "ghostchrome",
+    "browser-automation",
+    "cdp",
+    "llm"
+  ],
   "license": "MIT"
 }

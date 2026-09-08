@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Admin : Users : Acme Cloud</title>
+</head>
+<body>
+  <header>
+    <nav aria-label="Primary">
+      <a href="/admin">Admin</a>
+      <ul>
+        <li><a href="/admin/overview">Overview</a></li>
+        <li><a href="/admin/users" aria-current="page">Users</a></li>
+        <li><a href="/admin/billing">Billing</a></li>
+        <li><a href="/admin/audit">Audit log</a></li>
+        <li><a href="/admin/settings">Settings</a></li>
+      </ul>
+      <button aria-label="Notifications">Notifications</button>
+      <a href="/account">jane@acme.test</a>
+      <a href="/logout">Sign out</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Users</h1>
+
+    <section aria-label="Actions">
+      <form action="/admin/users" method="get" role="search">
+        <label for="filter">Search</label>
+        <input id="filter" name="q" type="search" placeholder="Name, email, role">
+        <button type="submit">Search</button>
+      </form>
+      <a href="/admin/users/invite" role="button">Invite user</a>
+      <a href="/admin/users/export">Export CSV</a>
+    </section>
+
+    <section aria-labelledby="stats-title">
+      <h2 id="stats-title">Statistics</h2>
+      <dl>
+        <dt>Total users</dt><dd>1,284</dd>
+        <dt>Active this month</dt><dd>912</dd>
+        <dt>Invitations pending</dt><dd>18</dd>
+        <dt>Suspended</dt><dd>3</dd>
+      </dl>
+    </section>
+
+    <section aria-labelledby="table-title">
+      <h2 id="table-title">All users</h2>
+      <table>
+        <caption>1,284 users : page 1 of 26</caption>
+        <thead>
+          <tr>
+            <th scope="col"><input type="checkbox" aria-label="Select all"></th>
+            <th scope="col"><a href="/admin/users?sort=name">Name</a></th>
+            <th scope="col"><a href="/admin/users?sort=email">Email</a></th>
+            <th scope="col"><a href="/admin/users?sort=role">Role</a></th>
+            <th scope="col"><a href="/admin/users?sort=status">Status</a></th>
+            <th scope="col"><a href="/admin/users?sort=last_active">Last active</a></th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><input type="checkbox" aria-label="Select Alice"></td><td><a href="/admin/users/1">Alice Chen</a></td><td>alice@acme.test</td><td>Owner</td><td>Active</td><td>2 minutes ago</td><td><a href="/admin/users/1/edit">Edit</a> <button>Suspend</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Bob"></td><td><a href="/admin/users/2">Bob Singh</a></td><td>bob@acme.test</td><td>Admin</td><td>Active</td><td>17 minutes ago</td><td><a href="/admin/users/2/edit">Edit</a> <button>Suspend</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Carla"></td><td><a href="/admin/users/3">Carla Diaz</a></td><td>carla@acme.test</td><td>Member</td><td>Active</td><td>3 hours ago</td><td><a href="/admin/users/3/edit">Edit</a> <button>Suspend</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Dmitri"></td><td><a href="/admin/users/4">Dmitri Petrov</a></td><td>dmitri@acme.test</td><td>Member</td><td>Active</td><td>1 day ago</td><td><a href="/admin/users/4/edit">Edit</a> <button>Suspend</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Eva"></td><td><a href="/admin/users/5">Eva Müller</a></td><td>eva@acme.test</td><td>Member</td><td>Invited</td><td>:</td><td><a href="/admin/users/5/edit">Edit</a> <button>Resend invite</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Felix"></td><td><a href="/admin/users/6">Felix Okonkwo</a></td><td>felix@acme.test</td><td>Admin</td><td>Active</td><td>4 hours ago</td><td><a href="/admin/users/6/edit">Edit</a> <button>Suspend</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Grace"></td><td><a href="/admin/users/7">Grace Park</a></td><td>grace@acme.test</td><td>Member</td><td>Active</td><td>2 days ago</td><td><a href="/admin/users/7/edit">Edit</a> <button>Suspend</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Hugo"></td><td><a href="/admin/users/8">Hugo Lambert</a></td><td>hugo@acme.test</td><td>Member</td><td>Suspended</td><td>30 days ago</td><td><a href="/admin/users/8/edit">Edit</a> <button>Reactivate</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Iris"></td><td><a href="/admin/users/9">Iris Tanaka</a></td><td>iris@acme.test</td><td>Member</td><td>Active</td><td>5 minutes ago</td><td><a href="/admin/users/9/edit">Edit</a> <button>Suspend</button></td></tr>
+          <tr><td><input type="checkbox" aria-label="Select Jonas"></td><td><a href="/admin/users/10">Jonas Berg</a></td><td>jonas@acme.test</td><td>Member</td><td>Active</td><td>6 hours ago</td><td><a href="/admin/users/10/edit">Edit</a> <button>Suspend</button></td></tr>
+        </tbody>
+      </table>
+
+      <nav aria-label="Pagination">
+        <a href="/admin/users?page=1" aria-current="page">1</a>
+        <a href="/admin/users?page=2">2</a>
+        <a href="/admin/users?page=3">3</a>
+        <a href="/admin/users?page=26">26</a>
+        <a href="/admin/users?page=2">Next</a>
+      </nav>
+    </section>
+  </main>
+
+  <footer>
+    <a href="/docs">Docs</a>
+    <a href="/support">Support</a>
+    <a href="/status">Status</a>
+  </footer>
+</body>
+</html>

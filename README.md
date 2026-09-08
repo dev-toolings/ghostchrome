@@ -5,11 +5,11 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/dev-toolings/ghostchrome?logo=go)](go.mod)
 [![Release](https://img.shields.io/github/v/release/dev-toolings/ghostchrome?label=release&logo=github)](https://github.com/dev-toolings/ghostchrome/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Benchmark: reproduced Aug 2026](https://img.shields.io/badge/benchmark-reproduced_Aug_2026-5b8def)](benchmark/results-real-2026-08-25.md)
+[![Benchmark: reproduced Aug 2026](https://img.shields.io/badge/benchmark-reproduced_Aug_2026-5b8def)](tools/benchmark/results-real-2026-08-25.md)
 
 ```console
 $ ghostchrome preview http://localhost:3000
-[200] Dashboard — http://localhost:3000 (134ms)
+[200] Dashboard: http://localhost:3000 (134ms)
 [errors] none
 [network] 12 reqs, 0 failed
 [dom]
@@ -46,19 +46,19 @@ LLM-driven browser automation has a context-budget problem: browser schemas,
 snapshots, and repeated command output compete with the code and reasoning an
 agent actually needs. ghostchrome keeps the CLI path direct and compact, with a
 filtered accessibility tree and a single static Go binary. The MCP surface is
-deliberately small too, although its current structured snapshot is richer—and
-larger—than Playwright MCP's file-backed YAML snapshot. The benchmark below
+deliberately small too, although its current structured snapshot is richer:and
+larger:than Playwright MCP's file-backed YAML snapshot. The benchmark below
 reports both results instead of collapsing unlike surfaces into one headline.
 
 **Designed for AI agents** that drive a browser via Claude Code, the Anthropic Agent SDK, Aider, Cursor, OpenAI's Agents SDK, or any custom loop. Use it as a **Playwright alternative for headless Chrome web scraping**, as a **CDP CLI** for ops automation, or as the browsing tool behind a custom agent. No JSON-RPC overhead, no Node runtime, no `npm install`. Just `ghostchrome <command> <url>` and read the output.
 
 What you get:
-- **Filtered accessibility tree** — only interactive elements get refs (`@1`, `@2`), 3-5× fewer nodes than a full a11y dump.
-- **Three extraction levels** — `skeleton` (minimal), `content` (text), `full` (everything named).
-- **Transparent daemon** — every command auto-spawns a persistent background Chrome on first use (no `serve`, no `--connect`, zero config). Just run `ghostchrome goto <url>` and it works.
-- **CDP-native** — built on [Rod](https://github.com/go-rod/rod), so iframe handling, stealth patches, and event capture work out of the box.
-- **Single ~19 MB binary** — no Node.js, no `npm install`, no Playwright browsers download.
-- **Three ways to drive it** — the CLI, an MCP server (19 tools, drop-in for `@playwright/mcp`), or typed Python / TypeScript SDKs over the persistent JSONL `agent` loop.
+- **Filtered accessibility tree**: only interactive elements get refs (`@1`, `@2`), 3-5× fewer nodes than a full a11y dump.
+- **Three extraction levels**: `skeleton` (minimal), `content` (text), `full` (everything named).
+- **Transparent daemon**: every command auto-spawns a persistent background Chrome on first use (no `serve`, no `--connect`, zero config). Just run `ghostchrome goto <url>` and it works.
+- **CDP-native**: built on [Rod](https://github.com/go-rod/rod), so iframe handling, stealth patches, and event capture work out of the box.
+- **Single ~19 MB binary**: no Node.js, no `npm install`, no Playwright browsers download.
+- **Three ways to drive it**: the CLI, an MCP server (19 tools, drop-in for `@playwright/mcp`), or typed Python / TypeScript SDKs over the persistent JSONL `agent` loop.
 
 ---
 
@@ -109,12 +109,12 @@ and a separate `dom.refs` map. That duplication is now a measured optimization
 target, not a hidden caveat.
 
 Full protocol, per-site medians, limitations, and reproduction details:
-[`benchmark/results-real-2026-08-25.md`](benchmark/results-real-2026-08-25.md).
-The raw-sample helpers are [`benchmark/cli-measure.mjs`](benchmark/cli-measure.mjs)
-and [`benchmark/mcp-measure.mjs`](benchmark/mcp-measure.mjs).
+[`tools/benchmark/results-real-2026-08-25.md`](tools/benchmark/results-real-2026-08-25.md).
+The raw-sample helpers are [`tools/benchmark/cli-measure.mjs`](tools/benchmark/cli-measure.mjs)
+and [`tools/benchmark/mcp-measure.mjs`](tools/benchmark/mcp-measure.mjs).
 
 The agent-browser hot-path results and release gates are tracked in
-[`benchmark/results-agent-browser-click.md`](benchmark/results-agent-browser-click.md)
+[`tools/benchmark/results-agent-browser-click.md`](tools/benchmark/results-agent-browser-click.md)
 and [`docs/reliability-plan.md`](docs/reliability-plan.md).
 
 ---
@@ -122,15 +122,15 @@ and [`docs/reliability-plan.md`](docs/reliability-plan.md).
 ## Install
 
 ghostchrome installs the same way [`@playwright/cli`](https://www.npmjs.com/package/@playwright/cli)
-does — one command to get the binary, one command to wire it into your coding
-agent — except there is **no Node runtime and no browser download**: it's a
+does: one command to get the binary, one command to wire it into your coding
+agent: except there is **no Node runtime and no browser download**: it's a
 single static Go binary.
 
 | | playwright-cli | ghostchrome |
 |---|---|---|
 | Get the tool | `npm install -g @playwright/cli` | `curl \| bash` or `bun install -g @ghostchrome/cli` |
 | Wire into the agent | `playwright-cli install --skills` | `ghostchrome install --skills` |
-| Daemon | requires `open` before `goto` | transparent — just run any command |
+| Daemon | requires `open` before `goto` | transparent: just run any command |
 | Uninstall | manual | `ghostchrome uninstall --purge --yes` |
 | Runtime | Node.js + Playwright + FFmpeg (~330 MB) | one ~19 MB binary, system Chrome |
 
@@ -142,7 +142,7 @@ bun install -g @ghostchrome/cli       # or: bunx @ghostchrome/cli <cmd>
 ```
 
 The package resolves the prebuilt Go CLI binary for your platform (Linux/macOS,
-amd64/arm64; Windows amd64) — no Node runtime, no postinstall, no browser
+amd64/arm64; Windows amd64): no Node runtime, no postinstall, no browser
 download. For exclusive CLI/MCP setup and global Claude/Codex/Grok skill
 installation, use the mode-aware installer below.
 Prefer a single binary with no package manager? Use the installer:
@@ -190,10 +190,10 @@ For Codex, Cursor, Aider, or a custom loop see [Using it with LLM agents](#using
 
 ### Other install methods
 
-- **Prebuilt binaries** — macOS (Intel/ARM), Linux (amd64/arm64), Windows on the
+- **Prebuilt binaries**: macOS (Intel/ARM), Linux (amd64/arm64), Windows on the
   [Releases](https://github.com/dev-toolings/ghostchrome/releases) page (`ghostchrome` +
   `ghostchrome-mcp`, with `checksums.txt`).
-- **From source** — `git clone https://github.com/dev-toolings/ghostchrome && cd ghostchrome && go build -o ghostchrome ./cmd/ghostchrome`
+- **From source**: `git clone https://github.com/dev-toolings/ghostchrome && cd ghostchrome && go build -o ghostchrome ./cmd/ghostchrome`
 
 > **Note:** `go install …@latest` is not supported on this repo. Versioning was
 > reset to `v0.1.0`, but the earlier `v1.0.0` is pinned immutably in the Go module
@@ -208,7 +208,7 @@ For Codex, Cursor, Aider, or a custom loop see [Using it with LLM agents](#using
 
 ## Quickstart
 
-Every command auto-spawns a persistent background Chrome on first use — no `serve`, no `open`, no setup. Just run the command.
+Every command auto-spawns a persistent background Chrome on first use: no `serve`, no `open`, no setup. Just run the command.
 
 ### See a page
 
@@ -241,7 +241,7 @@ Refs come from the previous snapshot. The browser session is preserved automatic
 
 ```bash
 ghostchrome -s work goto https://example.com/login   # spawns a persistent Chrome on first use
-ghostchrome -s work type  @1 "alice@example.com"      # reuses it — no ws:// to copy, state persists
+ghostchrome -s work type  @1 "alice@example.com"      # reuses it: no ws:// to copy, state persists
 ghostchrome -s work click @3
 ghostchrome -s work extract --level content
 
@@ -251,7 +251,7 @@ ghostchrome sessions stop work      # tear it down
 
 `-s <name>` (or `$PLAYWRIGHT_CLI_SESSION`, falling back to `$GHOSTCHROME_SESSION`) auto-launches a
 persistent Chrome on first use, bound to a disk profile of the same name (cookies persist under
-`~/.ghostchrome/profiles/<name>`), and reuses it — including the active tab — across calls.
+`~/.ghostchrome/profiles/<name>`), and reuses it: including the active tab: across calls.
 Per-call latency drops to ~50 ms. No ws:// URL to manage. Manage sessions with
 `ghostchrome sessions list | stop <name> | kill-all`.
 
@@ -271,7 +271,7 @@ responsive audit across several commands trustworthy. Clear it with `ghostchrome
 ghostchrome errors https://your-site.test --level all
 ```
 
-Captures `Runtime.consoleAPICalled` + `Runtime.exceptionThrown` + `Log.entryAdded` (CORS, CSP, mixed content, network ERR_*) + every HTTP 4xx/5xx — all in one snapshot.
+Captures `Runtime.consoleAPICalled` + `Runtime.exceptionThrown` + `Log.entryAdded` (CORS, CSP, mixed content, network ERR_*) + every HTTP 4xx/5xx: all in one snapshot.
 
 ---
 
@@ -284,8 +284,8 @@ your agent → ghostchrome CLI → Rod (Go) → Chrome DevTools Protocol → Chr
 1. **CDP Accessibility tree** is fetched and **filtered**: only nodes that are interactive (or named ancestors) are kept. Everything is compressed into one indented text format with `@N` refs.
 2. **Three extraction levels** let an agent ask for exactly the granularity it needs. Most agent loops stay at `content`.
 3. **Refs are stable within a snapshot** and replayed on the next command via element-state cache, so `click @3` works without a new selector.
-4. **Output is text first** — no JSON wrapping unless you ask for `--json`. The agent reads what a human would read in DevTools.
-5. **Transparent daemon** — auto-spawns a persistent background Chrome on first use. Named sessions (`-s work`, `-s research`) run parallel isolated browsers. No `serve` needed.
+4. **Output is text first**: no JSON wrapping unless you ask for `--json`. The agent reads what a human would read in DevTools.
+5. **Transparent daemon**: auto-spawns a persistent background Chrome on first use. Named sessions (`-s work`, `-s research`) run parallel isolated browsers. No `serve` needed.
 
 Architecture, CLI reference, MCP server, anti-bot, and fast-path docs live in [`docs/`](docs/README.md).
 
@@ -309,7 +309,7 @@ cross-surface score:
 
 These are measured outcomes, not a universal operation score. Network-heavy
 sites, different extraction levels, browser engines, model behavior, and cold
-startup can change the result. See the [full benchmark report](benchmark/results-real-2026-08-25.md).
+startup can change the result. See the [full benchmark report](tools/benchmark/results-real-2026-08-25.md).
 
 ### Feature comparison
 
@@ -330,21 +330,21 @@ startup can change the result. See the [full benchmark report](benchmark/results
 
 ### When to pick what
 
-- **ghostchrome** — you're piloting Chrome from an LLM agent and want a single
+- **ghostchrome**: you're piloting Chrome from an LLM agent and want a single
   binary, a zero-config daemon, compact CLI output, and low warm-call latency.
-  For MCP, choose it for the smaller tool surface and speed—not because the
+  For MCP, choose it for the smaller tool surface and speed:not because the
   current structured snapshot is smaller.
-- **playwright-cli** — you need WebKit / Firefox, Playwright Trace Viewer, or `run-code` (arbitrary Playwright API execution).
-- **Playwright (raw)** — you're writing E2E test suites, not driving an agent.
+- **playwright-cli**: you need WebKit / Firefox, Playwright Trace Viewer, or `run-code` (arbitrary Playwright API execution).
+- **Playwright (raw)**: you're writing E2E test suites, not driving an agent.
 
 ### Parity with playwright-cli
 
 ghostchrome covers the **agent-relevant verb surface** of
-[`@playwright/cli`](https://www.npmjs.com/package/@playwright/cli) —
+[`@playwright/cli`](https://www.npmjs.com/package/@playwright/cli) :
 `open/goto`, `click`, `dblclick`, `type`/`fill`, `check`/`uncheck`,
 `select`, `hover`, `drag`, `press`, `upload`, `snapshot`/`extract`, `eval`,
 `reload`, `back`/`forward`, `tabs`, cookies & storage, `screenshot`, `pdf`,
-`route`, `console`, `network`, `dialog-*`, `attach`, sessions, config — plus
+`route`, `console`, `network`, `dialog-*`, `attach`, sessions, config: plus
 things playwright-cli has no equivalent for: `preview` (one-shot page health),
 `collect` (auto-listing extraction), `perf` (Web Vitals), `assert` (CI exit
 codes), built-in stealth, and transparent daemon (no `open` needed).
@@ -361,9 +361,9 @@ Full parity matrix: [`docs/playwright-cli-parity.md`](docs/playwright-cli-parity
 
 Same engine, with one installed runtime surface at a time:
 
-1. **MCP stdio server** (`ghostchrome-mcp`) — 16 tools, the drop-in replacement for `@playwright/mcp`.
-2. **Regular CLI** — allowlist `ghostchrome` for shell-tool agents.
-3. **Typed SDKs** (`sdk/python`, `sdk/typescript`) — available with CLI mode and drive the persistent JSONL `agent` loop from code.
+1. **MCP stdio server** (`ghostchrome-mcp`): 16 tools, the drop-in replacement for `@playwright/mcp`.
+2. **Regular CLI**: allowlist `ghostchrome` for shell-tool agents.
+3. **Typed SDKs** (`sdk/python`, `sdk/typescript`): available with CLI mode and drive the persistent JSONL `agent` loop from code.
 
 ### Claude Code (Anthropic)
 
@@ -381,11 +381,11 @@ codex mcp list
 
 ### MCP tool surface (v2.0)
 
-Deliberately small — 16 tools, no fat. Each one is on the hot path of a browser-driving loop.
+Deliberately small: 16 tools, no fat. Each one is on the hot path of a browser-driving loop.
 
 | Tool | Purpose |
 |---|---|
-| `snapshot` | Status + errors + network + DOM with refs — canonical first call |
+| `snapshot` | Status + errors + network + DOM with refs: canonical first call |
 | `navigate` | Go to URL without snapshot |
 | `click` | Click `@ref` |
 | `type` | Type into `@ref` (`submit:true` to press Enter after) |
@@ -397,7 +397,7 @@ Deliberately small — 16 tools, no fat. Each one is on the hot path of a browse
 | `upload` | Attach files to an `<input type=file>` by `@ref` |
 | `tabs` | List / switch / open / close browser tabs |
 | `wait_for` | Wait for selector / text / timeout |
-| `eval` | Run JS — escape hatch for anything else |
+| `eval` | Run JS: escape hatch for anything else |
 | `screenshot` | WebP/JPEG/PNG of viewport, full page, or element |
 | `back` / `forward` | Browser history |
 
@@ -428,19 +428,19 @@ file is parseable again. A single encoded entry that would exceed 1 MiB is reduc
 metadata (`op`, timing and outcome; no arguments, summary or error text) before
 being written, so the hard cap still holds.
 
-### Typed SDKs — Python & TypeScript
+### Typed SDKs: Python & TypeScript
 
 In-repo at [`sdk/python/`](sdk/python) and [`sdk/typescript/`](sdk/typescript). Each is a thin, typed client that spawns a persistent `ghostchrome agent` subprocess and speaks its JSONL protocol over stdio, so refs (`@1`, `@2`) and session state persist across calls. Result types are matched to what the binary actually emits (re-measured with [`scripts/measure-agent-ops.sh`](scripts/measure-agent-ops.sh), never guessed).
 
 > **Not published to any package registry yet.** The SDK source lives in this repo
-> (and in the `v0.1.0` source tarball), but the packages are **not** on npm or PyPI —
+> (and in the `v0.1.0` source tarball), but the packages are **not** on npm or PyPI :
 > so `npm install @ghostchrome/sdk` / `pip install ghostchrome` do **not** work yet.
 
 | Channel | Status | How to install |
 |---|---|---|
-| GitHub repo — `sdk/python`, `sdk/typescript` | ✅ available | clone, or `pip install "git+…#subdirectory=sdk/python"` (below) |
-| npm — `@ghostchrome/sdk` | ❌ not published | — |
-| PyPI — `ghostchrome` | ❌ not published | — |
+| GitHub repo: `sdk/python`, `sdk/typescript` | ✅ available | clone, or `pip install "git+…#subdirectory=sdk/python"` (below) |
+| npm: `@ghostchrome/sdk` | ❌ not published |: |
+| PyPI: `ghostchrome` | ❌ not published |: |
 
 Both SDKs require the `ghostchrome` binary on `PATH`.
 
@@ -467,9 +467,9 @@ const dom = await gc.extract({ level: "skeleton" });
 await gc.close();
 ```
 
-Runnable end-to-end examples (both languages) live in [`examples/`](examples).
+Runnable end-to-end examples (both languages) live in [`sdk/examples/`](sdk/examples).
 
-### Custom loop — shell-out, zero SDK
+### Custom loop: shell-out, zero SDK
 
 ```python
 import subprocess, json
@@ -483,7 +483,7 @@ def snapshot(url):
 
 ### Aider / Cursor / any agent with shell access
 
-Use `ghostchrome` as a regular shell command. The daemon starts automatically — no `serve` step.
+Use `ghostchrome` as a regular shell command. The daemon starts automatically: no `serve` step.
 
 ---
 
@@ -571,11 +571,11 @@ project does not claim parity that is not implemented.
 
 ## Status & roadmap
 
-**Stable** — preview, navigate, extract, click/type/select/hover/press, errors, screenshot, eval, serve, `--connect=auto`, MCP server (16 tools), JSONL `agent` loop, typed Python & TypeScript SDKs.
+**Stable**: preview, navigate, extract, click/type/select/hover/press, errors, screenshot, eval, serve, `--connect=auto`, MCP server (16 tools), JSONL `agent` loop, typed Python & TypeScript SDKs.
 
-**Experimental** — stealth patches, AI extractors, opt-in content-boundary fencing. Tracked behind flags; APIs may change.
+**Experimental**: stealth patches, AI extractors, opt-in content-boundary fencing. Tracked behind flags; APIs may change.
 
-**Not in scope (yet)** — Firefox/WebKit support (would arrive via a `playwright-core` subprocess fallback, not native), GUI test runner, visual regression diff.
+**Not in scope (yet)**: Firefox/WebKit support (would arrive via a `playwright-core` subprocess fallback, not native), GUI test runner, visual regression diff.
 
 Versioning follows SemVer; see [`.claude/rules/versioning.md`](.claude/rules/versioning.md).
 
@@ -583,9 +583,9 @@ Versioning follows SemVer; see [`.claude/rules/versioning.md`](.claude/rules/ver
 
 ## Contributing
 
-PRs welcome. The codebase is small and laid out in [`internal/core/engine/`](internal/core/engine/) (CDP logic) and [`internal/surface/cli/`](internal/surface/cli/) (one Cobra command per file). Run tests with `go test ./...`. Benchmark changes should include auditable raw samples from [`benchmark/cli-measure.mjs`](benchmark/cli-measure.mjs) and [`benchmark/mcp-measure.mjs`](benchmark/mcp-measure.mjs), with the browser and opponent package versions pinned.
+PRs welcome. The codebase is small and laid out in [`internal/core/engine/`](internal/core/engine/) (CDP logic) and [`internal/surface/cli/`](internal/surface/cli/) (one Cobra command per file). Run tests with `go test ./...`. Benchmark changes should include auditable raw samples from [`tools/benchmark/cli-measure.mjs`](tools/benchmark/cli-measure.mjs) and [`tools/benchmark/mcp-measure.mjs`](tools/benchmark/mcp-measure.mjs), with the browser and opponent package versions pinned.
 
-When the agent surface changes, **re-measure the live binary** with [`scripts/measure-agent-ops.sh`](scripts/measure-agent-ops.sh) and update the in-repo SDKs at [`sdk/typescript/`](sdk/typescript) and [`sdk/python/`](sdk/python) so their result types match what the binary emits — never guess. See [`CLAUDE.md`](CLAUDE.md).
+When the agent surface changes, **re-measure the live binary** with [`scripts/measure-agent-ops.sh`](scripts/measure-agent-ops.sh) and update the in-repo SDKs at [`sdk/typescript/`](sdk/typescript) and [`sdk/python/`](sdk/python) so their result types match what the binary emits: never guess. See [`CLAUDE.md`](CLAUDE.md).
 
 ---
 
@@ -609,3 +609,23 @@ Certificates remain verified, redirects stay on the same origin, and response
 size limits remain enforced. No GPU, marketplace, or notification logic is part
 of this transport. It is available through `fastfetch` and the Go engine, not a
 new MCP or agent operation.
+
+## Repository layout
+
+The root keeps the Go module, workspace configuration, and public entry points.
+
+| Directory | Contents |
+|---|---|
+| `cmd/` | CLI and MCP executable entry points |
+| `internal/` | Runtime, browser engine, surfaces, and setup |
+| `contracts/` | Generated operation contract |
+| `sdk/` | TypeScript and Python SDKs, examples, npm distribution |
+| `tools/` | Benchmarks and deployment helpers |
+| `scripts/` | Installation and validation scripts |
+| `docs/` | Documentation, architecture reports, and plans |
+| `recipes/` | Private local scrapers |
+| `.local/` | Ignored binaries, browser captures, and scratch notes |
+
+Use `just build` to check compilation and `just test-all` for the test suites.
+`just install` and `just e2e` build into `.local/bin/`.
+Bun manages `node_modules/` at the workspace root.
