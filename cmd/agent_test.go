@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 )
 
 // TestAgentWaitFlagsRegistered ensures the interaction commands have
@@ -30,7 +30,7 @@ func TestAgentWaitFlagsRegistered(t *testing.T) {
 
 // TestAgentRecoveryHooksInitialised verifies the default session has recovery hooks.
 func TestAgentRecoveryHooksInitialised(t *testing.T) {
-	hooks := engine.DefaultRecoveryHooks()
+	hooks := feedback.DefaultRecoveryHooks()
 	if len(hooks) == 0 {
 		t.Fatal("expected at least one default recovery hook")
 	}

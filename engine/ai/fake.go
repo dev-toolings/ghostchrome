@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 )
 
 // FakeProvider replays a scripted sequence of Steps without ever calling
@@ -50,7 +50,7 @@ type FakeRunner struct {
 	OnOp    func(op string, args json.RawMessage) // optional spy
 }
 
-func (r *FakeRunner) RunOp(op string, args json.RawMessage) (any, *engine.Observation, error) {
+func (r *FakeRunner) RunOp(op string, args json.RawMessage) (any, *feedback.Observation, error) {
 	if r.OnOp != nil {
 		r.OnOp(op, args)
 	}

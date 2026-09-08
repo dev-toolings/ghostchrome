@@ -1,4 +1,4 @@
-package engine
+package feedback
 
 import (
 	"errors"
@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/coretest"
 )
 
 // TestRecoverStaleRefRefusesRetry verifies that RecoverStaleRef never signals
@@ -14,11 +17,11 @@ func TestRecoverStaleRefRefusesRetry(t *testing.T) {
 	if testing.Short() {
 		t.Skip("requires Chrome")
 	}
-	_, page := newIsolatedPage(t)
+	_, page := coretest.NewIsolatedPage(t)
 
 	ctx := RecoveryContext{
 		Page:   page,
-		Err:    fmt.Errorf("some error: %w", ErrStaleRef),
+		Err:    fmt.Errorf("some error: %w", engine.ErrStaleRef),
 		OpName: "click",
 	}
 	retry, err := RecoverStaleRef(ctx)
@@ -28,7 +31,7 @@ func TestRecoverStaleRefRefusesRetry(t *testing.T) {
 	if err == nil {
 		t.Fatal("RecoverStaleRef must return a non-nil error wrapping ErrStaleRef")
 	}
-	if !errors.Is(err, ErrStaleRef) {
+	if !errors.Is(err, engine.ErrStaleRef) {
 		t.Fatalf("expected error to wrap ErrStaleRef, got: %v", err)
 	}
 }
@@ -39,7 +42,7 @@ func TestRecoverStaleRefSkipsNonStaleErrors(t *testing.T) {
 	if testing.Short() {
 		t.Skip("requires Chrome")
 	}
-	_, page := newIsolatedPage(t)
+	_, page := coretest.NewIsolatedPage(t)
 
 	ctx := RecoveryContext{
 		Page:   page,
@@ -61,7 +64,7 @@ func TestRecoverNetworkSettleSkipsNonTimeoutErrors(t *testing.T) {
 	if testing.Short() {
 		t.Skip("requires Chrome")
 	}
-	_, page := newIsolatedPage(t)
+	_, page := coretest.NewIsolatedPage(t)
 
 	ctx := RecoveryContext{
 		Page:   page,
@@ -88,8 +91,8 @@ func TestRecoverNetworkSettleTriggersOnTimeoutError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, page := newIsolatedPage(t)
-	if _, err := Navigate(page, server.URL, "load"); err != nil {
+	_, page := coretest.NewIsolatedPage(t)
+	if _, err := engine.Navigate(page, server.URL, "load"); err != nil {
 		t.Fatalf("navigate: %v", err)
 	}
 
@@ -123,7 +126,7 @@ func TestRecoveryChainFirstHookWins(t *testing.T) {
 		return false, nil
 	}
 
-	_, page := newIsolatedPage(t)
+	_, page := coretest.NewIsolatedPage(t)
 	ctx := RecoveryContext{Page: page, Err: errors.New("err"), OpName: "op"}
 	retry, err := RecoveryChain(ctx, []RecoveryHook{h1, h2})
 	if err != nil {
@@ -147,7 +150,7 @@ func TestRecoveryChainHookError(t *testing.T) {
 		return false, hookErr
 	}
 
-	_, page := newIsolatedPage(t)
+	_, page := coretest.NewIsolatedPage(t)
 	ctx := RecoveryContext{Page: page, Err: errors.New("err"), OpName: "op"}
 	retry, err := RecoveryChain(ctx, []RecoveryHook{h1})
 	if retry {
@@ -167,7 +170,7 @@ func TestRecoveryChainAllSkip(t *testing.T) {
 	h1 := func(ctx RecoveryContext) (bool, error) { return false, nil }
 	h2 := func(ctx RecoveryContext) (bool, error) { return false, nil }
 
-	_, page := newIsolatedPage(t)
+	_, page := coretest.NewIsolatedPage(t)
 	ctx := RecoveryContext{Page: page, Err: errors.New("err"), OpName: "op"}
 	retry, err := RecoveryChain(ctx, []RecoveryHook{h1, h2})
 	if retry {

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 	"github.com/dev-toolings/ghostchrome/internal/core/interact"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
@@ -33,7 +34,7 @@ type agentResponse struct {
 	Result      interface{}            `json:"result,omitempty"`
 	Error       string                 `json:"error,omitempty"`
 	Events      []engine.ObserverEvent `json:"events,omitempty"`
-	Observation *engine.Observation    `json:"observation,omitempty"`
+	Observation *feedback.Observation  `json:"observation,omitempty"`
 	Protocol    int                    `json:"protocol,omitempty"`
 	ErrorCode   string                 `json:"error_code,omitempty"`
 	Retryable   bool                   `json:"retryable,omitempty"`
@@ -46,10 +47,10 @@ type agentSession struct {
 	snapshot        *engine.PageSnapshot // last in-memory snapshot (auto-launch mode)
 	rt              *engine.Runtime
 	enc             *json.Encoder
-	observer        *engine.Observer      // non-nil when --observe is active
-	obsFile         *os.File              // non-nil when --observe-out is set
-	lastObservation *engine.Observation   // observation from the previous op
-	recoveryHooks   []engine.RecoveryHook // pluggable recovery hooks
+	observer        *engine.Observer        // non-nil when --observe is active
+	obsFile         *os.File                // non-nil when --observe-out is set
+	lastObservation *feedback.Observation   // observation from the previous op
+	recoveryHooks   []feedback.RecoveryHook // pluggable recovery hooks
 
 	// challengeRecovered records whether the last "navigate" op detected AND
 	// cleared a bot challenge (DataDome/Cloudflare interstitial). "extract"
@@ -122,7 +123,7 @@ func runAgentLoop() {
 	}
 	sess := &agentSession{
 		enc:           json.NewEncoder(os.Stdout),
-		recoveryHooks: engine.DefaultRecoveryHooks(),
+		recoveryHooks: feedback.DefaultRecoveryHooks(),
 	}
 	defer sess.shutdown()
 
@@ -164,11 +165,11 @@ func runAgentLoop() {
 		}
 
 		// Build observation (non-nil when a page is active).
-		var obs *engine.Observation
+		var obs *feedback.Observation
 		if sess.page != nil {
 			snapshotAfter := sess.currentSnapshotIfAvailable()
 			scanCaptcha := flagObserve || req.Op == "navigate" || req.Op == "reload"
-			built := engine.BuildObservationOpts(sess.page, snapshotBefore, snapshotAfter, obsEvents, scanCaptcha)
+			built := feedback.BuildObservationOpts(sess.page, snapshotBefore, snapshotAfter, obsEvents, scanCaptcha)
 			obs = &built
 			sess.lastObservation = obs
 		}
@@ -1098,8 +1099,8 @@ func (s *agentSession) withRecovery(b *engine.Browser, page *rod.Page, opName st
 	if len(s.recoveryHooks) == 0 {
 		return err
 	}
-	ctx := engine.RecoveryContext{Page: page, Err: err, OpName: opName}
-	retry, hookErr := engine.RecoveryChain(ctx, s.recoveryHooks)
+	ctx := feedback.RecoveryContext{Page: page, Err: err, OpName: opName}
+	retry, hookErr := feedback.RecoveryChain(ctx, s.recoveryHooks)
 	if hookErr != nil {
 		return hookErr
 	}
@@ -1157,7 +1158,7 @@ func unmarshalArgs(raw json.RawMessage, dst interface{}) error {
 func newAgentSession() *agentSession {
 	return &agentSession{
 		enc:           json.NewEncoder(io.Discard),
-		recoveryHooks: engine.DefaultRecoveryHooks(),
+		recoveryHooks: feedback.DefaultRecoveryHooks(),
 	}
 }
 
@@ -1165,7 +1166,7 @@ func newAgentSession() *agentSession {
 // per-op observer events and the freshly built Observation. It mirrors the
 // per-iteration logic of runAgentLoop so callers don't need to duplicate
 // snapshot bookkeeping.
-func (s *agentSession) runOp(op string, rawArgs json.RawMessage) (interface{}, *engine.Observation, []engine.ObserverEvent, error) {
+func (s *agentSession) runOp(op string, rawArgs json.RawMessage) (interface{}, *feedback.Observation, []engine.ObserverEvent, error) {
 	tStart := time.Now().UnixMilli()
 	snapshotBefore := s.currentSnapshotIfAvailable()
 	result, err := s.dispatch(agentRequest{Op: op, Args: rawArgs})
@@ -1173,11 +1174,11 @@ func (s *agentSession) runOp(op string, rawArgs json.RawMessage) (interface{}, *
 	if s.observer != nil {
 		events = s.observer.Drain(tStart)
 	}
-	var obs *engine.Observation
+	var obs *feedback.Observation
 	if s.page != nil {
 		snapshotAfter := s.currentSnapshotIfAvailable()
 		scanCaptcha := flagObserve || op == "navigate" || op == "reload"
-		built := engine.BuildObservationOpts(s.page, snapshotBefore, snapshotAfter, events, scanCaptcha)
+		built := feedback.BuildObservationOpts(s.page, snapshotBefore, snapshotAfter, events, scanCaptcha)
 		obs = &built
 		s.lastObservation = obs
 	}

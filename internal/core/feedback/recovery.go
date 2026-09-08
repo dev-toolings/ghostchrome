@@ -1,10 +1,11 @@
-package engine
+package feedback
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/go-rod/rod"
 )
 
@@ -56,7 +57,7 @@ func RecoveryChain(ctx RecoveryContext, hooks []RecoveryHook) (retry bool, err e
 // remap refs. Instead it returns retry=false with an informative error so the
 // agent can decide to run an explicit re-extract op.
 func RecoverStaleRef(ctx RecoveryContext) (bool, error) {
-	if !errors.Is(ctx.Err, ErrStaleRef) {
+	if !errors.Is(ctx.Err, engine.ErrStaleRef) {
 		return false, nil
 	}
 	// Do not retry — force the agent to re-extract explicitly.
@@ -68,7 +69,7 @@ func RecoverStaleRef(ctx RecoveryContext) (bool, error) {
 func RecoverDialogAccept(ctx RecoveryContext) (bool, error) {
 	// Only trigger when there is an actual dialog open.
 	// We use a zero-timeout probe: if no dialog appears immediately, skip.
-	result, err := HandleNextDialog(ctx.Page, true, "", 300*time.Millisecond)
+	result, err := engine.HandleNextDialog(ctx.Page, true, "", 300*time.Millisecond)
 	if err != nil {
 		return false, nil // dialog probe error → not our problem
 	}
@@ -86,7 +87,7 @@ func RecoverBotChallenge(ctx RecoveryContext) (bool, error) {
 	if hint == "" {
 		return false, nil
 	}
-	resolved := WaitForBotChallenge(ctx.Page, 10*time.Second)
+	resolved := engine.WaitForBotChallenge(ctx.Page, 10*time.Second)
 	if !resolved {
 		return false, fmt.Errorf("bot challenge (%s) not resolved after 10s", hint)
 	}

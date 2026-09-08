@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 )
 
 // Message is the cross-provider chat message shape used by the loop.
@@ -59,7 +59,7 @@ type ToolSpec struct {
 // Runner is the adapter the loop uses to actually execute tools against the
 // browser. cmd/ai.go provides an implementation that wraps an agentSession.
 type Runner interface {
-	RunOp(op string, args json.RawMessage) (result any, obs *engine.Observation, err error)
+	RunOp(op string, args json.RawMessage) (result any, obs *feedback.Observation, err error)
 	CurrentURL() string
 }
 
@@ -74,13 +74,13 @@ type LoopOpts struct {
 // StepRecord is appended to Result.Steps for each iteration. Compact by
 // design — never embed raw DOM/HTML payloads here.
 type StepRecord struct {
-	Index       int                 `json:"index"`
-	Op          string              `json:"op,omitempty"`
-	Args        json.RawMessage     `json:"args,omitempty"`
-	OK          bool                `json:"ok"`
-	Error       string              `json:"error,omitempty"`
-	Observation *engine.Observation `json:"observation,omitempty"`
-	Text        string              `json:"text,omitempty"` // assistant prose for this step
+	Index       int                   `json:"index"`
+	Op          string                `json:"op,omitempty"`
+	Args        json.RawMessage       `json:"args,omitempty"`
+	OK          bool                  `json:"ok"`
+	Error       string                `json:"error,omitempty"`
+	Observation *feedback.Observation `json:"observation,omitempty"`
+	Text        string                `json:"text,omitempty"` // assistant prose for this step
 }
 
 // Result is the JSON envelope emitted by `ghostchrome ai`.

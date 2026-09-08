@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/engine/ai"
+	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 	"github.com/spf13/cobra"
 )
 
@@ -112,7 +112,7 @@ func runAI(_ *cobra.Command, args []string) {
 // agentRunner is the bridge between engine/ai and the cmd-local agentSession.
 type agentRunner struct{ sess *agentSession }
 
-func (r *agentRunner) RunOp(op string, args json.RawMessage) (any, *engine.Observation, error) {
+func (r *agentRunner) RunOp(op string, args json.RawMessage) (any, *feedback.Observation, error) {
 	result, obs, _, err := r.sess.runOp(op, args)
 	return result, obs, err
 }

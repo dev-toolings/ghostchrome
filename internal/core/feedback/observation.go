@@ -1,8 +1,9 @@
-package engine
+package feedback
 
 import (
 	"strings"
 
+	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/go-rod/rod"
 )
 
@@ -11,11 +12,11 @@ import (
 type Observation struct {
 	// ConsoleErrors holds runtime errors or uncaught exceptions observed during
 	// the op (kind=error from the Observer).
-	ConsoleErrors []ObserverEvent `json:"console_errors,omitempty"`
+	ConsoleErrors []engine.ObserverEvent `json:"console_errors,omitempty"`
 
 	// NetworkFailed holds network requests that failed (4xx/5xx or transport
 	// error) during the op.
-	NetworkFailed []ObserverEvent `json:"network_failed,omitempty"`
+	NetworkFailed []engine.ObserverEvent `json:"network_failed,omitempty"`
 
 	// A11yDiff is the compact text diff of the a11y tree between before and
 	// after the op (FormatDiff output). Empty when there is no change.
@@ -39,13 +40,13 @@ type Observation struct {
 //
 // before may be nil (first op, no prior snapshot). after may be nil if the op
 // failed before extraction. events is the slice from Observer.Drain().
-func BuildObservation(page *rod.Page, before, after *PageSnapshot, events []ObserverEvent) Observation {
+func BuildObservation(page *rod.Page, before, after *engine.PageSnapshot, events []engine.ObserverEvent) Observation {
 	return BuildObservationOpts(page, before, after, events, false)
 }
 
 // BuildObservationOpts is BuildObservation with an explicit captcha-scan flag.
 // scanCaptcha=false skips page.HTML() so warm clicks do not pay a full document dump.
-func BuildObservationOpts(page *rod.Page, before, after *PageSnapshot, events []ObserverEvent, scanCaptcha bool) Observation {
+func BuildObservationOpts(page *rod.Page, before, after *engine.PageSnapshot, events []engine.ObserverEvent, scanCaptcha bool) Observation {
 	obs := Observation{}
 
 	// Prefer the snapshot URL so a warm click does not pay Page.getFrameTree.
@@ -60,18 +61,18 @@ func BuildObservationOpts(page *rod.Page, before, after *PageSnapshot, events []
 	// Classify observer events.
 	for _, evt := range events {
 		switch {
-		case evt.Kind == KindError:
+		case evt.Kind == engine.KindError:
 			obs.ConsoleErrors = append(obs.ConsoleErrors, evt)
-		case evt.Kind == KindNet && (evt.Failed != "" || evt.Status >= 400):
+		case evt.Kind == engine.KindNet && (evt.Failed != "" || evt.Status >= 400):
 			obs.NetworkFailed = append(obs.NetworkFailed, evt)
 		}
 	}
 
 	// A11y diff: compare snapshots if both are present and distinct.
 	if before != nil && after != nil && len(before.Refs) > 0 && len(after.Refs) > 0 {
-		d := DiffRefs(before.Refs, after.Refs)
+		d := engine.DiffRefs(before.Refs, after.Refs)
 		if !d.Unchanged {
-			obs.A11yDiff = FormatDiff(d)
+			obs.A11yDiff = engine.FormatDiff(d)
 		}
 	}
 

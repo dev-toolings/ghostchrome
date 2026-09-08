@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 )
 
 // happy path: extract → click → done
@@ -131,7 +131,7 @@ type errRunner struct {
 	err error
 }
 
-func (r *errRunner) RunOp(op string, _ json.RawMessage) (any, *engine.Observation, error) {
+func (r *errRunner) RunOp(op string, _ json.RawMessage) (any, *feedback.Observation, error) {
 	if op == r.op {
 		return nil, nil, r.err
 	}
