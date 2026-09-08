@@ -21,6 +21,7 @@ import (
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
 	"github.com/dev-toolings/ghostchrome/internal/core/interact"
 	"github.com/dev-toolings/ghostchrome/internal/core/overlay"
+	"github.com/dev-toolings/ghostchrome/internal/runtime"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
@@ -213,6 +214,24 @@ func Tools() []string {
 // ============================================================================
 // handlers
 // ============================================================================
+//
+// Every browser verb below routes through internal/runtime: the op layer owns
+// ref resolution, the recovery chain and mutation diffing, and this file owns
+// the MCP argument parsing and the text rendering the agent reads. What stays
+// on a direct engine call is either an MCP-only concern with no JSONL
+// counterpart (emulate, swipe geometry, the Preview composite) or a value
+// fetch, never a second implementation of a shared verb.
+
+// dispatch runs one op through the shared op layer, which withPage has already
+// bound to this request's page. Argument names are the JSONL ones on purpose:
+// they are the frozen contract both SDKs are typed against.
+func (s *Server) dispatch(op string, args map[string]any) (any, error) {
+	raw, err := json.Marshal(args)
+	if err != nil {
+		return nil, fmt.Errorf("%s: encode args: %w", op, err)
+	}
+	return s.ops.Dispatch(op, raw)
+}
 
 func (s *Server) handleSnapshot(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
 	url := mcpgo.ParseString(req, "url", "")
@@ -225,8 +244,13 @@ func (s *Server) handleSnapshot(ctx context.Context, req mcpgo.CallToolRequest) 
 		return errResult(err)
 	}
 
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		// With URL: full Preview (navigate + errors + network + extract).
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		// With URL: engine.Preview is the single navigate+observe+extract pass
+		// that gives this MCP-only tool its reason to exist (one call instead of
+		// three, one set of tokens instead of three). Composing runtime ops here
+		// would report a different errors/network set, so the composite stays one
+		// engine call — but the ref table it produces is handed straight to the
+		// op layer, which owns every ref an agent will use next.
 		if url != "" {
 			pv, err := engine.Preview(page, url, wait, level, func(p *rod.Page) error {
 				if s.opts.DismissCookies {
@@ -240,24 +264,23 @@ func (s *Server) handleSnapshot(ctx context.Context, req mcpgo.CallToolRequest) 
 				return errResult(fmt.Errorf("snapshot: %w", err))
 			}
 			if pv.DOM != nil {
-				s.rememberSnapshot(page, pv.DOM)
+				_ = s.ops.RememberExtraction(pv.DOM)
 			}
 			return previewResult(pv)
 		}
 
-		// Without URL: snapshot the current page. Errors/network come from
-		// the long-lived observer (started in ensurePageLocked).
+		// Without URL: the "extract" op does the extraction and the ref-table
+		// bookkeeping. Errors/network come from the long-lived observer
+		// (started in ensurePageLocked).
 		info, err := page.Info()
 		if err != nil {
 			return errResult(fmt.Errorf("page info: %w", err))
 		}
-		extracted, err := engine.Extract(page, level, selector, false)
+		out, err := s.dispatch("extract", map[string]any{"level": levelStr, "selector": selector})
 		if err != nil {
 			return errResult(fmt.Errorf("extract: %w", err))
 		}
-		if selector == "" {
-			s.rememberSnapshot(page, extracted)
-		}
+		extracted, _ := out.(*engine.ExtractionResult)
 
 		// Build a PreviewResult equivalent from observer + extract so the
 		// output shape stays consistent with the URL-provided path.
@@ -287,8 +310,9 @@ func (s *Server) handleNavigate(ctx context.Context, req mcpgo.CallToolRequest) 
 	}
 	wait := mcpgo.ParseString(req, "wait", "domcontentloaded")
 
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		info, err := engine.Navigate(page, url, wait)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		out, err := s.dispatch("navigate", map[string]any{"url": url, "wait": wait})
+		info, _ := out.(*engine.PageInfo)
 		if err != nil {
 			recovered, recErr := tryNavigateRecovery(page, err)
 			if !recovered {
@@ -301,12 +325,17 @@ func (s *Server) handleNavigate(ctx context.Context, req mcpgo.CallToolRequest) 
 				info = &engine.PageInfo{URL: pi.URL, Title: pi.Title, Status: 200}
 			}
 		}
+		if info == nil {
+			return errResult(fmt.Errorf("navigate: no page info"))
+		}
 		if s.opts.DismissCookies {
 			if antibot.DismissCookieBanner(page) {
 				_ = engine.WaitForPage(page, "stable")
 			}
 		}
-		_ = b.InvalidateCachedExtract(page)
+		// The op already invalidated once; dismissing a banner mutates the DOM
+		// after that, so the cache has to be dropped again.
+		_ = s.browser.InvalidateCachedExtract(page)
 		summary := fmt.Sprintf("[%d] %s — %s (%dms)", info.Status, info.Title, info.URL, info.TimeMs)
 		return jsonResult(info, summary)
 	})
@@ -317,27 +346,17 @@ func (s *Server) handleClick(ctx context.Context, req mcpgo.CallToolRequest) (*m
 	if ref == "" {
 		return errResult(fmt.Errorf("ref is required"))
 	}
-	button, berr := interact.ParseMouseButton(mcpgo.ParseString(req, "button", "left"))
-	if berr != nil {
+	button := mcpgo.ParseString(req, "button", "left")
+	if _, berr := interact.ParseMouseButton(button); berr != nil {
 		return errResult(fmt.Errorf("click: %w", berr))
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		popupMark := engine.PopupMark(page)
-		var err error
-		if s.rt != nil {
-			err = s.rt.PageSession(page).Click(ref, snap, button)
-		} else {
-			err = engine.ClickRefWithButton(page, ref, snap, button)
-		}
+	mode := snapshotModeFromReq(req)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		out, err := s.dispatch("click", map[string]any{"ref": ref, "button": button, "snapshot": string(mode)})
 		if err != nil {
 			return errResult(fmt.Errorf("click %s: %w", ref, err))
 		}
-		if popup := engine.AdoptClickPopup(page, popupMark, snap, ref); popup != nil {
-			s.adoptPage(b, popup)
-			page = popup
-		}
-		return s.mutationResult(b, page, fmt.Sprintf("clicked %s", ref), snapshotModeFromReq(req))
+		return mutationResult(mode, out, fmt.Sprintf("clicked %s", ref))
 	})
 }
 
@@ -348,25 +367,19 @@ func (s *Server) handleType(ctx context.Context, req mcpgo.CallToolRequest) (*mc
 	if ref == "" {
 		return errResult(fmt.Errorf("ref is required"))
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		var err error
-		if s.rt != nil {
-			err = s.rt.PageSession(page).Type(ref, text, snap)
-		} else {
-			err = engine.TypeRef(page, ref, text, snap)
-		}
+	mode := snapshotModeFromReq(req)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		out, err := s.dispatch("type", map[string]any{
+			"ref": ref, "text": text, "submit": submit, "snapshot": string(mode),
+		})
 		if err != nil {
 			return errResult(fmt.Errorf("type %s: %w", ref, err))
 		}
 		summary := fmt.Sprintf("typed into %s (%d chars)", ref, len(text))
 		if submit {
-			if err := engine.PressKey(page, "Enter", ref, snap); err != nil {
-				return errResult(fmt.Errorf("submit %s: %w", ref, err))
-			}
 			summary += " + Enter"
 		}
-		return s.mutationResult(b, page, summary, snapshotModeFromReq(req))
+		return mutationResult(mode, out, summary)
 	})
 }
 
@@ -384,18 +397,13 @@ func (s *Server) handleSelect(ctx context.Context, req mcpgo.CallToolRequest) (*
 			values = arr
 		}
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		var err error
-		if s.rt != nil {
-			err = s.rt.PageSession(page).Select(ref, values, snap)
-		} else {
-			err = engine.SelectOption(page, ref, values, snap)
-		}
+	mode := snapshotModeFromReq(req)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		out, err := s.dispatch("select", map[string]any{"ref": ref, "values": values, "snapshot": string(mode)})
 		if err != nil {
 			return errResult(fmt.Errorf("select %s: %w", ref, err))
 		}
-		return s.mutationResult(b, page, fmt.Sprintf("selected %v in %s", values, ref), snapshotModeFromReq(req))
+		return mutationResult(mode, out, fmt.Sprintf("selected %v in %s", values, ref))
 	})
 }
 
@@ -405,16 +413,16 @@ func (s *Server) handlePress(ctx context.Context, req mcpgo.CallToolRequest) (*m
 		return errResult(fmt.Errorf("key is required"))
 	}
 	ref := normalizeRef(mcpgo.ParseString(req, "ref", ""))
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		if err := engine.PressKey(page, key, ref, snap); err != nil {
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		out, err := s.dispatch("press", map[string]any{"key": key, "ref": ref})
+		if err != nil {
 			return errResult(fmt.Errorf("press %s: %w", key, err))
 		}
 		summary := fmt.Sprintf("pressed %s", key)
 		if ref != "" {
 			summary = fmt.Sprintf("pressed %s on %s", key, ref)
 		}
-		return s.mutationResult(b, page, summary)
+		return mutationResult(engine.SnapshotModeDiff, out, summary)
 	})
 }
 
@@ -440,17 +448,19 @@ func (s *Server) handleWaitFor(ctx context.Context, req mcpgo.CallToolRequest) (
 		}
 		return mcpgo.NewToolResultText(fmt.Sprintf("waited %dms (no condition)", timeoutMs)), nil
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
 		start := time.Now()
-		if _, err := engine.WaitForAgent(page, b, s.snapshotForResolve(page), engine.WaitSpec{
-			Selector: selector,
-			Ref:      ref,
-			Text:     text,
-			URL:      urlNeedle,
-			Load:     load,
-			State:    state,
-			Timeout:  time.Duration(timeoutMs) * time.Millisecond,
-		}, time.Duration(timeoutMs)*time.Millisecond); err != nil {
+		// wait_for is the MCP-only extension of the JSONL "wait" op: same
+		// conditions, plus the clamped timeout above and the pure-delay branch.
+		if _, err := s.dispatch("wait", map[string]any{
+			"ref":        ref,
+			"selector":   selector,
+			"text":       text,
+			"url":        urlNeedle,
+			"load":       load,
+			"state":      state,
+			"timeout_ms": timeoutMs,
+		}); err != nil {
 			return errResult(err)
 		}
 		label := ref
@@ -483,13 +493,14 @@ func (s *Server) handleEval(ctx context.Context, req mcpgo.CallToolRequest) (*mc
 	if timeoutMs <= 0 {
 		timeoutMs = 8000
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		value, err := engine.EvalJSTimeout(page, expr, ref, snap, time.Duration(timeoutMs)*time.Millisecond)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		// EvalTimeout is the op layer's eval with the per-call deadline this
+		// tool exposes and the JSONL op does not.
+		value, err := s.ops.EvalTimeout(expr, ref, time.Duration(timeoutMs)*time.Millisecond)
 		if err != nil {
 			return errResult(fmt.Errorf("eval: %w", err))
 		}
-		_ = b.InvalidateCachedExtract(page)
+		_ = s.browser.InvalidateCachedExtract(page)
 		return mcpgo.NewToolResultText(value), nil
 	})
 }
@@ -507,13 +518,17 @@ func (s *Server) handleScreenshot(ctx context.Context, req mcpgo.CallToolRequest
 		format = "png"
 		quality = 0
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		data, err := engine.TakeScreenshotFormat(page, fullPage, ref, format, quality, snap)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		data, err := s.ops.CaptureScreenshot(runtime.ScreenshotSpec{
+			FullPage: fullPage,
+			Ref:      ref,
+			Format:   format,
+			Quality:  quality,
+		})
 		if err != nil {
 			return errResult(fmt.Errorf("screenshot: %w", err))
 		}
-		if annotate && snap != nil {
+		if snap := s.refs(); annotate && snap != nil {
 			data, err = overlay.AnnotateScreenshot(page, snap, data)
 			if err != nil {
 				return errResult(fmt.Errorf("annotate: %w", err))
@@ -533,18 +548,13 @@ func (s *Server) handleHover(ctx context.Context, req mcpgo.CallToolRequest) (*m
 	if ref == "" {
 		return errResult(fmt.Errorf("ref is required"))
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		var err error
-		if s.rt != nil {
-			err = s.rt.PageSession(page).Hover(ref, snap)
-		} else {
-			err = engine.HoverRef(page, ref, snap)
-		}
+	mode := snapshotModeFromReq(req)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		out, err := s.dispatch("hover", map[string]any{"ref": ref, "snapshot": string(mode)})
 		if err != nil {
 			return errResult(fmt.Errorf("hover %s: %w", ref, err))
 		}
-		return s.mutationResult(b, page, fmt.Sprintf("hovered %s", ref), snapshotModeFromReq(req))
+		return mutationResult(mode, out, fmt.Sprintf("hovered %s", ref))
 	})
 }
 
@@ -555,12 +565,18 @@ func (s *Server) handleDrag(ctx context.Context, req mcpgo.CallToolRequest) (*mc
 	if from == "" || to == "" {
 		return errResult(fmt.Errorf("from and to refs are required"))
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		if err := engine.DragDrop(page, from, to, snap, steps); err != nil {
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		prev := s.refs()
+		// No JSONL "drag" op exists; Session.Drag is the shared implementation
+		// so both refs resolve through the op layer's table and recovery.
+		if err := s.ops.Drag(from, to, steps); err != nil {
 			return errResult(fmt.Errorf("drag %s→%s: %w", from, to, err))
 		}
-		return s.mutationResult(b, page, fmt.Sprintf("dragged %s -> %s", from, to))
+		out, err := s.ops.Mutation(prev, engine.SnapshotModeDiff)
+		if err != nil {
+			return errResult(err)
+		}
+		return mutationResult(engine.SnapshotModeDiff, out, fmt.Sprintf("dragged %s -> %s", from, to))
 	})
 }
 
@@ -586,7 +602,8 @@ func (s *Server) handleSwipe(ctx context.Context, req mcpgo.CallToolRequest) (*m
 	if steps > 100 {
 		steps = 100
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
+	mode := snapshotModeFromReq(req)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
 		// Chrome drops synthesized touch events on a page whose widget has no
 		// touch support, so a swipe on a non-emulated tab would silently do
 		// nothing. Turn touch on rather than failing.
@@ -598,11 +615,18 @@ func (s *Server) handleSwipe(ctx context.Context, req mcpgo.CallToolRequest) (*m
 			s.emulation.Touch = true
 			hint = " (touch emulation enabled for this swipe)"
 		}
+		prev := s.refs()
+		// MCP-only gesture: coordinates, not refs, so there is no JSONL op to
+		// delegate to. Only the post-action observation is shared.
 		if err := engine.SwipeTouch(page, fromX, fromY, toX, toY, steps, time.Duration(durationMs)*time.Millisecond); err != nil {
 			return errResult(fmt.Errorf("swipe: %w", err))
 		}
+		out, err := s.ops.Mutation(prev, mode)
+		if err != nil {
+			return errResult(err)
+		}
 		summary := fmt.Sprintf("swiped (%.0f,%.0f) -> (%.0f,%.0f) in %dms%s", fromX, fromY, toX, toY, durationMs, hint)
-		return s.mutationResult(b, page, summary, snapshotModeFromReq(req))
+		return mutationResult(mode, out, summary)
 	})
 }
 
@@ -625,18 +649,18 @@ func (s *Server) handleEmulate(ctx context.Context, req mcpgo.CallToolRequest) (
 		if device != "" || width > 0 || height > 0 || dpr > 0 || userAgent != "" || colorScheme != "" || hasMobile || hasTouch {
 			return errResult(fmt.Errorf("reset cannot be combined with other emulation parameters"))
 		}
-		return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
+		return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
 			if err := engine.ResetEmulation(page); err != nil {
 				return errResult(fmt.Errorf("emulate reset: %w", err))
 			}
 			s.emulation = engine.EmulationState{}
-			_ = b.ClearEmulationState()
-			_ = b.InvalidateCachedExtract(page)
+			_ = s.browser.ClearEmulationState()
+			_ = s.browser.InvalidateCachedExtract(page)
 			return mcpgo.NewToolResultText("emulation reset: real viewport, no touch, browser user-agent. Re-snapshot before using refs."), nil
 		})
 	}
 
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
 		state := s.emulation
 		if device != "" {
 			preset, ok := engine.DeviceByName(device)
@@ -702,8 +726,8 @@ func (s *Server) handleEmulate(ctx context.Context, req mcpgo.CallToolRequest) (
 		s.emulation = state
 		// No-op outside a managed session; keeps a named session consistent
 		// with what the CLI would have persisted.
-		_ = b.SetEmulationState(state)
-		_ = b.InvalidateCachedExtract(page)
+		_ = s.browser.SetEmulationState(state)
+		_ = s.browser.InvalidateCachedExtract(page)
 		return jsonResult(state, "emulating "+state.Summary()+" — re-snapshot before using refs")
 	})
 }
@@ -721,16 +745,26 @@ func (s *Server) handleFillForm(ctx context.Context, req mcpgo.CallToolRequest) 
 	for ref, value := range fields {
 		normalized[normalizeRef(ref)] = value
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		filled, snap, err := engine.FillFields(b, page, normalized, snap)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		out, err := s.dispatch("fill", map[string]any{"fields": normalized})
 		if err != nil {
 			return errResult(err)
 		}
-		if snap != nil {
-			s.snapshot = snap
+		filled := 0
+		if counts, ok := out.(map[string]int); ok {
+			filled = counts["filled"]
 		}
-		return s.mutationResult(b, page, fmt.Sprintf("filled %d fields", filled))
+		// Baseline taken after the op, not before: the "fill" op re-extracts
+		// while resolving the fields and leaves a fresh ref table behind, so the
+		// diff reported here is what changed once every field was written.
+		prev := s.refs()
+		// The JSONL "fill" op reports a count; this tool also reports the
+		// resulting a11y diff, which is the shared post-action observation.
+		diff, err := s.ops.Mutation(prev, engine.SnapshotModeDiff)
+		if err != nil {
+			return errResult(err)
+		}
+		return mutationResult(engine.SnapshotModeDiff, diff, fmt.Sprintf("filled %d fields", filled))
 	})
 }
 
@@ -751,97 +785,61 @@ func (s *Server) handleUpload(ctx context.Context, req mcpgo.CallToolRequest) (*
 	} else {
 		paths = []string{pathsRaw}
 	}
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		snap := s.snapshotForResolve(page)
-		el, err := engine.ResolveRef(page, ref, snap)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		prev := s.refs()
+		// No JSONL "upload" op; only the ref resolution is shared, because a
+		// file input has to be handed to SetFiles as a live element.
+		el, err := s.ops.ResolveRef(ref)
 		if err != nil {
 			return errResult(fmt.Errorf("upload %s: %w", ref, err))
 		}
 		if err := el.SetFiles(paths); err != nil {
 			return errResult(fmt.Errorf("upload: %w", err))
 		}
-		return s.mutationResult(b, page, fmt.Sprintf("uploaded %d file(s) to %s", len(paths), ref))
+		out, err := s.ops.Mutation(prev, engine.SnapshotModeDiff)
+		if err != nil {
+			return errResult(err)
+		}
+		return mutationResult(engine.SnapshotModeDiff, out, fmt.Sprintf("uploaded %d file(s) to %s", len(paths), ref))
 	})
 }
 
-func (s *Server) adoptPage(b *engine.Browser, page *rod.Page) {
-	_ = b.SetCurrentPage(page)
-	s.page = page
-	s.snapshot = b.Snapshot(page)
-	if s.dialogPolicy == nil {
-		s.dialogPolicy = &engine.DialogAutoPolicy{Accept: true}
-	}
-	engine.StartDialogAutoHandler(page, s.dialogPolicy)
-	if s.rt == nil {
-		s.rt = engine.NewRuntime(b)
-	}
-	if !s.opts.Stealth {
-		if hub := s.rt.AttachEvents(page); hub != nil {
-			s.observer = hub.Observer()
-		}
-	}
-	// A popup or a new tab is a fresh target with no emulation override.
-	s.replayEmulationLocked(page)
-}
 func (s *Server) handleTabs(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
 	action := mcpgo.ParseString(req, "action", "list")
 	index := int(mcpgo.ParseFloat64(req, "index", -1))
 
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
-		currentID := string(page.TargetID)
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		args := map[string]any{"action": action}
+		switch action {
+		case "switch", "close":
+			if index < 0 {
+				return errResult(fmt.Errorf("index is required for %s", action))
+			}
+			args["index"] = index
+		case "new":
+			args["url"] = mcpgo.ParseString(req, "url", "")
+		default:
+			// Anything the schema enum does not cover has always listed.
+			action = "list"
+			args["action"] = "list"
+		}
+		out, err := s.dispatch("tabs", args)
+		if err != nil {
+			return errResult(err)
+		}
 		switch action {
 		case "switch":
-			if index < 0 {
-				return errResult(fmt.Errorf("index is required for switch"))
-			}
-			newPage, err := engine.SwitchTab(b.RodBrowser(), index)
-			if err != nil {
-				return errResult(fmt.Errorf("switch tab: %w", err))
-			}
-			s.adoptPage(b, newPage)
-			info, _ := newPage.Info()
-			url := ""
-			if info != nil {
-				url = info.URL
-			}
-			return mcpgo.NewToolResultText(fmt.Sprintf("switched to tab %d: %s", index, url)), nil
+			return mcpgo.NewToolResultText(fmt.Sprintf("switched to tab %d: %s", index, tabURL(out))), nil
 		case "close":
-			if index < 0 {
-				return errResult(fmt.Errorf("index is required for close"))
-			}
-			closedID, err := engine.CloseTab(b.RodBrowser(), index)
-			if err != nil {
-				return errResult(fmt.Errorf("close tab: %w", err))
-			}
-			_ = b.DeleteSnapshot(closedID)
-			if s.page != nil && s.page.TargetID == closedID {
-				pages, perr := b.RodBrowser().Pages()
-				if perr == nil && len(pages) > 0 {
-					s.adoptPage(b, pages[0])
-				} else {
-					s.page = nil
-					s.snapshot = nil
-				}
-			}
 			return mcpgo.NewToolResultText(fmt.Sprintf("closed tab %d", index)), nil
 		case "new":
-			url := mcpgo.ParseString(req, "url", "")
-			newPage, err := engine.NewTab(b.RodBrowser(), url)
-			if err != nil {
-				return errResult(fmt.Errorf("new tab: %w", err))
-			}
-			s.adoptPage(b, newPage)
-			info, _ := newPage.Info()
-			label := "about:blank"
-			if info != nil && info.URL != "" {
-				label = info.URL
+			label := tabURL(out)
+			if label == "" {
+				label = "about:blank"
 			}
 			return mcpgo.NewToolResultText(fmt.Sprintf("opened tab: %s", label)), nil
 		default:
-			tabs, err := engine.ListTabs(b.RodBrowser(), currentID)
-			if err != nil {
-				return errResult(fmt.Errorf("list tabs: %w", err))
-			}
+			tabs, _ := out.([]engine.TabInfo)
 			return jsonResult(tabs, fmt.Sprintf("%d tabs open", len(tabs)))
 		}
 	})
@@ -850,6 +848,11 @@ func (s *Server) handleTabs(ctx context.Context, req mcpgo.CallToolRequest) (*mc
 func (s *Server) handleDialog(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
 	action := strings.ToLower(mcpgo.ParseString(req, "action", "accept"))
 	text := mcpgo.ParseString(req, "text", "")
+	// Deliberately not routed through the op layer: this tool must not open
+	// Chrome. It mutates the very policy object bindOps hands to the op layer,
+	// so a policy set before the first navigation is the one an adopted popup
+	// inherits.
+	//
 	// Dialog events are handled by a background CDP listener while MCP calls
 	// may reconfigure the policy concurrently. Protect both the pointer and
 	// the policy update; the policy itself also synchronizes its fields.
@@ -867,31 +870,37 @@ func (s *Server) handleDialog(ctx context.Context, req mcpgo.CallToolRequest) (*
 	}
 	return mcpgo.NewToolResultText(fmt.Sprintf("dialogs will %s", action)), nil
 }
+
 func (s *Server) handleBack(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
 		res, err := historyStep(page, "back")
 		if err == nil {
-			_ = b.InvalidateCachedExtract(page)
+			_ = s.browser.InvalidateCachedExtract(page)
 		}
 		return res, err
 	})
 }
 
 func (s *Server) handleForward(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
-	return s.withPage(ctx, func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error) {
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
 		res, err := historyStep(page, "forward")
 		if err == nil {
-			_ = b.InvalidateCachedExtract(page)
+			_ = s.browser.InvalidateCachedExtract(page)
 		}
 		return res, err
 	})
 }
 
 // historyStep mirrors cmd/back.go: trigger the history step, wait until the
-// page is stable, then report the resulting URL. WaitForPage("stable") is
-// what the CLI uses — pre-registering the lifecycle listener inside
-// engine.Navigate isn't an option here because the navigation kick is one
-// method call, not a separate page.Navigate(url).
+// page is stable, then report the resulting URL.
+//
+// Deliberately NOT routed through the JSONL "back"/"forward" ops: those wait
+// for "load", this waits for "stable", and the JSONL ops take no arguments, so
+// sharing them would mean either changing MCP's wait strategy or adding an
+// argument to a frozen contract. WaitForPage("stable") is what the CLI uses —
+// pre-registering the lifecycle listener inside engine.Navigate isn't an option
+// here because the navigation kick is one method call, not a separate
+// page.Navigate(url).
 func historyStep(page *rod.Page, action string) (*mcpgo.CallToolResult, error) {
 	delta := 1
 	if action == "back" {
@@ -939,6 +948,29 @@ func jsonResult(payload any, summary string) (*mcpgo.CallToolResult, error) {
 		return mcpgo.NewToolResultText(string(data)), nil
 	}
 	return mcpgo.NewToolResultText(summary + "\n" + string(data)), nil
+}
+
+// mutationResult renders what the op layer returns after a mutation: a
+// SnapshotDiff in diff mode (with the human diff appended), the skeleton
+// ExtractionResult in full mode, the unchanged marker in none mode. The
+// payload is emitted as-is — computing it is internal/runtime's job.
+func mutationResult(mode engine.SnapshotMode, out any, summary string) (*mcpgo.CallToolResult, error) {
+	if mode == engine.SnapshotModeDiff {
+		diff, _ := out.(engine.SnapshotDiff)
+		return jsonResult(out, summary+"\n"+engine.FormatDiff(diff))
+	}
+	return jsonResult(out, summary)
+}
+
+// tabURL reads the url a tabs op reports for the target it switched to or
+// opened. Empty when the target had no metadata yet.
+func tabURL(out any) string {
+	m, ok := out.(map[string]any)
+	if !ok {
+		return ""
+	}
+	url, _ := m["url"].(string)
+	return url
 }
 
 // hasArg reports whether the caller actually supplied a key, as opposed to the
@@ -1068,37 +1100,4 @@ func snapshotModeFromReq(req mcpgo.CallToolRequest) engine.SnapshotMode {
 		return engine.SnapshotModeDiff
 	}
 	return mode
-}
-
-func (s *Server) mutationResult(b *engine.Browser, page *rod.Page, summary string, mode ...engine.SnapshotMode) (*mcpgo.CallToolResult, error) {
-	chosen := engine.SnapshotModeDiff
-	if len(mode) > 0 && mode[0] != "" {
-		chosen = mode[0]
-	}
-	prev := s.snapshotForResolve(page)
-	switch chosen {
-	case engine.SnapshotModeNone:
-		_ = b.InvalidateCachedExtract(page)
-		return jsonResult(engine.SnapshotDiff{Unchanged: true}, summary)
-	case engine.SnapshotModeFull:
-		_ = b.InvalidateCachedExtract(page)
-		if err := engine.WaitForImminentDOM(page, 0); err != nil {
-			return errResult(err)
-		}
-		result, err := engine.Extract(page, engine.LevelSkeleton, "", false)
-		if err != nil {
-			return errResult(err)
-		}
-		s.rememberSnapshot(page, result)
-		return jsonResult(result, summary)
-	default:
-		diff, result, err := engine.CaptureMutation(b, page, prev)
-		if err != nil {
-			return errResult(err)
-		}
-		if result != nil {
-			s.rememberSnapshot(page, result)
-		}
-		return jsonResult(diff, summary+"\n"+engine.FormatDiff(diff))
-	}
 }

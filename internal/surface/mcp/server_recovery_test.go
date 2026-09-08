@@ -59,7 +59,7 @@ func TestEnsurePageRelaunchesAfterBrowserDeath(t *testing.T) {
 	if _, err := page2.Info(); err != nil {
 		t.Fatalf("relaunched page unusable: %v", err)
 	}
-	if s.snapshot != nil {
+	if s.refs() != nil {
 		t.Error("stale snapshot survived relaunch; refs would resolve into the dead browser")
 	}
 }

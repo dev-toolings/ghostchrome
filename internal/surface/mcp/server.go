@@ -19,6 +19,7 @@ import (
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
 	"github.com/dev-toolings/ghostchrome/internal/core/pagesetup"
 	"github.com/dev-toolings/ghostchrome/internal/core/policy"
+	"github.com/dev-toolings/ghostchrome/internal/runtime"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
@@ -59,11 +60,15 @@ type Options struct {
 type Server struct {
 	opts Options
 
-	mu           sync.Mutex
-	browser      *engine.Browser
-	page         *rod.Page
-	snapshot     *engine.PageSnapshot // last in-memory snapshot (for ref resolution)
-	rt           *engine.Runtime
+	mu      sync.Mutex
+	browser *engine.Browser
+	page    *rod.Page
+	rt      *engine.Runtime
+	// ops is the shared op layer (internal/runtime), bound to the held
+	// browser before every tool call. It owns ref resolution, recovery and
+	// mutation diffing; this package owns the Chrome lifecycle and the
+	// JSON-RPC framing. Never Shutdown() it: the binding marks it external.
+	ops          *runtime.Session
 	observer     *engine.Observer         // long-lived; feeds error/network info into snapshot
 	observerFn   context.CancelFunc       // cancel attached to the observer's context
 	blocker      *engine.InterceptSession // non-nil when anti-bot blocker is active
@@ -275,8 +280,13 @@ func (s *Server) closeLocked() {
 		s.browser.Close()
 		s.browser = nil
 		s.page = nil
-		s.snapshot = nil
 		s.rt = nil
+		// Relaunch invalidates refs (@1, @2) from earlier snapshots: drop the
+		// ref table so ref-based tools tell the agent to re-snapshot instead
+		// of clicking into the void.
+		if s.ops != nil {
+			s.ops.SetRefs(nil)
+		}
 	}
 }
 
@@ -376,7 +386,7 @@ func (s *Server) recoverPageLocked(b *engine.Browser, previous *rod.Page) (*rod.
 // Caller MUST hold s.mu.
 func (s *Server) bindPageLocked(b *engine.Browser, page *rod.Page) {
 	s.page = page
-	s.snapshot = b.Snapshot(page)
+	s.opsSession().SetRefs(b.Snapshot(page))
 	if s.opts.Stealth {
 		_ = engine.ApplyStealth(page)
 	}
@@ -504,7 +514,7 @@ func (s *Server) launchPageLocked() (*engine.Browser, *rod.Page, error) {
 // context. That makes notifications/cancelled stop in-flight Rod waits without
 // poisoning the long-lived page held by the server for the next tool call.
 // Returns an MCP error result on initialization failure or cancelled context.
-func (s *Server) withPage(ctx context.Context, fn func(b *engine.Browser, page *rod.Page) (*mcpgo.CallToolResult, error)) (*mcpgo.CallToolResult, error) {
+func (s *Server) withPage(ctx context.Context, fn func(page *rod.Page) (*mcpgo.CallToolResult, error)) (*mcpgo.CallToolResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -516,7 +526,7 @@ func (s *Server) withPage(ctx context.Context, fn func(b *engine.Browser, page *
 	if err := ctx.Err(); err != nil {
 		return errResult(err)
 	}
-	b, page, err := s.ensurePageLocked()
+	_, page, err := s.ensurePageLocked()
 	if err != nil {
 		return mcpgo.NewToolResultError(err.Error()), nil
 	}
@@ -527,34 +537,67 @@ func (s *Server) withPage(ctx context.Context, fn func(b *engine.Browser, page *
 	stop := context.AfterFunc(ctx, cancel)
 	defer stop()
 	defer cancel()
-	return fn(b, page.Context(opCtx))
+	s.bindOps(page.Context(opCtx))
+	defer s.syncFromOps(page)
+	return fn(page.Context(opCtx))
 }
 
-// rememberSnapshot stores the snapshot built from an extract so subsequent
-// ref-based tools can resolve @N. Caller MUST hold s.mu.
-func (s *Server) rememberSnapshot(page *rod.Page, result *engine.ExtractionResult) {
-	if result == nil || page == nil {
-		return
+// opsSession returns the shared op layer, constructing it on first use. It is
+// deliberately not bound here: bindOps rebinds it to the live browser and page
+// before every tool call. Caller MUST hold s.mu.
+func (s *Server) opsSession() *runtime.Session {
+	if s.ops == nil {
+		s.ops = runtime.New(runtime.Config{
+			// Stealth must mirror the server option: it is what keeps an op
+			// that adopts a new target from attaching the event hub (and thus
+			// enabling the Runtime CDP domain) on a stealth session.
+			Stealth:    s.opts.Stealth,
+			TimeoutSec: s.opts.TimeoutSec,
+		})
 	}
-	snap, err := engine.BuildSnapshot(page, result)
-	if err != nil {
-		return
-	}
-	s.snapshot = snap
-	if s.browser != nil {
-		_ = s.browser.SaveSnapshot(page, result)
-	}
+	return s.ops
 }
 
-// snapshotForResolve returns the best snapshot to use for ref resolution.
-// Prefers the connected browser's snapshot, falls back to in-memory.
-func (s *Server) snapshotForResolve(page *rod.Page) *engine.PageSnapshot {
-	if s.browser != nil {
-		if snap := s.browser.Snapshot(page); snap != nil {
-			return snap
-		}
+// bindOps points the op layer at the live browser and the request-scoped page
+// for the duration of one tool call. Caller MUST hold s.mu.
+func (s *Server) bindOps(page *rod.Page) *runtime.Session {
+	ops := s.opsSession()
+	ops.Bind(runtime.Binding{
+		Browser:      s.browser,
+		Page:         page,
+		Runtime:      s.rt,
+		DialogPolicy: s.dialogPolicy,
+	})
+	return ops
+}
+
+// syncFromOps re-reads the page an op may have adopted (a click popup, a tab
+// switch/new/close). internal/runtime already did the shared half of the
+// adoption — SetCurrentPage, the dialog handler, the event hub — so all that
+// is left here is the MCP-only half: the held page and the emulation replay,
+// without which a phone-shell test silently snaps back to a desktop viewport
+// on the new target. Caller MUST hold s.mu.
+func (s *Server) syncFromOps(previous *rod.Page) {
+	adopted := s.ops.Page()
+	if adopted == nil {
+		// The last tab was closed and no replacement could be bound.
+		s.page = nil
+		return
 	}
-	return s.snapshot
+	if previous != nil && adopted.TargetID == previous.TargetID {
+		return
+	}
+	s.page = adopted
+	s.replayEmulationLocked(adopted)
+}
+
+// refs returns the ref table held by the op layer, or nil before the first op.
+// Caller MUST hold s.mu.
+func (s *Server) refs() *engine.PageSnapshot {
+	if s.ops == nil {
+		return nil
+	}
+	return s.ops.Refs()
 }
 
 // errResult turns a Go error into an MCP error tool result.

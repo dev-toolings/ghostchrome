@@ -47,10 +47,10 @@ func (s *Session) Bind(b Binding) {
 	}
 }
 
-// Refs returns the in-memory ref table (@1, @2, ...) the session currently
-// holds. It is the fallback used when the browser holds no snapshot for the
-// current page.
-func (s *Session) Refs() *engine.PageSnapshot { return s.snapshot }
+// Refs returns the ref table (@1, @2, ...) in force for the bound page: the
+// snapshot the browser has saved for it, or the session's in-memory table when
+// the browser holds none. It is the same resolution order the ops use.
+func (s *Session) Refs() *engine.PageSnapshot { return s.currentSnapshotIfAvailable() }
 
 // SetRefs replaces the in-memory ref table. Surfaces call it with nil after
 // tearing the browser down, so ref-based ops fail closed and tell the agent to
