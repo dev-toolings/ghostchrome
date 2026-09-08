@@ -32,7 +32,7 @@ cmd/ghostchrome/ -> internal/surface/cli/ -> internal/core/engine/ -> Chrome
 - `internal/core/engine/errors.go` — Console + network error collection
 - `internal/core/engine/preview.go` — All-in-one page health report
 - `internal/core/engine/stealth.go` — Anti-detection patches
-- `internal/core/engine/cookies.go` — Cookie banner auto-dismiss
+- `internal/core/antibot/cookies.go` — Cookie banner auto-dismiss
 - `internal/ops/` — Canonical op catalog (single source of truth); `go generate` emits `contracts/commands.json` **and** the JSONL/MCP/AI registrations, so a surface cannot expose an op the catalog does not declare
 - `contracts/commands.json` — Generated op contract the SDKs are typed against
 - `sdk/typescript/`, `sdk/python/` — In-repo typed SDKs; thin clients that spawn a persistent `ghostchrome agent` subprocess and speak the JSONL protocol over stdio

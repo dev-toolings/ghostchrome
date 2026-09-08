@@ -31,7 +31,8 @@ The project optimizes for:
 | `sdk/python/` | Python JSONL agent client, stdlib runtime and unittest tests. |
 | `examples/` | End-to-end SDK examples. |
 | `benchmark/` | Benchmark fixtures, runner, and result docs. |
-| `packages/` | Site-specific scraper packages and npm wrapper package. |
+| `recipes/<site>/` | Private site scrapers. Gitignored, built only with `-tags recipes`. |
+| `dist/npm/` | Six versioned npm distribution manifests (`@ghostchrome/cli` + 5 platforms). |
 | `.claude/skills/ghostchrome/` | Embedded agent skill bundled into the binary. |
 
 ## Engine Responsibilities
@@ -42,13 +43,16 @@ The main `internal/core/engine/` split is:
 - Navigation and waiting: `internal/core/engine/navigator.go`, `internal/core/engine/wait.go`,
   `internal/core/engine/locator_wait.go`.
 - Extraction: `internal/core/engine/extractor.go`, DOM fallback, SSR/RSC extractors.
-- Interaction: `internal/core/engine/interactor.go`, drag, clipboard, mouse, human mode.
+- Interaction: `internal/core/engine/interactor.go`, drag, drop, touch, human mode;
+  clipboard and raw mouse live in `internal/core/interact/`.
 - Observation: `internal/core/engine/errors.go`, `internal/core/engine/observer.go`, network tracker,
-  capture, HAR, intercept.
-- Page reports: `internal/core/engine/preview.go`, perf, screenshots, PDF, annotations.
-- Safety and stealth: `internal/core/policy/`, `internal/core/vault/`, `internal/core/engine/stealth.go`,
-  anti-bot blocker.
-- Protocol surfaces: `internal/surface/mcp/`, `internal/surface/ai/`.
+  capture, intercept; HAR and traces live in `internal/core/artifact/`.
+- Page reports: `internal/core/engine/preview.go`, perf, screenshots, PDF;
+  numbered annotations live in `internal/core/overlay/`.
+- Safety and stealth: `internal/core/policy/`, `internal/core/vault/`,
+  `internal/core/engine/stealth.go`, `internal/core/antibot/`.
+- Protocol surfaces: `internal/surface/cli/`, `internal/surface/mcp/`,
+  `internal/surface/ai/`, orchestrated through `internal/runtime/`.
 
 ## Command Groups
 
