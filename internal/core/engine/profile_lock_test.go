@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,17 +59,43 @@ func TestClearStaleProfileLockKeepsLiveOwner(t *testing.T) {
 // A session that was just stopped still has a Chrome winding down, so the
 // cleanup must wait for the owner instead of giving up on the first check.
 func TestClearProfileLockWaitsForOwnerToExit(t *testing.T) {
+	if os.Getenv("GHOSTCHROME_TEST_PROFILE_LOCK_OWNER") == "1" {
+		// Stay alive until the parent explicitly releases stdin.
+		if _, err := io.Copy(io.Discard, os.Stdin); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
 	dir := t.TempDir()
 	host, err := os.Hostname()
 	if err != nil {
 		t.Fatalf("hostname: %v", err)
 	}
-	cmd := exec.Command("sh", "-c", "sleep 0.3")
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(executable, "-test.run=^TestClearProfileLockWaitsForOwnerToExit$")
+	cmd.Env = append(os.Environ(), "GHOSTCHROME_TEST_PROFILE_LOCK_OWNER=1")
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = stdin.Close() })
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("start probe process: %v", err)
 	}
 	// Reap the child so its PID really disappears from the process table.
-	go func() { _ = cmd.Wait() }()
+	exited := make(chan struct{})
+	go func() {
+		_ = cmd.Wait()
+		close(exited)
+	}()
+	t.Cleanup(func() {
+		_ = stdin.Close()
+		_ = cmd.Process.Kill()
+		<-exited
+	})
 	lock := writeSingletonLock(t, dir, fmt.Sprintf("%s-%d", host, cmd.Process.Pid))
 
 	clearProfileLockWithin(dir, 0)
@@ -76,7 +103,25 @@ func TestClearProfileLockWaitsForOwnerToExit(t *testing.T) {
 		t.Fatalf("lock of a still-running owner was removed: %v", err)
 	}
 
-	clearProfileLockWithin(dir, 3*time.Second)
+	cleared := make(chan struct{})
+	go func() {
+		clearProfileLockWithin(dir, 3*time.Second)
+		close(cleared)
+	}()
+	t.Cleanup(func() { <-cleared })
+	select {
+	case <-cleared:
+		t.Fatal("cleanup returned before the live owner was released")
+	case <-time.After(100 * time.Millisecond):
+	}
+	if err := stdin.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-cleared:
+	case <-time.After(5 * time.Second):
+		t.Fatal("cleanup did not finish after releasing the owner")
+	}
 	if _, err := os.Lstat(lock); !os.IsNotExist(err) {
 		t.Fatalf("lock still present after the owner exited (lstat err = %v)", err)
 	}

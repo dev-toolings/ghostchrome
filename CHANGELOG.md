@@ -14,6 +14,8 @@ All notable changes to ghostchrome are documented here. The format is based on
   browser integration and TypeScript/Python SDK validation.
 - Preserve LF line endings at checkout so generated-file freshness checks pass
   on Windows without weakening their byte-for-byte comparison.
+- Synchronize the profile-lock test with its child process instead of assuming
+  a 300 ms sleep outlasts Windows process inspection.
 - Use launcher-owned temporary Chrome profiles in runtime regression tests so
   shutdown finishes before profile cleanup.
 - Document the intentional trusted-operator URL boundary at the two FastFetch
