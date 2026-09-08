@@ -65,7 +65,8 @@ The Cobra root groups commands into these families:
 
 `internal/ops/ops.go` names three live surfaces:
 
-- `jsonl`: `cmd/agent.go` JSONL loop and SDK method coverage.
+- `jsonl`: `internal/runtime` dispatch table (`runtime.Ops()`), driven by the
+  `cmd/agent.go` stdio loop; also the SDK method coverage set.
 - `mcp`: `engine/mcp/tools.go` registered MCP tools.
 - `ai`: `engine/ai/tools.go` provider tool specs.
 

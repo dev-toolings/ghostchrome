@@ -7,58 +7,27 @@ package ops_test
 //
 // Design notes on introspection strategy:
 //
-//   - AI surface (engine/ai.ToolSpecs):   importable; names read at runtime.
-//   - MCP surface (engine/mcp/registerTools): unexported; names hardcoded here.
-//   - JSONL surface (cmd/agent.go dispatch): separate package, no exported API;
-//     names hardcoded here.
+//   - AI surface (engine/ai.ToolSpecs):        importable; names read at runtime.
+//   - JSONL surface (internal/runtime.Ops):    importable; names read at runtime.
+//   - MCP surface (engine/mcp/registerTools):  unexported; names hardcoded here.
 //
-// When a developer adds/removes an op in any surface they must also update the
-// hardcoded set below AND the catalog in ops.go — this file will then fail if
-// they forget one of the two changes, making the divergence immediately visible.
+// When a developer adds/removes an MCP tool they must also update the hardcoded
+// set below AND the catalog in ops.go — this file will then fail if they forget
+// one of the two changes, making the divergence immediately visible.
 
 import (
 	"testing"
 
 	"github.com/dev-toolings/ghostchrome/engine/ai"
 	"github.com/dev-toolings/ghostchrome/internal/ops"
+	"github.com/dev-toolings/ghostchrome/internal/runtime"
 )
 
 // ── Known op-name sets per surface ────────────────────────────────────────────
 //
-// These are derived directly from reading the source files:
-//   - JSONL: cmd/agent.go switch in agentSession.dispatch (lines ~234-284)
-//   - MCP:   engine/mcp/tools.go registerTools (all srv.AddTool calls)
-//
-// If you change either file, update the corresponding set below AND ops.Catalog().
-
-// jsonlOps is the set of op names handled by cmd/agent.go agentSession.dispatch.
-var jsonlOps = map[string]bool{
-	"init":       true,
-	"navigate":   true,
-	"back":       true,
-	"forward":    true,
-	"reload":     true,
-	"extract":    true,
-	"click":      true,
-	"dblclick":   true,
-	"check":      true,
-	"uncheck":    true,
-	"type":       true,
-	"press":      true,
-	"hover":      true,
-	"select":     true,
-	"fill":       true,
-	"scroll_by":  true,
-	"scroll_to":  true,
-	"eval":       true,
-	"screenshot": true,
-	"wait":       true,
-	"errors":     true,
-	"url":        true,
-	"close":      true,
-	"tabs":       true,
-	"dialog":     true,
-}
+// MCP is the only surface still read from a hardcoded set, derived from
+// engine/mcp/tools.go registerTools (all srv.AddTool calls). If you change that
+// file, update the set below AND ops.Catalog().
 
 // mcpOps is the set of tool names registered in engine/mcp/tools.go registerTools.
 var mcpOps = map[string]bool{
@@ -105,22 +74,30 @@ func catalogIndex() (byName map[string]ops.Op, bySurface map[string]map[string]b
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 // TestJSONLParity verifies that every op in the JSONL dispatch is present in
-// the catalog with surface "jsonl", and vice-versa.
+// the catalog with surface "jsonl", and vice-versa. The real surface is
+// introspected at runtime via internal/runtime.Ops(), which is derived from the
+// dispatch table itself — no hand-maintained copy of the op names.
 func TestJSONLParity(t *testing.T) {
 	_, bySurface := catalogIndex()
 	catalogJSONL := bySurface["jsonl"]
 
+	// Collect real JSONL op names from the live dispatch table.
+	realJSONL := make(map[string]bool)
+	for _, name := range runtime.Ops() {
+		realJSONL[name] = true
+	}
+
 	// 1. Every real JSONL op must be in the catalog with surface "jsonl".
-	for name := range jsonlOps {
+	for name := range realJSONL {
 		if !catalogJSONL[name] {
-			t.Errorf("JSONL op %q exists in cmd/agent.go dispatch but is missing from ops.Catalog() with surface \"jsonl\"", name)
+			t.Errorf("JSONL op %q is handled by internal/runtime.Dispatch but is missing from ops.Catalog() with surface \"jsonl\"", name)
 		}
 	}
 
 	// 2. Every catalog "jsonl" op must be in the real dispatch.
 	for name := range catalogJSONL {
-		if !jsonlOps[name] {
-			t.Errorf("catalog op %q has surface \"jsonl\" but is NOT present in cmd/agent.go dispatch — remove the surface or add the case", name)
+		if !realJSONL[name] {
+			t.Errorf("catalog op %q has surface \"jsonl\" but is NOT handled by internal/runtime.Dispatch — remove the surface or add the handler", name)
 		}
 	}
 }
