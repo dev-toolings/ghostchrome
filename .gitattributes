@@ -1,0 +1,2 @@
+# Keep generated files and scripts byte-identical across operating systems.
+* text=auto eol=lf

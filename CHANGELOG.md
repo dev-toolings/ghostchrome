@@ -12,6 +12,8 @@ All notable changes to ghostchrome are documented here. The format is based on
   and Yarn installs of platform-specific distribution packages.
 - Run the complete CI suite on development branches and release tags, including
   browser integration and TypeScript/Python SDK validation.
+- Preserve LF line endings at checkout so generated-file freshness checks pass
+  on Windows without weakening their byte-for-byte comparison.
 - Use launcher-owned temporary Chrome profiles in runtime regression tests so
   shutdown finishes before profile cleanup.
 - Document the intentional trusted-operator URL boundary at the two FastFetch

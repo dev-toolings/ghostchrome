@@ -120,6 +120,9 @@ Bun manages the root `node_modules/` directory. Release CI writes generated
 artifacts to the ignored root `dist/` directory; npm package sources stay in
 `sdk/npm/`.
 
+Repository text files use LF line endings through `.gitattributes`. Preserve
+this rule: generated-file freshness checks compare exact bytes on every OS.
+
 ## Build and validation
 
 Run from the repository root unless a command explicitly changes directories:

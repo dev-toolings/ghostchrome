@@ -83,3 +83,6 @@ and `bun audit --audit-level=high`. It must fail on installation or audit
 errors. Run it when changing workspace manifests, the lockfile, or its workflow.
 Check the branch runs before creating a release tag, then verify the tag's CI,
 security, and release runs. A successful build alone does not prove CI passed.
+
+`.gitattributes` keeps text files in LF format on every OS. Generated-file
+freshness checks intentionally compare exact bytes, including line endings.
