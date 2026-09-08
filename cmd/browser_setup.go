@@ -10,6 +10,7 @@ import (
 
 	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/proxy"
+	"github.com/dev-toolings/ghostchrome/internal/core/storage"
 	"github.com/go-rod/rod"
 )
 
@@ -199,8 +200,8 @@ func openPage() (*engine.Browser, *rod.Page) {
 	applyConfigBrowserOptions(b)
 
 	if opts.UserDataDir != "" && opts.ConnectURL == "" {
-		if cookies, cerr := engine.LoadCookiesJSON(opts.UserDataDir); cerr == nil && len(cookies) > 0 {
-			if injected, ierr := engine.InjectCookies(page, cookies); ierr != nil {
+		if cookies, cerr := storage.LoadCookiesJSON(opts.UserDataDir); cerr == nil && len(cookies) > 0 {
+			if injected, ierr := storage.InjectCookies(page, cookies); ierr != nil {
 				fmt.Fprintf(os.Stderr, "warning: cookie injection failed: %v\n", ierr)
 			} else {
 				fmt.Fprintf(os.Stderr, "[cookies] injected %d/%d from imported profile\n", injected, len(cookies))
@@ -274,7 +275,7 @@ func applyConfigStorageState(b *engine.Browser, page *rod.Page) {
 	if err != nil {
 		exitErr("config storageState", err)
 	}
-	if err := engine.LoadStorageState(b.RodBrowser(), page, state); err != nil {
+	if err := storage.LoadStorageState(b.RodBrowser(), page, state); err != nil {
 		exitErr("config storageState", err)
 	}
 }

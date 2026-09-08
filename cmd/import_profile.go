@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -92,14 +93,14 @@ Examples:
 		// key. Instead we decrypt the source Cookies db, dump to JSON, and
 		// replay it via CDP Network.setCookies on every openPage().
 		srcCookies := filepath.Join(from, "Cookies")
-		records, derr := engine.ExportDecryptedCookies(srcCookies)
+		records, derr := storage.ExportDecryptedCookies(srcCookies)
 		if derr != nil {
 			fmt.Fprintf(os.Stderr, "warning: cookie decryption skipped (%v) — session may not authenticate\n", derr)
 		} else {
-			if err := engine.SaveCookiesJSON(dst, records); err != nil {
+			if err := storage.SaveCookiesJSON(dst, records); err != nil {
 				exitErr("import-profile", fmt.Errorf("save cookies json: %w", err))
 			}
-			fmt.Fprintf(os.Stderr, "Exported %d cookies to %s\n", len(records), engine.CookiesJSONFilename)
+			fmt.Fprintf(os.Stderr, "Exported %d cookies to %s\n", len(records), storage.CookiesJSONFilename)
 		}
 
 		filesToCopy := []string{

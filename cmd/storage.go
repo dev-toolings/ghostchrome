@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/storage"
 	"github.com/dev-toolings/ghostchrome/internal/core/vault"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +42,7 @@ var storageSaveCmd = &cobra.Command{
 		b, page := openPage()
 		defer b.Close()
 
-		state, err := engine.SaveStorageState(b.RodBrowser(), page)
+		state, err := storage.SaveStorageState(b.RodBrowser(), page)
 		if err != nil {
 			exitErr("storage save", err)
 		}
@@ -102,7 +102,7 @@ var storageLoadCmd = &cobra.Command{
 		b, page := openPage()
 		defer b.Close()
 
-		if err := engine.LoadStorageState(b.RodBrowser(), page, state); err != nil {
+		if err := storage.LoadStorageState(b.RodBrowser(), page, state); err != nil {
 			exitErr("storage load", err)
 		}
 
@@ -117,8 +117,8 @@ var storageLoadCmd = &cobra.Command{
 	},
 }
 
-func readStorageStateFile(path string) (*engine.StorageState, error) {
-	var state engine.StorageState
+func readStorageStateFile(path string) (*storage.StorageState, error) {
+	var state storage.StorageState
 	if strings.HasSuffix(path, ".enc") {
 		v, err := vault.NewFromEnv()
 		if err != nil {
