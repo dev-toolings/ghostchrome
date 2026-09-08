@@ -3,7 +3,7 @@
 // This is the single source of truth for op names, summaries, argument shapes,
 // and which surfaces expose each op. The three live surfaces are:
 //
-//   - "jsonl" — cmd/agent.go JSONL loop (dispatch switch)
+//   - "jsonl" — internal/runtime dispatch table, framed by cmd/agent.go
 //   - "mcp"   — internal/surface/mcp/tools.go (registerTools)
 //   - "ai"    — internal/surface/ai/tools.go (ToolSpecs)
 //
