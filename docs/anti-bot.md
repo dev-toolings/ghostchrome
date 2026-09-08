@@ -80,7 +80,7 @@ engine.Navigate(page, url, "load")
 // extract via Chrome path
 ```
 
-This is the pattern wired into `packages/autoscout24/autoscout24.go` (search and detail) and easy to copy into other recipes.
+This is the pattern wired into `recipes/cars-listings/autoscout24.go` (search and detail) and easy to copy into other recipes.
 
 ## Stealth ladder
 
@@ -109,7 +109,7 @@ Across the 11-site sweep documented in [`recipes/registry-sweep.md`](./recipes/r
 The Chrome path's agent (`ghostchrome agent`) reacts to anti-bot at runtime:
 
 ```go
-// engine/recovery.go: built-in chain
+// internal/core/feedback/recovery.go: built-in chain
 DefaultRecoveryHooks = []RecoveryHook{
     RecoverStaleRef,         // surface explicit error, no silent re-extract
     RecoverDialogAccept,     // dialog open → accept → retry
@@ -118,7 +118,7 @@ DefaultRecoveryHooks = []RecoveryHook{
 }
 ```
 
-`RecoverBotChallenge` reuses `engine/preview.go:WaitForBotChallenge`, which short-circuits cheaply when no challenge is detected, so the cost is only paid when needed.
+`RecoverBotChallenge` reuses `internal/core/engine/stealth.go:WaitForBotChallenge`, which short-circuits cheaply when no challenge is detected, so the cost is only paid when needed.
 
 ## Detecting silently broken pages
 

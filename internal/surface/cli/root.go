@@ -125,7 +125,7 @@ QUICK REFERENCE
     assert           Assertion verbs with exit codes
     batch            Run multiple commands in-process, single JSON result
 
-  RECIPES         Site-specific scrapers (isolated under packages/)
+  RECIPES         Site-specific scrapers (isolated under recipes/)
     linkedin people  → LinkedIn People search → CSV (leads gen)
     linkedin posts   → LinkedIn Content search with filters (freelance hunt)
 
@@ -287,7 +287,7 @@ var commandGroups = map[string]string{
 	"dashboard":   "util",
 	"react":       "observe",
 
-	// Recipes (site-specific scrapers under packages/)
+	// Recipes (site-specific scrapers under recipes/)
 	"linkedin":      "recipes",
 	"leboncoin":     "recipes",
 	"autoscout24":   "recipes",
@@ -303,7 +303,7 @@ func registerGroups() {
 		&cobra.Group{ID: "wait", Title: "Wait — block until a condition holds:"},
 		&cobra.Group{ID: "state", Title: "State — persist / replay / assert:"},
 		&cobra.Group{ID: "util", Title: "Utility — diagnostics & configuration:"},
-		&cobra.Group{ID: "recipes", Title: "Recipes — site-specific scrapers (packages/):"},
+		&cobra.Group{ID: "recipes", Title: "Recipes — site-specific scrapers (recipes/):"},
 	)
 	for _, c := range rootCmd.Commands() {
 		if g, ok := commandGroups[c.Name()]; ok {

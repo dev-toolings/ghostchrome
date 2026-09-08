@@ -30,7 +30,7 @@ server:
   image_proxy: false
 
 search:
-  # Enable the JSON output format consumed by packages/websearch/searxng.go.
+  # Enable the JSON output format consumed by recipes/websearch/searxng.go.
   formats:
     - html
     - json

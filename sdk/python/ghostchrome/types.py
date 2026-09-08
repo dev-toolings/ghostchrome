@@ -177,7 +177,7 @@ class UrlResult:
 class ErrorEntry:
     """A single console or network error entry returned by the ``errors`` op.
 
-    Maps exactly to the Go ``ErrorEntry`` struct in ``engine/errors.go``:
+    Maps exactly to the Go ``ErrorEntry`` struct in ``internal/core/engine/errors.go``:
 
     - type:    ``"console"`` or ``"network"``
     - level:   ``"error"``, ``"warning"``, ``"4xx"``, ``"5xx"``

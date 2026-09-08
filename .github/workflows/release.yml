@@ -22,7 +22,7 @@ jobs:
 
       - name: Smoke build & vet
         # Tests run in ci.yml on every push; release only re-checks that the
-        # tag compiles cleanly. Some tests need a real browser (engine/) and
+        # tag compiles cleanly. Some tests need a real browser (internal/core/engine/) and
         # can't run on a stock GH runner.
         run: |
           go build ./...

@@ -178,7 +178,7 @@ ghostchrome --stealth navigate https://protected.fr
 Layered:
 
 1. Launcher flags (`disable-blink-features=AutomationControlled`, no `enable-automation`)
-2. CDP `Page.addScriptToEvaluateOnNewDocument` patches via `engine/stealth.go` (navigator.webdriver, plugins, languages, chrome.runtime)
+2. CDP `Page.addScriptToEvaluateOnNewDocument` patches via `internal/core/engine/stealth.go` (navigator.webdriver, plugins, languages, chrome.runtime)
 3. Optional `--invisible` for real GPU/fonts (off-screen window, no visible UI)
 4. Optional `--human` for Bezier mouse paths and jittered key delays
 
