@@ -428,16 +428,35 @@ func (s *Session) mutationResult(b *engine.Browser, page *rod.Page, prev *engine
 		}
 		return result, nil
 	default:
-		diff, _, err := engine.CaptureMutation(b, page, prev)
+		diff, result, err := engine.CaptureMutation(b, page, prev)
 		if err != nil {
 			return failure(err)
 		}
-		if b != nil {
-			if snap := b.Snapshot(page); snap != nil {
-				s.snapshot = snap
-			}
-		}
+		s.rememberMutationRefs(b, page, result)
 		return diff, nil
+	}
+}
+
+// rememberMutationRefs advances the ref table to the state CaptureMutation just
+// observed.
+//
+// Browser.Snapshot is only populated in connected mode (a named session with an
+// on-disk state file). With an embedded Chrome it returns nil, so the freshly
+// captured skeleton has to be built here — otherwise the ref table stays pinned
+// to the last "extract" and every following mutation re-reports the same stale
+// difference between the content-level extract and the skeleton.
+func (s *Session) rememberMutationRefs(b *engine.Browser, page *rod.Page, result *engine.ExtractionResult) {
+	if b != nil {
+		if snap := b.Snapshot(page); snap != nil {
+			s.snapshot = snap
+			return
+		}
+	}
+	if result == nil || page == nil {
+		return
+	}
+	if snap, err := engine.BuildSnapshot(page, result); err == nil {
+		s.snapshot = snap
 	}
 }
 

@@ -119,3 +119,55 @@ func TestAgentRetainsDialogPolicyAndErrors(t *testing.T) {
 		}
 	}
 }
+
+// A mutation must advance the ref table to the state it just observed.
+// Browser.Snapshot is only populated in connected mode, so with an embedded
+// Chrome it returns nil and the table used to stay pinned to whatever the last
+// "extract" left behind. Every following mutation then diffed the fresh
+// skeleton against that stale content-level table and re-reported the same
+// difference forever.
+func TestMutationAdvancesRefsWithEmbeddedChrome(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requires Chrome")
+	}
+	t.Setenv("HOME", t.TempDir())
+	// Not t.TempDir for the profile: Chrome may still be releasing it when the
+	// cleanup runs, and a failed RemoveAll would fail an otherwise green test.
+	dir, err := os.MkdirTemp("", "gc-runtime-refs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	s := New(Config{
+		BrowserOpts: func() engine.BrowserOpts {
+			return engine.BrowserOpts{Headless: true, TimeoutSec: 15, UserDataDir: dir}
+		},
+		TimeoutSec: 15,
+	})
+	t.Cleanup(s.Shutdown)
+
+	page := "data:text/html," + url.PathEscape(`<input id=i type=text><button id=b>Go</button>`)
+	args, err := json.Marshal(map[string]string{"url": page})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Dispatch("navigate", args); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Dispatch("extract", nil); err != nil {
+		t.Fatal(err)
+	}
+	if s.browser.Snapshot(s.page) != nil {
+		t.Skip("browser is in connected mode; this regression only affects embedded Chrome")
+	}
+	afterExtract := s.Refs()
+	if afterExtract == nil {
+		t.Fatal("extract left no ref table")
+	}
+	if _, err := s.Dispatch("click", json.RawMessage(`{"ref":"@2"}`)); err != nil {
+		t.Fatal(err)
+	}
+	if s.Refs() == afterExtract {
+		t.Fatal("the ref table still points at the extract; later diffs would keep comparing against it")
+	}
+}
