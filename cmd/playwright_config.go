@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/pagesetup"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -560,7 +561,7 @@ func proxyURLWithAuth(server string, username string, password string) string {
 }
 
 func resolveConfigPermissions(permissions []string) (mapped []string, unknown []string) {
-	_, unsupported := engine.MapPlaywrightPermissions(permissions)
+	_, unsupported := pagesetup.MapPlaywrightPermissions(permissions)
 	unsupportedSet := map[string]bool{}
 	for _, permission := range unsupported {
 		unsupportedSet[strings.TrimSpace(permission)] = true

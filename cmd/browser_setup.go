@@ -10,6 +10,7 @@ import (
 
 	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
+	"github.com/dev-toolings/ghostchrome/internal/core/pagesetup"
 	"github.com/dev-toolings/ghostchrome/internal/core/proxy"
 	"github.com/dev-toolings/ghostchrome/internal/core/storage"
 	"github.com/go-rod/rod"
@@ -285,7 +286,7 @@ func applyConfigPermissions(b *engine.Browser) {
 	if len(flagConfigPermissions) == 0 || b == nil {
 		return
 	}
-	if err := engine.GrantPlaywrightPermissions(b.RodBrowser(), flagConfigPermissions); err != nil {
+	if err := pagesetup.GrantPlaywrightPermissions(b.RodBrowser(), flagConfigPermissions); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: config permissions not applied: %v\n", err)
 	}
 }
@@ -294,7 +295,7 @@ func applyConfigServiceWorkers(page *rod.Page) {
 	if flagConfigServiceWorkers == "" || page == nil {
 		return
 	}
-	if err := engine.ApplyServiceWorkersMode(page, flagConfigServiceWorkers); err != nil {
+	if err := pagesetup.ApplyServiceWorkersMode(page, flagConfigServiceWorkers); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: config serviceWorkers not applied: %v\n", err)
 	}
 }

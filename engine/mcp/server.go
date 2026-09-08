@@ -17,6 +17,7 @@ import (
 
 	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
+	"github.com/dev-toolings/ghostchrome/internal/core/pagesetup"
 	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
@@ -392,7 +393,7 @@ func (s *Server) bindPageLocked(b *engine.Browser, page *rod.Page) {
 		}
 	}
 	s.replayEmulationLocked(page)
-	engine.PrewarmDomains(page)
+	pagesetup.PrewarmDomains(page)
 }
 
 // replayEmulationLocked re-installs the device profile requested through the
@@ -480,7 +481,7 @@ func (s *Server) launchPageLocked() (*engine.Browser, *rod.Page, error) {
 	// Pre-enable CDP domains the first extract/snapshot will need. Each is
 	// idempotent on the page; doing them now means the first user-facing
 	// tool call doesn't pay one round-trip per domain (~5-20ms saved).
-	engine.PrewarmDomains(page)
+	pagesetup.PrewarmDomains(page)
 
 	s.browser = b
 	s.page = page

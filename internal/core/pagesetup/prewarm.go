@@ -1,4 +1,4 @@
-package engine
+package pagesetup
 
 import (
 	"github.com/go-rod/rod"
