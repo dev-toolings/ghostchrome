@@ -22,6 +22,7 @@ var (
 	fastfetchRaw             bool
 	fastfetchNextDataOnly    bool
 	fastfetchPretty          bool
+	fastfetchFallbackTLS     bool
 	fastfetchFallbackBrowser bool
 	fastfetchIncludePayloads bool
 )
@@ -40,6 +41,8 @@ spawning Chrome. Useful for:
   - Quickly probing whether a target is gated by DataDome / Cloudflare
   - Bulk scraping pipelines where 95% of pages render server-side
 
+Set --fallback-tls to try a Chrome-compatible TLS/HTTP2 transport first,
+without Python or a browser. HTTP 429 and 401 are not retried by this fallback.
 When a target is blocked, set --fallback-browser to spawn Chrome and
 return the post-render HTML (and __NEXT_DATA__ if present).
 
@@ -64,6 +67,7 @@ func init() {
 	fastfetchCmd.Flags().BoolVar(&fastfetchPretty, "pretty", false, "Pretty-print JSON output")
 	fastfetchCmd.Flags().BoolVar(&fastfetchFallbackBrowser, "fallback-browser", false, "On Blocked or no SSR payload, spawn Chrome and retry (uses --stealth, --user-profile, etc.)")
 	fastfetchCmd.Flags().BoolVar(&fastfetchIncludePayloads, "include-payloads", false, "Embed every SSR payload (Next/Nuxt/Apollo/JSON-LD) in the envelope — can be MB-sized")
+	fastfetchCmd.Flags().BoolVar(&fastfetchFallbackTLS, "fallback-tls", false, "Retry blocked or SSR-empty GETs with Chrome TLS before the optional browser fallback")
 	rootCmd.AddCommand(fastfetchCmd)
 }
 
@@ -92,6 +96,7 @@ func runFastfetch(_ *cobra.Command, args []string) {
 	}
 
 	opts := engine.FastFetchOpts{
+		FallbackTLS:    fastfetchFallbackTLS,
 		UserAgent:      fastfetchUA,
 		AcceptLanguage: fastfetchAcceptLanguage,
 		Timeout:        time.Duration(fastfetchTimeoutMs) * time.Millisecond,
@@ -104,7 +109,7 @@ func runFastfetch(_ *cobra.Command, args []string) {
 	if err != nil {
 		exitErr("fastfetch", err)
 	}
-	mode := "http"
+	mode := res.Transport
 
 	// Optional Chrome fallback when the fast path can't deliver.
 	if fastfetchFallbackBrowser && (res.Blocked || res.NextData == nil) {

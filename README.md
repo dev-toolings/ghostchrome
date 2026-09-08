@@ -592,3 +592,20 @@ When the agent surface changes, **re-measure the live binary** with [`scripts/me
 ## License
 
 [MIT](LICENSE) © 2026 MakFly.
+
+
+### Optional HTTP TLS fallback
+
+`fastfetch --fallback-tls <url>` tries ordinary HTTP first, then one in-process
+Chrome 146 TLS/HTTP2 request if blocked or missing structured SSR data. Add
+`--fallback-browser` to allow Chrome afterward. The default remains unchanged.
+The JSON envelope reports `mode: "http-tls"` when that transport supplies the
+response. Go recipes can set `engine.FastFetchOpts{FallbackTLS: true}`.
+
+This fallback needs no Python/curl executable and imports no browser session.
+Its default headers match Chrome 146/macOS. Both HTTP attempts share the timeout;
+401, 429 and ordinary 404 responses are not retried by the TLS fallback.
+Certificates remain verified, redirects stay on the same origin, and response
+size limits remain enforced. No GPU, marketplace, or notification logic is part
+of this transport. It is available through `fastfetch` and the Go engine, not a
+new MCP or agent operation.

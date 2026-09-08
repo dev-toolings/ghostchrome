@@ -14,6 +14,7 @@ import (
 
 // FastFetchOpts tunes the no-browser HTTP path.
 type FastFetchOpts struct {
+	FallbackTLS    bool          // retry a blocked/SSR-empty GET with a Chrome TLS profile before a browser
 	UserAgent      string        // "" → derived from runtime.GOOS like ApplyDefaultPageProfile
 	AcceptLanguage string        // default "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7"
 	Timeout        time.Duration // default 8s
@@ -29,6 +30,7 @@ type FastFetchOpts struct {
 // Initial-State, JSON-LD…). Modern recipes pick the first match they
 // understand; legacy callers can keep using NextData.
 type FastResult struct {
+	Transport   string // "http" or "http-tls"
 	Status      int
 	URL         string // final URL after redirects
 	HTML        string
@@ -44,6 +46,41 @@ type FastResult struct {
 // path: callers must check (Blocked || NextData == nil) and decide whether
 // to fall back to a Chrome-driven recipe.
 func FastFetch(ctx context.Context, url string, opts FastFetchOpts) (*FastResult, error) {
+	timeout := opts.Timeout
+	if timeout <= 0 {
+		timeout = 8 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	started := time.Now()
+	result, err := fastFetch(ctx, url, opts, false)
+	if !opts.FallbackTLS || ctx.Err() != nil || (err == nil && !needsTLSFallback(result)) {
+		return result, err
+	}
+	// Only HTTP(S) GET requests enter this fallback. No browser cookies are imported.
+	retry, retryErr := fastFetch(ctx, url, opts, true)
+	if retryErr != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("fastfetch: HTTP and TLS attempts failed")
+		}
+		result.Reason += "; TLS fallback failed"
+		return result, nil
+	}
+	retry.Elapsed = time.Since(started)
+	return retry, nil
+}
+
+func needsTLSFallback(result *FastResult) bool {
+	if result == nil || result.Status == 429 || result.Status == 401 {
+		return false
+	}
+	return result.Blocked || (result.Status >= 200 && result.Status < 300 && len(result.SSRPayloads) == 0)
+}
+
+func fastFetch(ctx context.Context, url string, opts FastFetchOpts, browserTLS bool) (*FastResult, error) {
 	if url == "" {
 		return nil, errors.New("fastfetch: empty url")
 	}
@@ -88,7 +125,13 @@ func FastFetch(ctx context.Context, url string, opts FastFetchOpts) (*FastResult
 	}
 
 	start := time.Now()
-	resp, err := client.Do(req)
+	var resp *http.Response
+	if browserTLS {
+		resp, err = doChromeTLS(req, opts)
+	} else {
+		defer client.CloseIdleConnections()
+		resp, err = client.Do(req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("fastfetch: do: %w", err)
 	}
@@ -102,12 +145,16 @@ func FastFetch(ctx context.Context, url string, opts FastFetchOpts) (*FastResult
 
 	html := string(body)
 	res := &FastResult{
-		Status:  resp.StatusCode,
-		URL:     resp.Request.URL.String(),
-		HTML:    html,
-		Elapsed: elapsed,
+		Transport: "http",
+		Status:    resp.StatusCode,
+		URL:       resp.Request.URL.String(),
+		HTML:      html,
+		Elapsed:   elapsed,
 	}
 
+	if browserTLS {
+		res.Transport = "http-tls"
+	}
 	if blocked, reason := detectAntiBot(resp.StatusCode, html); blocked {
 		res.Blocked = true
 		res.Reason = reason
