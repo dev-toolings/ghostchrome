@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
 	"github.com/dev-toolings/ghostchrome/internal/core/proxy"
 	"github.com/dev-toolings/ghostchrome/internal/core/storage"
 	"github.com/go-rod/rod"
@@ -340,7 +341,7 @@ func applyStealthIfNeeded(page *rod.Page) {
 }
 
 func dismissCookiesIfNeeded(page *rod.Page) {
-	if flagDismissCookies && engine.DismissCookieBanner(page) {
+	if flagDismissCookies && antibot.DismissCookieBanner(page) {
 		_ = engine.WaitForPage(page, "stable")
 	}
 }

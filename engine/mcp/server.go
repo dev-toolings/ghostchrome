@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
 	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
@@ -452,7 +453,7 @@ func (s *Server) launchPageLocked() (*engine.Browser, *rod.Page, error) {
 	// DataDome's main-thread bursts can't run if the script never loads.
 	wantBlocker := s.opts.BlockTrackers || (s.opts.Stealth && os.Getenv("GHOSTCHROME_MCP_NO_BLOCKER") != "1")
 	if wantBlocker {
-		if sess, err := engine.StartAntiBotBlocker(b.RodBrowser()); err == nil {
+		if sess, err := antibot.StartAntiBotBlocker(b.RodBrowser()); err == nil {
 			s.blocker = sess
 		} else {
 			fmt.Fprintf(os.Stderr, "[ghostchrome mcp] anti-bot blocker disabled: %v\n", err)

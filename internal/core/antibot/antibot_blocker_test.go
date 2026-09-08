@@ -1,4 +1,4 @@
-package engine
+package antibot
 
 import (
 	"fmt"
@@ -6,7 +6,31 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/go-rod/rod"
 )
+
+// newIsolatedPage boots a throwaway headless browser for the integration
+// tests below. It mirrors the helper of the same name in package engine; the
+// two cannot be shared because engine may not import this package back.
+func newIsolatedPage(t *testing.T) (*engine.Browser, *rod.Page) {
+	t.Helper()
+
+	b, err := engine.NewBrowser("", true, 10)
+	if err != nil {
+		t.Fatalf("new browser: %v", err)
+	}
+	t.Cleanup(func() {
+		b.Close()
+	})
+
+	page, err := b.Page()
+	if err != nil {
+		t.Fatalf("page: %v", err)
+	}
+	return b, page
+}
 
 // TestAntiBotPatternsCurated guards against accidental list rot — patterns
 // must be unique, non-empty, and use the *://host/path glob form CDP expects.
@@ -76,10 +100,10 @@ func TestStartAntiBotBlockerBlocksMatchingScript(t *testing.T) {
 
 	t.Run("without blocker the script runs", func(t *testing.T) {
 		_, page := newIsolatedPage(t)
-		if _, err := Navigate(page, server.URL+"/", "load"); err != nil {
+		if _, err := engine.Navigate(page, server.URL+"/", "load"); err != nil {
 			t.Fatalf("navigate: %v", err)
 		}
-		got, err := EvalJS(page, `String(window.__DD_LOADED)`, "", nil)
+		got, err := engine.EvalJS(page, `String(window.__DD_LOADED)`, "", nil)
 		if err != nil {
 			t.Fatalf("eval: %v", err)
 		}
@@ -96,10 +120,10 @@ func TestStartAntiBotBlockerBlocksMatchingScript(t *testing.T) {
 		}
 		defer func() { _ = sess.Stop() }()
 
-		if _, err := Navigate(page, server.URL+"/", "load"); err != nil {
+		if _, err := engine.Navigate(page, server.URL+"/", "load"); err != nil {
 			t.Fatalf("navigate: %v", err)
 		}
-		got, err := EvalJS(page, `String(window.__DD_LOADED)`, "", nil)
+		got, err := engine.EvalJS(page, `String(window.__DD_LOADED)`, "", nil)
 		if err != nil {
 			t.Fatalf("eval: %v", err)
 		}
@@ -143,11 +167,11 @@ func TestStartAntiBotBlockerLetsHTMLThrough(t *testing.T) {
 	}
 	defer func() { _ = sess.Stop() }()
 
-	if _, err := Navigate(page, server.URL+"/", "load"); err != nil {
+	if _, err := engine.Navigate(page, server.URL+"/", "load"); err != nil {
 		t.Fatalf("navigate: %v", err)
 	}
 
-	heading, err := EvalJS(page, `document.getElementById('loaded')?.textContent`, "", nil)
+	heading, err := engine.EvalJS(page, `document.getElementById('loaded')?.textContent`, "", nil)
 	if err != nil {
 		t.Fatalf("eval heading: %v", err)
 	}

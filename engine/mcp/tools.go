@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
@@ -185,7 +186,7 @@ func (s *Server) handleSnapshot(ctx context.Context, req mcpgo.CallToolRequest) 
 		if url != "" {
 			pv, err := engine.Preview(page, url, wait, level, func(p *rod.Page) error {
 				if s.opts.DismissCookies {
-					if engine.DismissCookieBanner(p) {
+					if antibot.DismissCookieBanner(p) {
 						_ = engine.WaitForPage(p, "stable")
 					}
 				}
@@ -257,7 +258,7 @@ func (s *Server) handleNavigate(ctx context.Context, req mcpgo.CallToolRequest) 
 			}
 		}
 		if s.opts.DismissCookies {
-			if engine.DismissCookieBanner(page) {
+			if antibot.DismissCookieBanner(page) {
 				_ = engine.WaitForPage(page, "stable")
 			}
 		}

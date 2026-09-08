@@ -1,6 +1,7 @@
-package engine
+package antibot
 
 import (
+	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/go-rod/rod"
 )
 
@@ -56,9 +57,9 @@ var AntiBotPatterns = []string{
 //
 // extraPatterns lets callers extend the curated list (e.g. site-specific
 // trackers known to cause issues).
-func StartAntiBotBlocker(browser *rod.Browser, extraPatterns ...string) (*InterceptSession, error) {
+func StartAntiBotBlocker(browser *rod.Browser, extraPatterns ...string) (*engine.InterceptSession, error) {
 	patterns := make([]string, 0, len(AntiBotPatterns)+len(extraPatterns))
 	patterns = append(patterns, AntiBotPatterns...)
 	patterns = append(patterns, extraPatterns...)
-	return StartIntercept(browser, InterceptSpec{BlockPatterns: patterns})
+	return engine.StartIntercept(browser, engine.InterceptSpec{BlockPatterns: patterns})
 }
