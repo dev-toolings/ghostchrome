@@ -5,7 +5,7 @@
 //
 //   - "jsonl" — cmd/agent.go JSONL loop (dispatch switch)
 //   - "mcp"   — internal/surface/mcp/tools.go (registerTools)
-//   - "ai"    — engine/ai/tools.go (ToolSpecs)
+//   - "ai"    — internal/surface/ai/tools.go (ToolSpecs)
 //
 // IMPORTANT: this file is additive. The three surface files are NOT modified
 // to consume this registry — that refactor is a separate, future task.

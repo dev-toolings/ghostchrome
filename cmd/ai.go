@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine/ai"
 	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
 	"github.com/dev-toolings/ghostchrome/internal/runtime"
+	"github.com/dev-toolings/ghostchrome/internal/surface/ai"
 	"github.com/spf13/cobra"
 )
 
@@ -110,7 +110,7 @@ func runAI(_ *cobra.Command, args []string) {
 	emitAIResult(result)
 }
 
-// agentRunner is the bridge between engine/ai and the shared internal/runtime
+// agentRunner is the bridge between internal/surface/ai and the shared internal/runtime
 // session: the `ai` loop drives exactly the same ops as the JSONL loop.
 type agentRunner struct{ sess *runtime.Session }
 

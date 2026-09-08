@@ -7,7 +7,7 @@ package ops_test
 //
 // Design notes on introspection strategy:
 //
-//   - AI surface (engine/ai.ToolSpecs):        importable; names read at runtime.
+//   - AI surface (internal/surface/ai.ToolSpecs):   importable; names read at runtime.
 //   - JSONL surface (internal/runtime.Ops):    importable; names read at runtime.
 //   - MCP surface (engine/mcp/registerTools):  unexported; names hardcoded here.
 //
@@ -18,9 +18,9 @@ package ops_test
 import (
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine/ai"
 	"github.com/dev-toolings/ghostchrome/internal/ops"
 	"github.com/dev-toolings/ghostchrome/internal/runtime"
+	"github.com/dev-toolings/ghostchrome/internal/surface/ai"
 )
 
 // ── Known op-name sets per surface ────────────────────────────────────────────
@@ -123,7 +123,7 @@ func TestMCPParity(t *testing.T) {
 	}
 }
 
-// TestAIParity verifies that every tool in engine/ai.ToolSpecs() is present in
+// TestAIParity verifies that every tool in internal/surface/ai.ToolSpecs() is present in
 // the catalog with surface "ai", and vice-versa. Unlike MCP and JSONL, this test
 // introspects the real surface at runtime via the exported ToolSpecs() function.
 func TestAIParity(t *testing.T) {
@@ -139,14 +139,14 @@ func TestAIParity(t *testing.T) {
 	// 1. Every real AI tool must be in the catalog with surface "ai".
 	for name := range realAI {
 		if !catalogAI[name] {
-			t.Errorf("AI tool %q exists in engine/ai.ToolSpecs() but is missing from ops.Catalog() with surface \"ai\"", name)
+			t.Errorf("AI tool %q exists in internal/surface/ai.ToolSpecs() but is missing from ops.Catalog() with surface \"ai\"", name)
 		}
 	}
 
 	// 2. Every catalog "ai" op must be in the real ToolSpecs output.
 	for name := range catalogAI {
 		if !realAI[name] {
-			t.Errorf("catalog op %q has surface \"ai\" but is NOT returned by engine/ai.ToolSpecs() — remove the surface or add the tool", name)
+			t.Errorf("catalog op %q has surface \"ai\" but is NOT returned by internal/surface/ai.ToolSpecs() — remove the surface or add the tool", name)
 		}
 	}
 }
