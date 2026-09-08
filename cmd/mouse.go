@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/interact"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/spf13/cobra"
 )
@@ -128,7 +128,7 @@ func parseCoords(xStr, yStr string) (float64, float64) {
 }
 
 func parseMouseButton(name string) proto.InputMouseButton {
-	button, err := engine.ParseMouseButton(name)
+	button, err := interact.ParseMouseButton(name)
 	if err != nil {
 		exitErr("button", err)
 	}
@@ -138,7 +138,7 @@ func parseMouseButton(name string) proto.InputMouseButton {
 // parseMouseButtonStrict is used by higher-level command handlers that need to
 // distinguish a true button value from another string (for example a URL).
 func parseMouseButtonStrict(name string) (proto.InputMouseButton, bool) {
-	button, err := engine.ParseMouseButton(name)
+	button, err := interact.ParseMouseButton(name)
 	if err != nil || strings.TrimSpace(name) == "" {
 		return proto.InputMouseButtonLeft, false
 	}

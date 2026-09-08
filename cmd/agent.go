@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/interact"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/spf13/cobra"
@@ -520,7 +521,7 @@ func (s *agentSession) opRef(raw json.RawMessage, op string) (interface{}, error
 	}
 	button := proto.InputMouseButtonLeft
 	if op == "click" || op == "dblclick" {
-		parsed, err := engine.ParseMouseButton(a.Button)
+		parsed, err := interact.ParseMouseButton(a.Button)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}

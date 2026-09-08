@@ -18,6 +18,7 @@ import (
 
 	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/antibot"
+	"github.com/dev-toolings/ghostchrome/internal/core/interact"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
@@ -273,7 +274,7 @@ func (s *Server) handleClick(ctx context.Context, req mcpgo.CallToolRequest) (*m
 	if ref == "" {
 		return errResult(fmt.Errorf("ref is required"))
 	}
-	button, berr := engine.ParseMouseButton(mcpgo.ParseString(req, "button", "left"))
+	button, berr := interact.ParseMouseButton(mcpgo.ParseString(req, "button", "left"))
 	if berr != nil {
 		return errResult(fmt.Errorf("click: %w", berr))
 	}

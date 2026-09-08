@@ -1,16 +1,17 @@
-package engine
+package interact
 
 import (
 	"fmt"
 	"net/url"
 
+	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 )
 
 // ClipboardRead returns the current clipboard text content.
 func ClipboardRead(page *rod.Page) (string, error) {
-	if err := ActivePolicy.AllowAction("clipboard"); err != nil {
+	if err := engine.ActivePolicy.AllowAction("clipboard"); err != nil {
 		return "", err
 	}
 	if err := grantClipboardPermission(page); err != nil {
@@ -25,7 +26,7 @@ func ClipboardRead(page *rod.Page) (string, error) {
 
 // ClipboardWrite sets the clipboard text content.
 func ClipboardWrite(page *rod.Page, text string) error {
-	if err := ActivePolicy.AllowAction("clipboard"); err != nil {
+	if err := engine.ActivePolicy.AllowAction("clipboard"); err != nil {
 		return err
 	}
 	if err := grantClipboardPermission(page); err != nil {

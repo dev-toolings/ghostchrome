@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/interact"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ var clipboardReadCmd = &cobra.Command{
 		b, page := openPage()
 		defer b.Close()
 
-		text, err := engine.ClipboardRead(page)
+		text, err := interact.ClipboardRead(page)
 		if err != nil {
 			exitErr("clipboard read", err)
 		}
@@ -44,7 +44,7 @@ var clipboardWriteCmd = &cobra.Command{
 		b, page := openPage()
 		defer b.Close()
 
-		if err := engine.ClipboardWrite(page, text); err != nil {
+		if err := interact.ClipboardWrite(page, text); err != nil {
 			exitErr("clipboard write", err)
 		}
 
