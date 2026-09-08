@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dev-toolings/ghostchrome/internal/compat/playwright"
 	"github.com/spf13/cobra"
 )
 
@@ -170,16 +171,6 @@ func TestApplyPlaywrightConfigEnvMappedFields(t *testing.T) {
 	}
 	if !flagConfigIgnoreHTTPSErr {
 		t.Fatal("expected PLAYWRIGHT_MCP_IGNORE_HTTPS_ERRORS=true to apply")
-	}
-}
-
-func TestProxyURLWithAuth(t *testing.T) {
-	got := proxyURLWithAuth("http://proxy.test:8080", "user", "pass")
-	if got != "http://user:pass@proxy.test:8080" {
-		t.Fatalf("proxyURLWithAuth = %q", got)
-	}
-	if got := proxyURLWithAuth("proxy.test:8080", "user", "pass"); got != "proxy.test:8080" {
-		t.Fatalf("proxyURLWithAuth invalid url = %q", got)
 	}
 }
 
@@ -575,7 +566,7 @@ func TestApplyOpenCompatRejectsUnsupportedConfiguredBrowser(t *testing.T) {
 
 	flagOpenBrowser = "chrome"
 	loadedPlaywrightConfig = &loadedConfigState{
-		Config: playwrightCLIConfig{Browser: &struct {
+		Config: playwright.Config{Browser: &struct {
 			BrowserName    string            `json:"browserName"`
 			Isolated       *bool             `json:"isolated"`
 			UserDataDir    string            `json:"userDataDir"`

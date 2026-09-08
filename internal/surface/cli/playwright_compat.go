@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/compat/playwright"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/spf13/cobra"
 )
@@ -82,7 +83,7 @@ func applyOpenCompatFlags(cmd *cobra.Command) (func(), error) {
 	}
 
 	browser := flagOpenBrowser
-	if !flagChanged(cmd, "browser") && loadedPlaywrightConfig != nil && loadedPlaywrightConfig.Config.Browser != nil {
+	if !playwright.FlagChanged(cmd, "browser") && loadedPlaywrightConfig != nil && loadedPlaywrightConfig.Config.Browser != nil {
 		if configured := loadedPlaywrightConfig.Config.Browser.BrowserName; configured != "" {
 			browser = configured
 		} else if launch := loadedPlaywrightConfig.Config.Browser.LaunchOptions; launch != nil && launch.Channel != "" {

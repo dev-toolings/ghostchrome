@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/compat/playwright"
 )
 
 func TestRenderOutputBytesRawAndJSON(t *testing.T) {
@@ -149,7 +150,7 @@ func TestLoadConfiguredOutputSecretsCombinesConfigAndDotenv(t *testing.T) {
 	if err := os.WriteFile(path, []byte("API_TOKEN=from-file\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	loadedPlaywrightConfig = &loadedConfigState{Config: playwrightCLIConfig{
+	loadedPlaywrightConfig = &loadedConfigState{Config: playwright.Config{
 		Secrets: map[string]string{"password": "from-config"},
 	}}
 	flagSecretsFile = path
