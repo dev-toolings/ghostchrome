@@ -19,7 +19,7 @@ map, not as a replacement for the canonical files listed below.
 | Agent/SDK development workflow | `CLAUDE.md` |
 | Command/op catalog | `internal/ops/ops.go` |
 | Generated command contract | `contracts/commands.json` |
-| CLI command registration and global flags | `cmd/root.go` |
+| CLI command registration and global flags | `internal/surface/cli/root.go` |
 | Go validation shortcuts | `justfile` |
 | TypeScript SDK | `sdk/typescript/` |
 | Python SDK | `sdk/python/` |
@@ -32,7 +32,8 @@ Chrome through CDP via Rod and optimizes output for compact agent loops.
 The main execution chain is:
 
 ```text
-main.go -> cmd/ (Cobra command glue) -> engine/ (browser/CDP logic) -> Chrome
+cmd/ghostchrome -> internal/surface/cli (Cobra glue)
+              -> internal/core/engine (browser/CDP logic) -> Chrome
 ```
 
 The repo exposes three main automation surfaces:

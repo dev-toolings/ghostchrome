@@ -583,7 +583,7 @@ Versioning follows SemVer; see [`.claude/rules/versioning.md`](.claude/rules/ver
 
 ## Contributing
 
-PRs welcome. The codebase is small and laid out in [`engine/`](engine/) (CDP logic) and [`cmd/`](cmd/) (one Cobra command per file). Run tests with `go test ./...`. Benchmark changes should include auditable raw samples from [`benchmark/cli-measure.mjs`](benchmark/cli-measure.mjs) and [`benchmark/mcp-measure.mjs`](benchmark/mcp-measure.mjs), with the browser and opponent package versions pinned.
+PRs welcome. The codebase is small and laid out in [`internal/core/engine/`](internal/core/engine/) (CDP logic) and [`internal/surface/cli/`](internal/surface/cli/) (one Cobra command per file). Run tests with `go test ./...`. Benchmark changes should include auditable raw samples from [`benchmark/cli-measure.mjs`](benchmark/cli-measure.mjs) and [`benchmark/mcp-measure.mjs`](benchmark/mcp-measure.mjs), with the browser and opponent package versions pinned.
 
 When the agent surface changes, **re-measure the live binary** with [`scripts/measure-agent-ops.sh`](scripts/measure-agent-ops.sh) and update the in-repo SDKs at [`sdk/typescript/`](sdk/typescript) and [`sdk/python/`](sdk/python) so their result types match what the binary emits — never guess. See [`CLAUDE.md`](CLAUDE.md).
 

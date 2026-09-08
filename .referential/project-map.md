@@ -18,8 +18,12 @@ The project optimizes for:
 
 | Path | Role |
 |---|---|
-| `cmd/` | Cobra commands. One file per command. Keep command files thin. |
-| `engine/` | Shared browser, CDP, extraction, interaction, network, policy, and state logic. |
+| `cmd/` | Main packages only: `ghostchrome/` and `ghostchrome-mcp/`. |
+| `skillbundle.go` | Repo-root package owning the `//go:embed` of the agent skill. |
+| `internal/surface/cli/` | Cobra commands. One file per command. Keep command files thin. |
+| `internal/core/engine/` | Shared browser, CDP, extraction, interaction, network, and state logic. |
+| `internal/setup/` | Installation, transports, embedded skill bundle, diagnostics. |
+| `internal/compat/playwright/` | Playwright CLI config schema and value rules. |
 | `internal/ops/` | Canonical operation catalog; `internal/ops/gen` renders every surface registration from it. |
 | `contracts/` | Generated command/op contract consumed by SDK coverage tests. |
 | `docs/` | Human documentation for architecture, CLI, MCP, anti-bot, fast path, recipes. |
@@ -32,17 +36,17 @@ The project optimizes for:
 
 ## Engine Responsibilities
 
-The main `engine/` split is:
+The main `internal/core/engine/` split is:
 
-- Browser lifecycle: `engine/browser.go`, session/context/profile helpers.
-- Navigation and waiting: `engine/navigator.go`, `engine/wait.go`,
-  `engine/locator_wait.go`.
-- Extraction: `engine/extractor.go`, DOM fallback, SSR/RSC extractors.
-- Interaction: `engine/interactor.go`, drag, clipboard, mouse, human mode.
-- Observation: `engine/errors.go`, `engine/observer.go`, network tracker,
+- Browser lifecycle: `internal/core/engine/browser.go`, session/context/profile helpers.
+- Navigation and waiting: `internal/core/engine/navigator.go`, `internal/core/engine/wait.go`,
+  `internal/core/engine/locator_wait.go`.
+- Extraction: `internal/core/engine/extractor.go`, DOM fallback, SSR/RSC extractors.
+- Interaction: `internal/core/engine/interactor.go`, drag, clipboard, mouse, human mode.
+- Observation: `internal/core/engine/errors.go`, `internal/core/engine/observer.go`, network tracker,
   capture, HAR, intercept.
-- Page reports: `engine/preview.go`, perf, screenshots, PDF, annotations.
-- Safety and stealth: `engine/policy/`, `engine/vault/`, `engine/stealth.go`,
+- Page reports: `internal/core/engine/preview.go`, perf, screenshots, PDF, annotations.
+- Safety and stealth: `internal/core/policy/`, `internal/core/vault/`, `internal/core/engine/stealth.go`,
   anti-bot blocker.
 - Protocol surfaces: `internal/surface/mcp/`, `internal/surface/ai/`.
 
@@ -66,7 +70,7 @@ The Cobra root groups commands into these families:
 `internal/ops/ops.go` names three live surfaces:
 
 - `jsonl`: `internal/runtime` dispatch table (`runtime.Ops()`), driven by the
-  `cmd/agent.go` stdio loop; also the SDK method coverage set.
+  `internal/surface/cli/agent.go` stdio loop; also the SDK method coverage set.
 - `mcp`: `internal/surface/mcp/tools_gen.go` registered MCP tools (`mcp.Tools()`).
 - `ai`: `internal/surface/ai/tools_gen.go` provider tool specs (`ai.ToolSpecs()`).
 

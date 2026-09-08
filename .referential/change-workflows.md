@@ -4,23 +4,25 @@
 
 Start from the narrowest source of truth:
 
-1. User-facing CLI behavior: inspect `cmd/<command>.go`, `cmd/root.go`,
+1. User-facing CLI behavior: inspect `internal/surface/cli/<command>.go`,
+   `internal/surface/cli/root.go`,
    `docs/cli.md`, and any engine helper it calls.
-2. Browser behavior: inspect the relevant `engine/` file and its tests.
+2. Browser behavior: inspect the relevant `internal/core/engine/` file and its tests.
 3. JSONL/MCP/AI op exposure: `internal/ops/ops.go` declares it and generates
    the registrations; the handler bodies live in `internal/runtime/ops.go` and
    `internal/surface/mcp/tools.go`.
 4. SDK behavior: inspect `contracts/commands.json` plus SDK tests and client
    wrappers.
 
-Keep `cmd/` as thin glue. Shared behavior belongs in `engine/`.
+Keep `internal/surface/cli/` as thin glue. Shared behavior belongs in
+`internal/core/engine/`.
 
 ## Changing A CLI Command
 
 Checklist:
 
-- Update the command implementation in `cmd/`.
-- If it changes shared browser behavior, move or update logic in `engine/`.
+- Update the command implementation in `internal/surface/cli/`.
+- If it changes shared browser behavior, move or update logic in `internal/core/engine/`.
 - Update `docs/cli.md` and `README.md` when user-facing flags, examples, or
   output change.
 - If the change affects agent ops or JSON output shapes, follow the agent
@@ -51,13 +53,13 @@ Measure them from the binary.
 
 Typical target files:
 
-- Navigation or load strategy: `engine/navigator.go`, `engine/wait.go`.
-- Ref extraction: `engine/extractor.go` and fallback/extractor tests.
-- Click/type/select/press: `engine/interactor.go`, locator and wait helpers.
-- Errors/network reporting: `engine/errors.go`, observer/network tracker files.
-- Stealth and anti-bot behavior: `engine/stealth.go`,
-  `engine/antibot_blocker.go`, `engine/human.go`.
-- Session/profile handling: `engine/browser.go`, session registry/profile
+- Navigation or load strategy: `internal/core/engine/navigator.go`, `internal/core/engine/wait.go`.
+- Ref extraction: `internal/core/engine/extractor.go` and fallback/extractor tests.
+- Click/type/select/press: `internal/core/engine/interactor.go`, locator and wait helpers.
+- Errors/network reporting: `internal/core/engine/errors.go`, observer/network tracker files.
+- Stealth and anti-bot behavior: `internal/core/engine/stealth.go`,
+  `internal/core/engine/antibot_blocker.go`, `internal/core/engine/human.go`.
+- Session/profile handling: `internal/core/engine/browser.go`, session registry/profile
   files.
 
 Add or adjust focused engine tests when behavior is deterministic. For browser

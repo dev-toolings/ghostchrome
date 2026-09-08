@@ -14,18 +14,25 @@ working reference for architecture, change workflows, and validation scope.
 ## Architecture
 
 ```
-main.go → cmd/ (cobra commands) → engine/ (Rod/CDP logic) → Chrome
+cmd/ghostchrome/ -> internal/surface/cli/ -> internal/core/engine/ -> Chrome
 ```
 
-- `engine/browser.go` — Browser lifecycle (connect/launch/close)
-- `engine/navigator.go` — Page navigation with wait strategies
-- `engine/extractor.go` — CDP Accessibility tree → compact DOM with refs (@1, @2)
-- `engine/interactor.go` — Click, type, hover, select, press, viewport, tabs, dialog
-- `engine/errors.go` — Console + network error collection
-- `engine/preview.go` — All-in-one page health report
-- `engine/stealth.go` — Anti-detection patches
-- `engine/cookies.go` — Cookie banner auto-dismiss
-- `cmd/*.go` — One file per cobra command
+- `cmd/ghostchrome/`, `cmd/ghostchrome-mcp/` — thin mains, nothing else lives here
+- `skillbundle.go` — the repo-root package that owns the `//go:embed` of
+  `.claude/skills/ghostchrome`; embed patterns cannot escape their own directory
+- `internal/surface/cli/*.go` — One file per cobra command
+- `internal/surface/mcp/`, `internal/surface/ai/` — the other wire surfaces
+- `internal/runtime/` — one op implementation, shared by every surface
+- `internal/setup/` — installation, transports, skills, diagnostics
+- `internal/compat/playwright/` — the Playwright CLI config contract
+- `internal/core/engine/browser.go` — Browser lifecycle (connect/launch/close)
+- `internal/core/engine/navigator.go` — Page navigation with wait strategies
+- `internal/core/engine/extractor.go` — CDP Accessibility tree → compact DOM with refs (@1, @2)
+- `internal/core/engine/interactor.go` — Click, type, hover, select, press, viewport, tabs, dialog
+- `internal/core/engine/errors.go` — Console + network error collection
+- `internal/core/engine/preview.go` — All-in-one page health report
+- `internal/core/engine/stealth.go` — Anti-detection patches
+- `internal/core/engine/cookies.go` — Cookie banner auto-dismiss
 - `internal/ops/` — Canonical op catalog (single source of truth); `go generate` emits `contracts/commands.json` **and** the JSONL/MCP/AI registrations, so a surface cannot expose an op the catalog does not declare
 - `contracts/commands.json` — Generated op contract the SDKs are typed against
 - `sdk/typescript/`, `sdk/python/` — In-repo typed SDKs; thin clients that spawn a persistent `ghostchrome agent` subprocess and speak the JSONL protocol over stdio
@@ -71,7 +78,7 @@ hatch only (via `GHOSTCHROME_NO_DAEMON=1`).
 
 ## Installation modes and agent skill
 
-`ghostchrome setup --mode cli|mcp` installs exactly one local transport. CLI mode
+`ghostchrome setup --mode cli|mcp` (internal/setup) installs exactly one local transport. CLI mode
 installs `ghostchrome`; MCP mode installs the standalone `ghostchrome-mcp` and
 registers it for the selected global clients. `setup switch --to ... --yes` is the
 only supported mode transition. The canonical English skill lives under
