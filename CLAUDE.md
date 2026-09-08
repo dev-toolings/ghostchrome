@@ -26,7 +26,7 @@ main.go → cmd/ (cobra commands) → engine/ (Rod/CDP logic) → Chrome
 - `engine/stealth.go` — Anti-detection patches
 - `engine/cookies.go` — Cookie banner auto-dismiss
 - `cmd/*.go` — One file per cobra command
-- `internal/ops/` — Canonical op catalog (single source of truth); `go generate` emits `contracts/commands.json`; a parity test guards JSONL/MCP/AI surface drift
+- `internal/ops/` — Canonical op catalog (single source of truth); `go generate` emits `contracts/commands.json` **and** the JSONL/MCP/AI registrations, so a surface cannot expose an op the catalog does not declare
 - `contracts/commands.json` — Generated op contract the SDKs are typed against
 - `sdk/typescript/`, `sdk/python/` — In-repo typed SDKs; thin clients that spawn a persistent `ghostchrome agent` subprocess and speak the JSONL protocol over stdio
 - `examples/` — Runnable end-to-end examples (TS + Python) attaching via `--connect=auto`
@@ -128,15 +128,18 @@ the SDK types match that output, not your assumptions.
 ### Change workflow
 
 1. Edit `internal/ops/ops.go` (the catalog), then `go generate ./internal/ops/...`
-   to regenerate `contracts/commands.json`.
+   to regenerate `contracts/commands.json`, `internal/runtime/handlers_gen.go`,
+   `internal/surface/mcp/tools_gen.go` and `internal/surface/ai/tools_gen.go`.
+   Then write the handler body the generated binding points at.
 2. **Re-measure** with `scripts/measure-agent-ops.sh` and reconcile result shapes.
 3. Update the typed wrappers in `sdk/typescript/src/` and `sdk/python/ghostchrome/`
    plus their hermetic tests (`bun test`, `python -m unittest discover -s tests`).
    Each SDK has a contract-coverage test asserting every JSONL op has a method.
 4. Update or add an `examples/` script if usage changed; re-run the e2e
    (`just e2e` against a live Chrome) so real shapes flow through both SDKs.
-5. The parity test in `internal/ops/` fails loudly if JSONL / MCP / AI surfaces
-   drift from the catalog — keep all three in sync.
+5. The three surfaces are generated, so they cannot drift from the catalog.
+   `internal/ops/gen` has the one test that still matters: it fails if the
+   committed generated files are not what the current catalog produces.
 
 Build/test everything via the root `justfile` (`build`, `test`, `test-all`,
 `contract`, `e2e`) or directly: `go test ./...`, then the two SDK suites.

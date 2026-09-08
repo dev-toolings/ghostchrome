@@ -89,6 +89,15 @@ Le catalogue sert à générer `contracts/commands.json` et à alimenter un test
 Il ne **contraint** rien. Un « single source of truth » qu'aucun code de
 production ne lit est de la documentation avec une extension `.go`.
 
+**Résolu en phase 4.** `go generate ./internal/ops/...` émet désormais, en plus
+du contrat, `internal/runtime/handlers_gen.go`, `internal/surface/mcp/tools_gen.go`
+et `internal/surface/ai/tools_gen.go`. Les trois surfaces lisent le catalogue ;
+seuls les corps de handlers restent écrits à la main. `parity_test.go` a été
+supprimé : la parité n'est plus testable parce qu'elle n'est plus cassable.
+Les flags CLI restent hors périmètre : `cmd/` expose une quarantaine de
+commandes qui ne sont pas des ops, et le catalogue ne déclare aucune surface
+`cli` à générer.
+
 ### F4 — `engine/` est un god package
 
 281 symboles exportés dans un seul paquet, contre 3 pour `engine/mcp`, 15 pour

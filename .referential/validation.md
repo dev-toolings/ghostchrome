@@ -10,8 +10,8 @@ surface is shared.
 | `go build ./...` | All Go packages compile. |
 | `go test -short ./...` | Short Go suite without integration tests. |
 | `go test ./engine/...` | Engine-focused tests from project docs. |
-| `go test ./internal/ops/...` | Operation catalog and parity checks. |
-| `go generate ./internal/ops/...` | Regenerates `contracts/commands.json`. |
+| `go test ./internal/ops/...` | Catalog self-consistency and generated-file freshness. |
+| `go generate ./internal/ops/...` | Regenerates the contract and the JSONL/MCP/AI registrations. |
 | `just test` | Project shortcut for `go test -short ./...`. |
 | `just contract` | Project shortcut for command contract generation. |
 | `just test-all` | Go short tests plus both SDK hermetic suites. |

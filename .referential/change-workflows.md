@@ -7,9 +7,9 @@ Start from the narrowest source of truth:
 1. User-facing CLI behavior: inspect `cmd/<command>.go`, `cmd/root.go`,
    `docs/cli.md`, and any engine helper it calls.
 2. Browser behavior: inspect the relevant `engine/` file and its tests.
-3. JSONL/MCP/AI op exposure: inspect `internal/ops/ops.go`,
-   `internal/runtime/ops.go`, `internal/surface/mcp/tools.go`, and
-   `internal/surface/ai/tools.go`.
+3. JSONL/MCP/AI op exposure: `internal/ops/ops.go` declares it and generates
+   the registrations; the handler bodies live in `internal/runtime/ops.go` and
+   `internal/surface/mcp/tools.go`.
 4. SDK behavior: inspect `contracts/commands.json` plus SDK tests and client
    wrappers.
 
@@ -31,10 +31,12 @@ Checklist:
 
 This is the high-risk path because several surfaces must stay aligned.
 
-1. Edit `internal/ops/ops.go`.
-2. Run `go generate ./internal/ops/...` to regenerate
-   `contracts/commands.json`.
-3. Check parity tests in `internal/ops/`.
+1. Edit `internal/ops/ops.go`, including the MCP/AI surface specs if the op is
+   exposed there.
+2. Run `go generate ./internal/ops/...`. It rewrites `contracts/commands.json`
+   and the three registration tables.
+3. Write the handler body each generated binding names; until then the build
+   fails, which is the intended signal.
 4. Measure the live binary result shapes with `scripts/measure-agent-ops.sh`
    before editing SDK result types.
 5. Update `sdk/typescript/src/` and `sdk/python/ghostchrome/` wrappers and

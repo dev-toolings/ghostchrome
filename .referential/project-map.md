@@ -20,7 +20,7 @@ The project optimizes for:
 |---|---|
 | `cmd/` | Cobra commands. One file per command. Keep command files thin. |
 | `engine/` | Shared browser, CDP, extraction, interaction, network, policy, and state logic. |
-| `internal/ops/` | Canonical operation catalog plus parity tests and generator. |
+| `internal/ops/` | Canonical operation catalog; `internal/ops/gen` renders every surface registration from it. |
 | `contracts/` | Generated command/op contract consumed by SDK coverage tests. |
 | `docs/` | Human documentation for architecture, CLI, MCP, anti-bot, fast path, recipes. |
 | `sdk/typescript/` | TypeScript JSONL agent client, Bun-based tests/build. |
@@ -67,8 +67,11 @@ The Cobra root groups commands into these families:
 
 - `jsonl`: `internal/runtime` dispatch table (`runtime.Ops()`), driven by the
   `cmd/agent.go` stdio loop; also the SDK method coverage set.
-- `mcp`: `internal/surface/mcp/tools.go` registered MCP tools (`mcp.Tools()`).
-- `ai`: `internal/surface/ai/tools.go` provider tool specs (`ai.ToolSpecs()`).
+- `mcp`: `internal/surface/mcp/tools_gen.go` registered MCP tools (`mcp.Tools()`).
+- `ai`: `internal/surface/ai/tools_gen.go` provider tool specs (`ai.ToolSpecs()`).
+
+All three registration tables are generated from `ops.Catalog()`; only the
+handler bodies are hand-written.
 
 Intentional divergences exist. Do not treat them as drift without checking the
 catalog comments:
