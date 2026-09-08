@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dev-toolings/ghostchrome/internal/setup"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,7 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		out := cmd.OutOrStdout()
 
-		paths, err := installEmbeddedSkills()
+		paths, err := setup.InstallEmbeddedSkills()
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "warning: skill install failed: %v\n", err)
 		}

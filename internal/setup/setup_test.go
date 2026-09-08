@@ -1,4 +1,4 @@
-package cli
+package setup
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ func setupTestEnvironment(t *testing.T) (string, string) {
 		t.Setenv("USERPROFILE", home)
 	}
 	sourceDir := t.TempDir()
-	source := filepath.Join(sourceDir, "ghostchrome-source"+binarySuffix())
+	source := filepath.Join(sourceDir, "ghostchrome-source"+BinarySuffix())
 	if err := os.WriteFile(source, []byte("#!/bin/sh\necho ghostchrome-test\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -48,27 +48,27 @@ func setupTestEnvironment(t *testing.T) (string, string) {
 func TestParseSetupModeAndClients(t *testing.T) {
 	for _, test := range []struct {
 		input string
-		want  setupMode
+		want  Mode
 	}{
 		{input: "cli", want: setupModeCLI},
 		{input: " MCP ", want: setupModeMCP},
 	} {
-		got, err := parseSetupMode(test.input)
+		got, err := ParseMode(test.input)
 		if err != nil || got != test.want {
-			t.Fatalf("parseSetupMode(%q) = %q, %v; want %q", test.input, got, err, test.want)
+			t.Fatalf("ParseMode(%q) = %q, %v; want %q", test.input, got, err, test.want)
 		}
 	}
-	if _, err := parseSetupMode("both"); err == nil {
+	if _, err := ParseMode("both"); err == nil {
 		t.Fatal("expected invalid mode to fail")
 	}
-	clients, err := parseSetupClients("grok,claude,grok")
+	clients, err := ParseClients("grok,claude,grok")
 	if err != nil || strings.Join(clients, ",") != "claude,grok" {
-		t.Fatalf("parseSetupClients dedupe/sort = %v, %v", clients, err)
+		t.Fatalf("ParseClients dedupe/sort = %v, %v", clients, err)
 	}
-	if _, err := parseSetupClients("claude,unknown"); err == nil {
+	if _, err := ParseClients("claude,unknown"); err == nil {
 		t.Fatal("expected unknown client to fail")
 	}
-	if _, err := parseSetupClients(",,"); err == nil {
+	if _, err := ParseClients(",,"); err == nil {
 		t.Fatal("expected empty client list to fail")
 	}
 }
@@ -76,14 +76,14 @@ func TestParseSetupModeAndClients(t *testing.T) {
 func TestSetupCLIIsExclusiveAndIdempotent(t *testing.T) {
 	home, _ := setupTestEnvironment(t)
 	clients := []string{"claude", "codex", "grok"}
-	first, err := setupInstall(setupModeCLI, clients, false)
+	first, err := Install(setupModeCLI, clients, false)
 	if err != nil {
 		t.Fatalf("install CLI: %v", err)
 	}
-	if first.Mode != setupModeCLI || first.Binary != filepath.Join(home, ".ghostchrome", "bin", setupCLIName+binarySuffix()) {
+	if first.Mode != setupModeCLI || first.Binary != filepath.Join(home, ".ghostchrome", "bin", setupCLIName+BinarySuffix()) {
 		t.Fatalf("unexpected CLI manifest: %+v", first)
 	}
-	if _, err := os.Stat(filepath.Join(home, ".ghostchrome", "bin", setupMCPName+binarySuffix())); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(filepath.Join(home, ".ghostchrome", "bin", setupMCPName+BinarySuffix())); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("MCP artifact should not be installed, err=%v", err)
 	}
 	for _, client := range clients {
@@ -98,17 +98,17 @@ func TestSetupCLIIsExclusiveAndIdempotent(t *testing.T) {
 			}
 		}
 	}
-	second, err := setupInstall(setupModeCLI, clients, false)
+	second, err := Install(setupModeCLI, clients, false)
 	if err != nil {
 		t.Fatalf("idempotent CLI install: %v", err)
 	}
 	if first.InstalledAt != second.InstalledAt {
 		t.Fatalf("idempotent install changed timestamp: %q -> %q", first.InstalledAt, second.InstalledAt)
 	}
-	if _, err := setupInstall(setupModeMCP, clients, false); err == nil || !strings.Contains(err.Error(), "already installed in cli mode") {
+	if _, err := Install(setupModeMCP, clients, false); err == nil || !strings.Contains(err.Error(), "already installed in cli mode") {
 		t.Fatalf("expected mode refusal, got %v", err)
 	}
-	manifest, err := readSetupManifest(pathsForHome(home))
+	manifest, err := ReadManifest(PathsForHome(home))
 	if err != nil || manifest.Mode != setupModeCLI {
 		t.Fatalf("mode refusal changed manifest: manifest=%+v err=%v", manifest, err)
 	}
@@ -117,11 +117,11 @@ func TestSetupCLIIsExclusiveAndIdempotent(t *testing.T) {
 func TestSetupMCPWritesAllClientRegistrationsAndSwitches(t *testing.T) {
 	home, _ := setupTestEnvironment(t)
 	clients := []string{"claude", "codex", "grok"}
-	manifest, err := setupInstall(setupModeMCP, clients, false)
+	manifest, err := Install(setupModeMCP, clients, false)
 	if err != nil {
 		t.Fatalf("install MCP: %v", err)
 	}
-	paths := pathsForHome(home)
+	paths := PathsForHome(home)
 	if manifest.Mode != setupModeMCP || manifest.Binary != paths.MCP {
 		t.Fatalf("unexpected MCP manifest: %+v", manifest)
 	}
@@ -135,10 +135,10 @@ func TestSetupMCPWritesAllClientRegistrationsAndSwitches(t *testing.T) {
 			t.Fatalf("%s MCP registration: %+v, err=%v", client, state, err)
 		}
 	}
-	if _, err := setupInstall(setupModeCLI, clients, false); err == nil || !strings.Contains(err.Error(), "already installed in mcp mode") {
+	if _, err := Install(setupModeCLI, clients, false); err == nil || !strings.Contains(err.Error(), "already installed in mcp mode") {
 		t.Fatalf("expected switch refusal without explicit force, got %v", err)
 	}
-	cli, err := setupInstall(setupModeCLI, clients, true)
+	cli, err := Install(setupModeCLI, clients, true)
 	if err != nil {
 		t.Fatalf("switch to CLI: %v", err)
 	}
@@ -163,14 +163,14 @@ func TestSetupMCPWritesAllClientRegistrationsAndSwitches(t *testing.T) {
 func TestSetupSwitchPreservesChangedMCPRegistration(t *testing.T) {
 	home, _ := setupTestEnvironment(t)
 	clients := []string{"claude"}
-	if _, err := setupInstall(setupModeMCP, clients, false); err != nil {
+	if _, err := Install(setupModeMCP, clients, false); err != nil {
 		t.Fatalf("install MCP: %v", err)
 	}
-	paths := pathsForHome(home)
+	paths := PathsForHome(home)
 	if err := os.WriteFile(paths.ClaudeConfig, []byte(`{"mcpServers":{"ghostchrome":{"type":"stdio","command":"/custom/ghostchrome-mcp","args":[]}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := setupInstall(setupModeCLI, clients, true); err == nil || !strings.Contains(err.Error(), "conflict") {
+	if _, err := Install(setupModeCLI, clients, true); err == nil || !strings.Contains(err.Error(), "conflict") {
 		t.Fatalf("expected changed MCP registration refusal, got %v", err)
 	}
 	if _, err := os.Stat(paths.CLI); !errors.Is(err, os.ErrNotExist) {
@@ -180,14 +180,14 @@ func TestSetupSwitchPreservesChangedMCPRegistration(t *testing.T) {
 
 func TestSetupRefusesForeignArtifactsAndConfigs(t *testing.T) {
 	home, _ := setupTestEnvironment(t)
-	paths := pathsForHome(home)
+	paths := PathsForHome(home)
 	if err := os.MkdirAll(filepath.Dir(paths.MCP), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(paths.MCP, []byte("foreign binary"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := setupInstall(setupModeCLI, []string{"claude"}, false); err == nil || !strings.Contains(err.Error(), "opposite Ghostchrome artifact") {
+	if _, err := Install(setupModeCLI, []string{"claude"}, false); err == nil || !strings.Contains(err.Error(), "opposite Ghostchrome artifact") {
 		t.Fatalf("expected foreign artifact refusal, got %v", err)
 	}
 	if err := os.Remove(paths.MCP); err != nil {
@@ -196,7 +196,7 @@ func TestSetupRefusesForeignArtifactsAndConfigs(t *testing.T) {
 	if err := os.WriteFile(paths.ClaudeConfig, []byte(`{"mcpServers":{"ghostchrome":{"command":"/usr/local/bin/other"}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := setupInstall(setupModeMCP, []string{"claude"}, false); err == nil || !strings.Contains(err.Error(), "conflict") {
+	if _, err := Install(setupModeMCP, []string{"claude"}, false); err == nil || !strings.Contains(err.Error(), "conflict") {
 		t.Fatalf("expected foreign config refusal, got %v", err)
 	}
 	if _, err := os.Stat(paths.MCP); !errors.Is(err, os.ErrNotExist) {
@@ -205,7 +205,7 @@ func TestSetupRefusesForeignArtifactsAndConfigs(t *testing.T) {
 	if err := os.WriteFile(paths.ClaudeConfig, []byte(`{"mcpServers":{"ghostchrome":"foreign-shape"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := setupInstall(setupModeMCP, []string{"claude"}, false); err == nil || !strings.Contains(err.Error(), "conflict") {
+	if _, err := Install(setupModeMCP, []string{"claude"}, false); err == nil || !strings.Contains(err.Error(), "conflict") {
 		t.Fatalf("expected malformed occupied config refusal, got %v", err)
 	}
 }
@@ -213,7 +213,7 @@ func TestSetupRefusesForeignArtifactsAndConfigs(t *testing.T) {
 func TestSetupUninstallPreservesProfilesAndModifiedSkills(t *testing.T) {
 	home, _ := setupTestEnvironment(t)
 	clients := []string{"claude", "codex", "grok"}
-	manifest, err := setupInstall(setupModeMCP, clients, false)
+	manifest, err := Install(setupModeMCP, clients, false)
 	if err != nil {
 		t.Fatalf("install MCP: %v", err)
 	}
@@ -226,13 +226,13 @@ func TestSetupUninstallPreservesProfilesAndModifiedSkills(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out, errOut bytes.Buffer
-	if err := setupUninstall(false, false, &out, &errOut); err == nil || !strings.Contains(err.Error(), "--yes") {
+	if err := Uninstall(false, false, &out, &errOut); err == nil || !strings.Contains(err.Error(), "--yes") {
 		t.Fatalf("expected uninstall confirmation refusal, got %v", err)
 	}
-	if err := setupUninstall(true, false, &out, &errOut); err != nil {
+	if err := Uninstall(true, false, &out, &errOut); err != nil {
 		t.Fatalf("uninstall: %v", err)
 	}
-	if _, err := os.Stat(pathsForHome(home).Manifest); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(PathsForHome(home).Manifest); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("manifest remains after uninstall: %v", err)
 	}
 	if _, err := os.Stat(manifest.Binary); !errors.Is(err, os.ErrNotExist) {
@@ -244,7 +244,7 @@ func TestSetupUninstallPreservesProfilesAndModifiedSkills(t *testing.T) {
 	if _, err := os.Stat(profile); err != nil {
 		t.Fatalf("profile was removed without --purge-data: %v", err)
 	}
-	_, state, err := jsonMCPState(pathsForHome(home).ClaudeConfig)
+	_, state, err := jsonMCPState(PathsForHome(home).ClaudeConfig)
 	if err != nil || state.Present {
 		t.Fatalf("Claude MCP registration remains: %+v, err=%v", state, err)
 	}
@@ -252,8 +252,8 @@ func TestSetupUninstallPreservesProfilesAndModifiedSkills(t *testing.T) {
 
 func TestSetupManifestIsStrictAndAtomic(t *testing.T) {
 	home, _ := setupTestEnvironment(t)
-	paths := pathsForHome(home)
-	manifest := &setupManifest{
+	paths := PathsForHome(home)
+	manifest := &Manifest{
 		SchemaVersion: setupManifestSchema,
 		Mode:          setupModeCLI,
 		Version:       "test",
@@ -270,7 +270,7 @@ func TestSetupManifestIsStrictAndAtomic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var decoded setupManifest
+	var decoded Manifest
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestSetupManifestIsStrictAndAtomic(t *testing.T) {
 	if err := os.WriteFile(paths.Manifest, []byte(`{"schema_version":999}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := readSetupManifest(paths); err == nil || !strings.Contains(err.Error(), "unsupported setup manifest schema") {
+	if _, err := ReadManifest(paths); err == nil || !strings.Contains(err.Error(), "unsupported setup manifest schema") {
 		t.Fatalf("expected schema refusal, got %v", err)
 	}
 	manifest.SchemaVersion = setupManifestSchema
@@ -291,16 +291,16 @@ func TestSetupManifestIsStrictAndAtomic(t *testing.T) {
 	if err := writeSetupManifest(paths, manifest); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := readSetupManifest(paths); err == nil || !strings.Contains(err.Error(), "outside Ghostchrome locations") {
+	if _, err := ReadManifest(paths); err == nil || !strings.Contains(err.Error(), "outside Ghostchrome locations") {
 		t.Fatalf("expected unsafe managed path refusal, got %v", err)
 	}
-	manifest.ManagedFiles = []string{"~/.ghostchrome/bin/" + setupCLIName + binarySuffix()}
+	manifest.ManagedFiles = []string{"~/.ghostchrome/bin/" + setupCLIName + BinarySuffix()}
 	manifest.InstallRoot = "~/.ghostchrome"
-	manifest.Binary = "~/.ghostchrome/bin/" + setupCLIName + binarySuffix()
+	manifest.Binary = "~/.ghostchrome/bin/" + setupCLIName + BinarySuffix()
 	if err := writeSetupManifest(paths, manifest); err != nil {
 		t.Fatal(err)
 	}
-	normalized, readErr := readSetupManifest(paths)
+	normalized, readErr := ReadManifest(paths)
 	if readErr != nil || normalized.Binary != paths.CLI || normalized.InstallRoot != paths.Root {
 		t.Fatalf("expected tilde paths to normalize, manifest=%+v err=%v", normalized, readErr)
 	}
@@ -312,15 +312,7 @@ func TestSetupInstructionsWritesManagedBlockAndBackup(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Setenv("USERPROFILE", home)
 	}
-	oldClients := setupClientsFlag
-	oldWrite := setupInstructionsWrite
-	setupClientsFlag = "codex"
-	setupInstructionsWrite = true
-	t.Cleanup(func() {
-		setupClientsFlag = oldClients
-		setupInstructionsWrite = oldWrite
-	})
-	path := setupInstructionPath(home, "codex")
+	path := InstructionPath(home, "codex")
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +320,7 @@ func TestSetupInstructionsWritesManagedBlockAndBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := runSetupInstructions(&out); err != nil {
+	if err := RunInstructions(&out, true, "codex"); err != nil {
 		t.Fatalf("write instructions: %v", err)
 	}
 	data, err := os.ReadFile(path)
@@ -343,7 +335,7 @@ func TestSetupInstructionsWritesManagedBlockAndBackup(t *testing.T) {
 	if err != nil || len(backups) != 1 {
 		t.Fatalf("expected one backup, got %v (err=%v)", backups, err)
 	}
-	if err := runSetupInstructions(&out); err != nil {
+	if err := RunInstructions(&out, true, "codex"); err != nil {
 		t.Fatalf("idempotent instructions write: %v", err)
 	}
 }

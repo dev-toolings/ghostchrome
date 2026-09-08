@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/setup"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,7 @@ Examples:
 		}
 		dataDirs := engine.GhostchromeDataDirs()
 
-		skillDirs := installedSkillDirs()
+		skillDirs := setup.InstalledSkillDirs()
 
 		// Plan
 		fmt.Fprintln(out, "uninstall plan:")
@@ -71,7 +72,7 @@ Examples:
 
 		// Remove the bundled skill (installed alongside the binary, so it goes
 		// with it regardless of --purge).
-		if n := removeInstalledSkills(); n > 0 {
+		if n := setup.RemoveInstalledSkills(); n > 0 {
 			fmt.Fprintf(out, "removed %d bundled skill(s)\n", n)
 		}
 

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dev-toolings/ghostchrome"
+	"github.com/dev-toolings/ghostchrome/internal/setup"
 	"github.com/dev-toolings/ghostchrome/internal/surface/cli"
 )
 
@@ -12,9 +13,9 @@ var version = "dev"
 
 func init() {
 	cli.SetVersion(version)
-	cli.SetEmbeddedSkill("ghostchrome", ghostchrome.SkillMarkdown)
+	setup.SetEmbeddedSkill("ghostchrome", ghostchrome.SkillMarkdown)
 	for relative, content := range ghostchrome.SkillFiles() {
-		cli.SetEmbeddedSkillFile(relative, content)
+		setup.SetEmbeddedSkillFile(relative, content)
 	}
 }
 

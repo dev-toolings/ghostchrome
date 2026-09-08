@@ -9,6 +9,7 @@ import (
 
 	"github.com/dev-toolings/ghostchrome/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/policy"
+	"github.com/dev-toolings/ghostchrome/internal/setup"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
@@ -347,6 +348,7 @@ func init() {
 
 func SetVersion(v string) {
 	rootCmd.Version = v
+	setup.SetVersion(v)
 }
 
 func Execute() error {

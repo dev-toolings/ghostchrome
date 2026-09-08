@@ -11,12 +11,13 @@ import (
 	"testing"
 
 	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
+	"github.com/dev-toolings/ghostchrome/internal/setup"
 )
 
 // TestMCPTraceStdioSequential exercises the public stdio boundary: initialize,
 // one successful tools/call, one failed tools/call, then trace-replay.
 func TestMCPTraceStdioSequential(t *testing.T) {
-	bin := filepath.Join(t.TempDir(), "ghostchrome"+binarySuffix())
+	bin := filepath.Join(t.TempDir(), "ghostchrome"+setup.BinarySuffix())
 	build := exec.Command("go", "build", "-o", bin, "../../../cmd/ghostchrome")
 	build.Dir = "."
 	if output, err := build.CombinedOutput(); err != nil {
@@ -115,7 +116,7 @@ func TestMCPTraceStdioSequential(t *testing.T) {
 }
 
 func TestMCPTraceWriteFailureStdio(t *testing.T) {
-	bin := filepath.Join(t.TempDir(), "ghostchrome"+binarySuffix())
+	bin := filepath.Join(t.TempDir(), "ghostchrome"+setup.BinarySuffix())
 	build := exec.Command("go", "build", "-o", bin, "../../../cmd/ghostchrome")
 	build.Dir = "."
 	if output, err := build.CombinedOutput(); err != nil {
