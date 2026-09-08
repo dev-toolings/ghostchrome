@@ -37,7 +37,7 @@ type toolDef struct {
 	handler toolHandler
 }
 
-// registerTools wires every tool in toolDefs onto the MCP server.
+// registerTools wires every tool in the generated toolDefs onto the MCP server.
 func registerTools(srv *mcpsrv.MCPServer, s *Server) {
 	for _, def := range toolDefs() {
 		h := def.handler
@@ -47,9 +47,10 @@ func registerTools(srv *mcpsrv.MCPServer, s *Server) {
 	}
 }
 
-// Tools returns the sorted names of the tools this surface registers. It is
-// derived from toolDefs, so a parity test reads the truth instead of a
-// hand-maintained copy — the MCP counterpart of runtime.Ops().
+// Tools returns the sorted names of the tools this surface registers. It reads
+// the generated toolDefs, so callers that need to enumerate the MCP surface get
+// the truth instead of a hand-maintained copy — the MCP counterpart of
+// runtime.Ops().
 //
 // Build-tagged recipes may append to ExtraToolRegistrars; those are outside
 // the canonical catalog and deliberately not reported here.

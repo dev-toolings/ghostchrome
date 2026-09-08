@@ -106,8 +106,12 @@ func validateSpec(op, surface string, spec *SurfaceSpec) []error {
 				errs = append(errs, fmt.Errorf("op %q: %s arg %q is %s but declares Items", op, surface, arg.Name, arg.Type))
 			}
 		case ArgArray:
-			if arg.Items == "" {
+			switch arg.Items {
+			case ArgString, ArgInteger, ArgNumber, ArgBoolean:
+			case "":
 				errs = append(errs, fmt.Errorf("op %q: %s arg %q is an array without Items", op, surface, arg.Name))
+			default:
+				errs = append(errs, fmt.Errorf("op %q: %s arg %q has unsupported array items %q", op, surface, arg.Name, arg.Items))
 			}
 		default:
 			errs = append(errs, fmt.Errorf("op %q: %s arg %q has unknown type %q", op, surface, arg.Name, arg.Type))

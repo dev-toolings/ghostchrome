@@ -10,8 +10,8 @@ import mcpgo "github.com/mark3labs/mcp-go/mcp"
 //
 // Descriptions, enums and defaults come from the catalog's MCP SurfaceSpec:
 // they are what an MCP client sees in tools/list, so they are declared once
-// there rather than restated here. The handler bodies stay hand-written below
-// in tools.go.
+// there rather than restated here. The handler bodies stay hand-written in
+// tools.go.
 func toolDefs() []toolDef {
 	return []toolDef{
 		{mcpgo.NewTool("back",

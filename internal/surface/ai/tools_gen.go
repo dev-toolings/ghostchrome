@@ -10,7 +10,7 @@ package ai
 // Schemas are deliberately minimal — overspec'd schemas hurt model recall
 // (extra fields the model has to reason about) without buying us safety beyond
 // what the agent ops already enforce at runtime. That is why an op's AI schema
-// is narrower than its JSONL contract: internal/ops declares both.
+// is narrower than its JSONL contract: internal/ops declares both widths.
 func ToolSpecs() []ToolSpec {
 	return []ToolSpec{
 		{
