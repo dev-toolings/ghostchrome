@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
-	"github.com/dev-toolings/ghostchrome/engine/policy"
+	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 	"github.com/go-rod/rod"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"

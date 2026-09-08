@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
-	"github.com/dev-toolings/ghostchrome/engine/sites"
+	"github.com/dev-toolings/ghostchrome/internal/core/sites"
 )
 
 // TestSniffCapcar is a live network test gated by `-tags live`.

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/dev-toolings/ghostchrome/engine"
-	"github.com/dev-toolings/ghostchrome/engine/vault"
+	"github.com/dev-toolings/ghostchrome/internal/core/vault"
 	"github.com/spf13/cobra"
 )
 

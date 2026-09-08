@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine/policy"
+	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 )
 
 func TestRemoveInitScriptRejectsTraversal(t *testing.T) {

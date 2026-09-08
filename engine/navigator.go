@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine/policy"
+	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 )

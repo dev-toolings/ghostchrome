@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine/provider"
+	"github.com/dev-toolings/ghostchrome/internal/core/provider"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/defaults"
 	"github.com/go-rod/rod/lib/launcher"

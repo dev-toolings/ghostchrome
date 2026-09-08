@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
-	"github.com/dev-toolings/ghostchrome/engine/policy"
+	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
