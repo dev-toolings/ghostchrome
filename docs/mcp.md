@@ -20,7 +20,8 @@ Available as a subcommand (`ghostchrome mcp`) or as a standalone binary
 Install ghostchrome (one-time):
 
 ```bash
-go install github.com/MakFly/ghostchrome@latest
+curl -fsSL https://raw.githubusercontent.com/dev-toolings/ghostchrome/main/scripts/install.sh \
+  | bash -s -- --mode cli
 ```
 
 Add it to your agent (one-time):
