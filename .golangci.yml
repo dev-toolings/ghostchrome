@@ -81,7 +81,7 @@ linters:
       - linters: [staticcheck]
         text: SA1019.*Dial has been deprecated
       - linters: [staticcheck]
-        path: packages/
+        path: recipes/
 
       # QF* are staticcheck's "quickfix" suggestions — style refactors
       # (WriteString(Sprintf(…)) → Fprintf, if-chain → tagged switch). The v1

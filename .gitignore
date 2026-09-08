@@ -44,7 +44,7 @@ sdk/python/*.egg-info/
 # Deliberately NOT `*.yaml`: that ignored every YAML file at every level and
 # would silently swallow CI, deploy and tool configs (the workflows survive
 # today only because they are `.yml`). Private recipe YAML lives inside the
-# `/packages/<site>/` directories ignored at the bottom of this file.
+# `/recipes/<site>/` directories ignored at the bottom of this file.
 /*.yaml
 
 # Playwright
@@ -64,11 +64,11 @@ benchmark/results-warm.json
 # Private scraping recipes — kept on disk, never committed.
 # Composed into the binary only via `go build -tags recipes ./cmd/ghostchrome`
 # (build tag already excludes them from the default binary).
-/packages/leboncoin/
-/packages/linkedin/
-/packages/instagram/
-/packages/cars-listings/
-/packages/websearch/
+/recipes/leboncoin/
+/recipes/linkedin/
+/recipes/instagram/
+/recipes/cars-listings/
+/recipes/websearch/
 /internal/surface/cli/leboncoin.go
 /internal/surface/cli/linkedin.go
 /internal/surface/cli/instagram.go
