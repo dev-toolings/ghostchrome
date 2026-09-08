@@ -242,41 +242,10 @@ func (s *Session) EnsurePage() (*engine.Browser, *rod.Page, error) {
 // JSON-encodable value; nil means "ok with no payload".
 type handler func(*Session, json.RawMessage) (any, error)
 
-// handlers is the single source of truth for the JSONL op surface: Dispatch
-// routes through it and Ops enumerates it, so the two can never drift.
-var handlers = map[string]handler{
-	"init":     (*Session).opInit,
-	"navigate": (*Session).opNavigate,
-	"back":     func(s *Session, _ json.RawMessage) (any, error) { return s.opHistory(-1) },
-	"forward":  func(s *Session, _ json.RawMessage) (any, error) { return s.opHistory(+1) },
-	"reload":   func(s *Session, _ json.RawMessage) (any, error) { return s.opReload() },
-	"extract":  (*Session).opExtract,
-	"click":    func(s *Session, raw json.RawMessage) (any, error) { return s.opRef(raw, "click") },
-	"dblclick": func(s *Session, raw json.RawMessage) (any, error) { return s.opRef(raw, "dblclick") },
-	"check":    func(s *Session, raw json.RawMessage) (any, error) { return s.opCheck(raw, true) },
-	"uncheck":  func(s *Session, raw json.RawMessage) (any, error) { return s.opCheck(raw, false) },
-	"type":     (*Session).opType,
-	"press":    (*Session).opPress,
-	"hover":    func(s *Session, raw json.RawMessage) (any, error) { return s.opRef(raw, "hover") },
-	"select":   (*Session).opSelect,
-	"fill":     (*Session).opFill,
-
-	"scroll_by":  (*Session).opScrollBy,
-	"scroll_to":  (*Session).opScrollTo,
-	"eval":       (*Session).opEval,
-	"screenshot": (*Session).opScreenshot,
-	"wait":       (*Session).opWait,
-	"errors":     func(s *Session, _ json.RawMessage) (any, error) { return s.opErrors() },
-	"url":        func(s *Session, _ json.RawMessage) (any, error) { return s.opURL() },
-	"dialog":     (*Session).opDialog,
-	"tabs":       (*Session).opTabs,
-	"close":      func(_ *Session, _ json.RawMessage) (any, error) { return nil, nil },
-}
-
 // Ops returns the sorted op names this package handles. It is derived from the
-// dispatch table, so every surface that needs to enumerate the JSONL protocol
-// (contract generation, parity tests, SDK coverage) reads the truth instead of
-// a hand-maintained copy.
+// generated dispatch table, so every surface that needs to enumerate the JSONL
+// protocol (contract generation, SDK coverage) reads the truth instead of a
+// hand-maintained copy.
 func Ops() []string {
 	names := make([]string, 0, len(handlers))
 	for name := range handlers {

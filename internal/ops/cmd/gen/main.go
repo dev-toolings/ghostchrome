@@ -7,6 +7,7 @@
 // It writes:
 //
 //	contracts/commands.json            the frozen contract the SDKs are typed against
+//	internal/runtime/handlers_gen.go   JSONL op name -> *Session method binding
 //	internal/surface/mcp/tools_gen.go  MCP tool schemas paired with their handlers
 //	internal/surface/ai/tools_gen.go   AI tool specs
 //
@@ -46,6 +47,7 @@ func main() {
 
 	root := repoRoot()
 	writeContract(root, catalog)
+	writeGo(filepath.Join(root, "internal", "runtime", "handlers_gen.go"), runtimeHandlers(catalog))
 	writeGo(filepath.Join(root, "internal", "surface", "mcp", "tools_gen.go"), mcpTools(catalog))
 	writeGo(filepath.Join(root, "internal", "surface", "ai", "tools_gen.go"), aiTools(catalog))
 }
@@ -68,6 +70,31 @@ func writeContract(root string, catalog []ops.Op) {
 		fatal("write %s: %v", out, err)
 	}
 	fmt.Printf("gen: wrote %s (%d ops)\n", out, len(catalog))
+}
+
+// ── JSONL surface ──────────────────────────────────────────────────────────────
+
+func runtimeHandlers(catalog []ops.Op) []byte {
+	var b bytes.Buffer
+	header(&b, "runtime")
+	b.WriteString(`
+// handlers binds every catalog op carrying the "jsonl" surface to its
+// hand-written method on *Session. Dispatch routes through this table and Ops
+// enumerates it, so the JSONL surface is exactly the catalog's "jsonl" set by
+// construction, with no list left to keep in sync.
+//
+// The method bodies live in ops.go. Adding an op to the catalog regenerates
+// this table, and the build fails until its method exists.
+var handlers = map[string]handler{
+`)
+	for _, op := range catalog {
+		if !on(op, "jsonl") {
+			continue
+		}
+		fmt.Fprintf(&b, "\t%q: (*Session).op%s,\n", op.Name, ident(op.Name))
+	}
+	b.WriteString("}\n")
+	return b.Bytes()
 }
 
 // ── MCP surface ────────────────────────────────────────────────────────────────

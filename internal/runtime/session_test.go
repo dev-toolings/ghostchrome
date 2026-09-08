@@ -88,7 +88,7 @@ func TestAgentRetainsDialogPolicyAndErrors(t *testing.T) {
 	}
 	deadline := time.Now().Add(time.Second)
 	for {
-		result, err := s.opErrors()
+		result, err := s.opErrors(nil)
 		if err != nil {
 			t.Fatal(err)
 		}

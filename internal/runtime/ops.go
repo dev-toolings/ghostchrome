@@ -21,7 +21,7 @@ func (s *Session) opInit(_ json.RawMessage) (any, error) {
 	return map[string]any{"protocol": engine.ProtocolVersion, "version": s.cfg.Version}, nil
 }
 
-func (s *Session) opURL() (any, error) {
+func (s *Session) opURL(_ json.RawMessage) (any, error) {
 	_, page, err := s.EnsurePage()
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func (s *Session) opRef(raw json.RawMessage, op string) (any, error) {
 }
 
 // opCheck ticks (checked=true) or unticks (checked=false) a checkbox/radio.
-func (s *Session) opCheck(raw json.RawMessage, checked bool) (any, error) {
+func (s *Session) opSetChecked(raw json.RawMessage, checked bool) (any, error) {
 	var a struct {
 		Ref string `json:"ref"`
 	}
@@ -212,7 +212,7 @@ func (s *Session) opCheck(raw json.RawMessage, checked bool) (any, error) {
 }
 
 // opReload refreshes the current page.
-func (s *Session) opReload() (any, error) {
+func (s *Session) opReload(_ json.RawMessage) (any, error) {
 	_, page, err := s.EnsurePage()
 	if err != nil {
 		return nil, err
@@ -537,7 +537,7 @@ func (s *Session) opWait(raw json.RawMessage) (any, error) {
 	}, timeout)
 }
 
-func (s *Session) opErrors() (any, error) {
+func (s *Session) opErrors(_ json.RawMessage) (any, error) {
 	_, _, err := s.EnsurePage()
 	if err != nil {
 		return nil, err
@@ -660,3 +660,28 @@ func (s *Session) opTabs(raw json.RawMessage) (any, error) {
 		return nil, fmt.Errorf("tabs: unknown action %q (list|switch|close|new)", a.Action)
 	}
 }
+
+// ── generated-binding adapters ─────────────────────────────────────────────────
+//
+// internal/runtime/handlers_gen.go binds every catalog op to (*Session).op<Op>,
+// so ops whose behaviour is a parameterised call into a shared implementation
+// need a one-line method under that exact name. The parameter is the behaviour
+// and stays here, hand-written; only the binding is generated.
+
+func (s *Session) opBack(_ json.RawMessage) (any, error) { return s.opHistory(-1) }
+
+func (s *Session) opForward(_ json.RawMessage) (any, error) { return s.opHistory(+1) }
+
+func (s *Session) opClick(raw json.RawMessage) (any, error) { return s.opRef(raw, "click") }
+
+func (s *Session) opDblclick(raw json.RawMessage) (any, error) { return s.opRef(raw, "dblclick") }
+
+func (s *Session) opHover(raw json.RawMessage) (any, error) { return s.opRef(raw, "hover") }
+
+func (s *Session) opCheck(raw json.RawMessage) (any, error) { return s.opSetChecked(raw, true) }
+
+func (s *Session) opUncheck(raw json.RawMessage) (any, error) { return s.opSetChecked(raw, false) }
+
+// opClose is a no-op at the op layer: cmd/agent.go reads the op name off the
+// wire and shuts the loop down itself, the dispatch entry only has to exist.
+func (s *Session) opClose(_ json.RawMessage) (any, error) { return nil, nil }
