@@ -44,7 +44,7 @@ The main `engine/` split is:
 - Page reports: `engine/preview.go`, perf, screenshots, PDF, annotations.
 - Safety and stealth: `engine/policy/`, `engine/vault/`, `engine/stealth.go`,
   anti-bot blocker.
-- Protocol surfaces: `engine/mcp/`, `engine/ai/`.
+- Protocol surfaces: `internal/surface/mcp/`, `internal/surface/ai/`.
 
 ## Command Groups
 
@@ -67,8 +67,8 @@ The Cobra root groups commands into these families:
 
 - `jsonl`: `internal/runtime` dispatch table (`runtime.Ops()`), driven by the
   `cmd/agent.go` stdio loop; also the SDK method coverage set.
-- `mcp`: `engine/mcp/tools.go` registered MCP tools.
-- `ai`: `engine/ai/tools.go` provider tool specs.
+- `mcp`: `internal/surface/mcp/tools.go` registered MCP tools (`mcp.Tools()`).
+- `ai`: `internal/surface/ai/tools.go` provider tool specs (`ai.ToolSpecs()`).
 
 Intentional divergences exist. Do not treat them as drift without checking the
 catalog comments:

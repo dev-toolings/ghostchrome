@@ -8,7 +8,8 @@ Start from the narrowest source of truth:
    `docs/cli.md`, and any engine helper it calls.
 2. Browser behavior: inspect the relevant `engine/` file and its tests.
 3. JSONL/MCP/AI op exposure: inspect `internal/ops/ops.go`,
-   `internal/runtime/ops.go`, `engine/mcp/tools.go`, and `engine/ai/tools.go`.
+   `internal/runtime/ops.go`, `internal/surface/mcp/tools.go`, and
+   `internal/surface/ai/tools.go`.
 4. SDK behavior: inspect `contracts/commands.json` plus SDK tests and client
    wrappers.
 
