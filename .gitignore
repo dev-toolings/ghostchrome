@@ -31,8 +31,12 @@ sdk/python/*.egg-info/
 # ig index
 .ig/
 
-# Recipes / config
-*.yaml
+# Recipes / config — local-only YAML dropped at the repo root.
+# Deliberately NOT `*.yaml`: that ignored every YAML file at every level and
+# would silently swallow CI, deploy and tool configs (the workflows survive
+# today only because they are `.yml`). Private recipe YAML lives inside the
+# `/packages/<site>/` directories ignored at the bottom of this file.
+/*.yaml
 
 # Playwright
 .playwright*
@@ -62,4 +66,9 @@ benchmark/results-warm.json
 /cmd/cars_listings.go
 /cmd/websearch.go
 /cmd/websearch_mcp.go
-docs/
+
+# Documentation of the private recipes above: the commands they describe are
+# gitignored and built only with `-tags recipes`, so their manuals stay local
+# too. The rest of `docs/` is versioned.
+/docs/websearch.md
+/docs/recipes/autoscout24.md
