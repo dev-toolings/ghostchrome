@@ -1,4 +1,4 @@
-package engine
+package artifact
 
 import (
 	"encoding/json"

@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 	"github.com/spf13/cobra"
 )
 
@@ -64,7 +65,7 @@ Examples:
 
 		applyStealthIfNeeded(page)
 
-		rec := engine.NewRecorder(page, out, engine.RecorderOpts{
+		rec := artifact.NewRecorder(page, out, artifact.RecorderOpts{
 			IncludeScrolls: flagRecordIncludeScrolls,
 			IncludeHovers:  flagRecordIncludeHovers,
 			StopOnNavigate: flagRecordStopOnNavigate,

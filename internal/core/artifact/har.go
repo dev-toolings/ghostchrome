@@ -1,9 +1,11 @@
-package engine
+package artifact
 
 import (
 	"encoding/json"
 	"os"
 	"time"
+
+	"github.com/dev-toolings/ghostchrome/engine"
 )
 
 // HAR follows the HAR 1.2 specification (W3C Web Performance Working Group).
@@ -86,7 +88,7 @@ type HARTimings struct {
 
 // BuildHAR constructs a HAR from the passive NetworkEntry slice collected by
 // requestTracker. pageURL and pageTitle name the top-level page.
-func BuildHAR(entries []NetworkEntry, pageURL, pageTitle, creatorVersion string) *HAR {
+func BuildHAR(entries []engine.NetworkEntry, pageURL, pageTitle, creatorVersion string) *HAR {
 	now := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 
 	page := HARPage{

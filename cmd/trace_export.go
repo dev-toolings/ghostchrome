@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 	"github.com/spf13/cobra"
 )
 
@@ -33,11 +33,11 @@ Examples:
 		if out == "" {
 			out = flagTraceExportFile + ".html"
 		}
-		entries, err := engine.ReadTrace(flagTraceExportFile, 0)
+		entries, err := artifact.ReadTrace(flagTraceExportFile, 0)
 		if err != nil {
 			exitErr("trace-export", err)
 		}
-		htmlContent := engine.RenderTraceHTML(entries, flagTraceExportFile)
+		htmlContent := artifact.RenderTraceHTML(entries, flagTraceExportFile)
 		if err := os.WriteFile(out, []byte(htmlContent), 0o600); err != nil {
 			exitErr("trace-export write", err)
 		}

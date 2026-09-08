@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 	"github.com/go-rod/rod"
 	"github.com/spf13/cobra"
 )
@@ -48,8 +49,8 @@ Examples:
 		}
 
 		if flagPreviewHAR != "" {
-			har := engine.BuildHAR(result.Network, result.PageInfo.URL, result.PageInfo.Title, appVersion())
-			if err := engine.WriteHAR(har, flagPreviewHAR); err != nil {
+			har := artifact.BuildHAR(result.Network, result.PageInfo.URL, result.PageInfo.Title, appVersion())
+			if err := artifact.WriteHAR(har, flagPreviewHAR); err != nil {
 				exitErr("preview har", err)
 			}
 		}

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 )
@@ -40,7 +40,7 @@ func (s *Server) traceMiddleware() mcpsrv.ToolHandlerMiddleware {
 				if ok {
 					outcome = "success"
 				}
-				entry := engine.TraceEntry{
+				entry := artifact.TraceEntry{
 					TS:         started.UnixMilli(),
 					Op:         req.Params.Name,
 					Args:       redactTraceArgs(req.Params.Name, req.GetArguments()),
@@ -62,7 +62,7 @@ func (s *Server) traceMiddleware() mcpsrv.ToolHandlerMiddleware {
 	}
 }
 
-func appendTrace(path string, entry engine.TraceEntry) error {
+func appendTrace(path string, entry artifact.TraceEntry) error {
 	traceWriteMu.Lock()
 	defer traceWriteMu.Unlock()
 
@@ -120,7 +120,7 @@ func appendTrace(path string, entry engine.TraceEntry) error {
 // encodeTraceEntry guarantees the hard cap even if an otherwise-safe argument
 // is unexpectedly huge. The fallback retains timing, operation and outcome,
 // but deliberately drops args, summary and error text.
-func encodeTraceEntry(entry engine.TraceEntry) ([]byte, error) {
+func encodeTraceEntry(entry artifact.TraceEntry) ([]byte, error) {
 	encoded, err := json.Marshal(entry)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func encodeTraceEntry(entry engine.TraceEntry) ([]byte, error) {
 	if len(encoded) <= traceMaxBytes {
 		return encoded, nil
 	}
-	minimal := engine.TraceEntry{
+	minimal := artifact.TraceEntry{
 		TS:         entry.TS,
 		Op:         truncateTraceString(entry.Op, 256),
 		OK:         entry.OK,
@@ -169,7 +169,7 @@ func traceFileState(data []byte) (firstTS int64, hasEntry, corrupt bool) {
 			}
 			return 0, false, true
 		}
-		var entry engine.TraceEntry
+		var entry artifact.TraceEntry
 		if err := json.Unmarshal(line, &entry); err != nil {
 			return 0, false, true
 		}

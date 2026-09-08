@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 )
@@ -74,7 +74,7 @@ func TestAppendTraceSecuresExistingFile(t *testing.T) {
 	if err := os.Chmod(path, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := appendTrace(path, engine.TraceEntry{Op: "wait_for", OK: true, Outcome: "success"}); err != nil {
+	if err := appendTrace(path, artifact.TraceEntry{Op: "wait_for", OK: true, Outcome: "success"}); err != nil {
 		t.Fatalf("append trace: %v", err)
 	}
 	info, err := os.Stat(path)
@@ -89,7 +89,7 @@ func TestAppendTraceSecuresExistingFile(t *testing.T) {
 func TestAppendTraceTruncatesExpiredWindowAndKeepsTrigger(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "trace.jsonl")
-	if err := appendTrace(path, engine.TraceEntry{
+	if err := appendTrace(path, artifact.TraceEntry{
 		TS: time.Now().Add(-traceRetention).UnixMilli(), Op: "old", OK: true, Outcome: "success",
 	}); err != nil {
 		t.Fatal(err)
@@ -100,11 +100,11 @@ func TestAppendTraceTruncatesExpiredWindowAndKeepsTrigger(t *testing.T) {
 	if err := os.Chtimes(path, now, now); err != nil {
 		t.Fatal(err)
 	}
-	trigger := engine.TraceEntry{TS: now.UnixMilli(), Op: "trigger", OK: true, Outcome: "success"}
+	trigger := artifact.TraceEntry{TS: now.UnixMilli(), Op: "trigger", OK: true, Outcome: "success"}
 	if err := appendTrace(path, trigger); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := engine.ReadTrace(path, 0)
+	entries, err := artifact.ReadTrace(path, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestAppendTraceTruncatesExpiredWindowAndKeepsTrigger(t *testing.T) {
 
 func TestAppendTraceTruncatesAtSizeCapAndKeepsTrigger(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "trace.jsonl")
-	if err := appendTrace(path, engine.TraceEntry{
+	if err := appendTrace(path, artifact.TraceEntry{
 		TS: time.Now().UnixMilli(), Op: "large", OK: true, Outcome: "success",
 		Args: map[string]any{"padding": strings.Repeat("x", traceMaxBytes-150)},
 	}); err != nil {
@@ -135,10 +135,10 @@ func TestAppendTraceTruncatesAtSizeCapAndKeepsTrigger(t *testing.T) {
 	if info.Size() >= traceMaxBytes {
 		t.Fatalf("fixture size = %d, want less than cap %d", info.Size(), traceMaxBytes)
 	}
-	if err := appendTrace(path, engine.TraceEntry{TS: time.Now().UnixMilli(), Op: "trigger", OK: true, Outcome: "success"}); err != nil {
+	if err := appendTrace(path, artifact.TraceEntry{TS: time.Now().UnixMilli(), Op: "trigger", OK: true, Outcome: "success"}); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := engine.ReadTrace(path, 0)
+	entries, err := artifact.ReadTrace(path, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestAppendTraceTruncatesAtSizeCapAndKeepsTrigger(t *testing.T) {
 }
 
 func TestAppendTraceRepairsCorruptJSONL(t *testing.T) {
-	valid, err := json.Marshal(engine.TraceEntry{TS: time.Now().UnixMilli(), Op: "valid", OK: true, Outcome: "success"})
+	valid, err := json.Marshal(artifact.TraceEntry{TS: time.Now().UnixMilli(), Op: "valid", OK: true, Outcome: "success"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestAppendTraceRepairsCorruptJSONL(t *testing.T) {
 			if err := os.WriteFile(path, tc.existing, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := appendTrace(path, engine.TraceEntry{TS: time.Now().UnixMilli(), Op: "trigger", OK: true, Outcome: "success"}); err != nil {
+			if err := appendTrace(path, artifact.TraceEntry{TS: time.Now().UnixMilli(), Op: "trigger", OK: true, Outcome: "success"}); err != nil {
 				t.Fatal(err)
 			}
 			data, err := os.ReadFile(path)
@@ -185,12 +185,12 @@ func TestAppendTraceRepairsCorruptJSONL(t *testing.T) {
 				if len(line) == 0 {
 					continue
 				}
-				var entry engine.TraceEntry
+				var entry artifact.TraceEntry
 				if err := json.Unmarshal(line, &entry); err != nil {
 					t.Fatalf("final JSONL contains invalid line %q: %v", line, err)
 				}
 			}
-			entries, err := engine.ReadTrace(path, 0)
+			entries, err := artifact.ReadTrace(path, 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -204,7 +204,7 @@ func TestAppendTraceRepairsCorruptJSONL(t *testing.T) {
 func TestAppendTraceTruncatesOversizedEntry(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "trace.jsonl")
 	private := strings.Repeat("private-value", traceMaxBytes/4)
-	if err := appendTrace(path, engine.TraceEntry{
+	if err := appendTrace(path, artifact.TraceEntry{
 		TS: time.Now().UnixMilli(), Op: "navigate", OK: true, Outcome: "success",
 		Args:    map[string]any{"large_safe_value": private},
 		Summary: private,
@@ -226,7 +226,7 @@ func TestAppendTraceTruncatesOversizedEntry(t *testing.T) {
 	if bytes.Contains(data, []byte("private-value")) {
 		t.Fatal("oversized value was persisted")
 	}
-	entries, err := engine.ReadTrace(path, 0)
+	entries, err := artifact.ReadTrace(path, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestTraceMiddlewareConcurrentJSONL(t *testing.T) {
 			t.Fatalf("concurrent append: %v", err)
 		}
 	}
-	entries, err := engine.ReadTrace(path, 0)
+	entries, err := artifact.ReadTrace(path, 0)
 	if err != nil {
 		t.Fatalf("read trace: %v", err)
 	}

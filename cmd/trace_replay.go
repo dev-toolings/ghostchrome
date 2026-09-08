@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 	"github.com/spf13/cobra"
 )
 
@@ -25,14 +25,14 @@ Examples:
 		if flagTraceReplayFile == "" {
 			exitErr("trace-replay", fmt.Errorf("--file is required"))
 		}
-		entries, err := engine.ReadTrace(flagTraceReplayFile, flagTraceReplayLimit)
+		entries, err := artifact.ReadTrace(flagTraceReplayFile, flagTraceReplayLimit)
 		if err != nil {
 			exitErr("trace-replay", err)
 		}
 		type replayResult struct {
-			File    string              `json:"file"`
-			Count   int                 `json:"count"`
-			Entries []engine.TraceEntry `json:"entries"`
+			File    string                `json:"file"`
+			Count   int                   `json:"count"`
+			Entries []artifact.TraceEntry `json:"entries"`
 		}
 		res := replayResult{
 			File:    flagTraceReplayFile,

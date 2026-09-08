@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 )
 
 // TestMCPTraceStdioSequential exercises the public stdio boundary: initialize,
@@ -73,7 +73,7 @@ func TestMCPTraceStdioSequential(t *testing.T) {
 		t.Fatalf("mcp server: %v\nstderr:\n%s", err, stderr.String())
 	}
 
-	entries, err := engine.ReadTrace(tracePath, 0)
+	entries, err := artifact.ReadTrace(tracePath, 0)
 	if err != nil {
 		t.Fatalf("read trace: %v", err)
 	}
@@ -103,8 +103,8 @@ func TestMCPTraceStdioSequential(t *testing.T) {
 		t.Fatalf("trace-replay: %v\n%s", err, output)
 	}
 	var payload struct {
-		Count   int                 `json:"count"`
-		Entries []engine.TraceEntry `json:"entries"`
+		Count   int                   `json:"count"`
+		Entries []artifact.TraceEntry `json:"entries"`
 	}
 	if err := json.Unmarshal(output, &payload); err != nil {
 		t.Fatalf("trace-replay JSON: %v\n%s", err, output)

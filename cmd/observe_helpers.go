@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dev-toolings/ghostchrome/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/artifact"
 	"github.com/go-rod/rod"
 )
 
@@ -45,7 +46,7 @@ func startObserveOut(page *rod.Page) func(opName string, ok bool, durationMs int
 
 		enc := json.NewEncoder(f)
 
-		cmdEntry := engine.TraceEntry{
+		cmdEntry := artifact.TraceEntry{
 			TS:         time.Now().UnixMilli() - durationMs,
 			Op:         opName,
 			OK:         ok,
@@ -63,7 +64,7 @@ func startObserveOut(page *rod.Page) func(opName string, ok bool, durationMs int
 			if evt.Text != "" {
 				summ = evt.Text
 			}
-			_ = enc.Encode(engine.TraceEntry{
+			_ = enc.Encode(artifact.TraceEntry{
 				TS:         evt.TS,
 				Op:         op,
 				OK:         evt.Failed == "" && (evt.Status == 0 || evt.Status < 400),
