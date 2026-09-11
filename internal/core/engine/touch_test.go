@@ -2,6 +2,8 @@ package engine
 
 import (
 	"encoding/json"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -243,5 +245,43 @@ func TestApplyEmulationProfileTurnsTouchOff(t *testing.T) {
 	}
 	if points != "0" {
 		t.Fatalf("maxTouchPoints after desktop profile = %s, want 0", points)
+	}
+}
+
+// TestSwipeTouchHonoursRequestedDuration is the regression test for a flick that
+// reached the page as a slow drag: each CDP round trip costs tens of
+// milliseconds, so a 90 ms gesture spread over twelve steps used to arrive with
+// ~50 ms between events. Any app measuring velocity then saw a scroll, never a
+// flick.
+func TestSwipeTouchHonoursRequestedDuration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requires Chrome")
+	}
+	_, page := newIsolatedPage(t)
+	if err := EnsureTouchEmulation(page); err != nil {
+		t.Fatalf("touch emulation: %v", err)
+	}
+	const doc = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0"><div id="pad" style="width:100%;height:600px;touch-action:none"></div>
+<script>window.__t=[];document.getElementById('pad').addEventListener('touchmove',e=>{window.__t.push(e.timeStamp)},{passive:false});</script>
+</body></html>`
+	if _, err := Navigate(page, dataURL(doc), "load"); err != nil {
+		t.Fatalf("navigate: %v", err)
+	}
+	if err := SwipeTouch(page, 100, 100, 100, 340, 12, 90*time.Millisecond); err != nil {
+		t.Fatalf("swipe: %v", err)
+	}
+	got, err := EvalJS(page, `(() => { const t = window.__t; return t.length < 2 ? -1 : Math.round(t[t.length-1] - t[0]) })()`, "", nil)
+	if err != nil {
+		t.Fatalf("eval: %v", err)
+	}
+	span, err := strconv.Atoi(strings.TrimSpace(got))
+	if err != nil {
+		t.Fatalf("span %q: %v", got, err)
+	}
+	// The page must see the gesture inside its requested window, not the wall
+	// clock the round trips took.
+	if span < 0 || span > 150 {
+		t.Fatalf("page saw the 90ms swipe spread over %dms", span)
 	}
 }

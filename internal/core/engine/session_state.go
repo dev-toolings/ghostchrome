@@ -45,11 +45,13 @@ type EmulationState struct {
 	UserAgent   string  `json:"user_agent,omitempty"`
 	ColorScheme string  `json:"color_scheme,omitempty"`
 	Timezone    string  `json:"timezone,omitempty"`
+	// SafeArea is what env(safe-area-inset-*) resolves to; zero means "not emulated".
+	SafeArea SafeAreaInsets `json:"safe_area,omitzero"`
 }
 
 // Empty reports whether the profile carries nothing to replay.
 func (s EmulationState) Empty() bool {
-	return s.Width <= 0 && s.Height <= 0 && !s.Touch && s.UserAgent == "" && s.ColorScheme == "" && s.Timezone == ""
+	return s.Width <= 0 && s.Height <= 0 && !s.Touch && s.UserAgent == "" && s.ColorScheme == "" && s.Timezone == "" && s.SafeArea.IsZero()
 }
 
 // Summary renders the profile as a single compact line for CLI feedback.
@@ -79,6 +81,9 @@ func (s EmulationState) Summary() string {
 	}
 	if s.UserAgent != "" {
 		parts = append(parts, "custom-ua")
+	}
+	if !s.SafeArea.IsZero() {
+		parts = append(parts, s.SafeArea.Summary())
 	}
 	if len(parts) == 0 {
 		return "none"

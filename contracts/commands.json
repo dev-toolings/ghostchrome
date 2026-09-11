@@ -159,7 +159,7 @@
   },
   {
     "name": "emulate",
-    "summary": "Emulate a device: viewport, DPR, mobile flag, touch, user-agent, color-scheme. MCP surface only (the CLI has `ghostchrome emulate`).",
+    "summary": "Emulate a device: viewport, DPR, mobile flag, touch, user-agent, color-scheme, safe-area insets. MCP surface only (the CLI has `ghostchrome emulate`).",
     "args": [
       {
         "name": "device",
@@ -208,6 +208,30 @@
         "type": "string",
         "required": false,
         "description": "prefers-color-scheme: dark | light | no-preference"
+      },
+      {
+        "name": "safe_area_top",
+        "type": "number",
+        "required": false,
+        "description": "env(safe-area-inset-top) in CSS pixels"
+      },
+      {
+        "name": "safe_area_right",
+        "type": "number",
+        "required": false,
+        "description": "env(safe-area-inset-right) in CSS pixels"
+      },
+      {
+        "name": "safe_area_bottom",
+        "type": "number",
+        "required": false,
+        "description": "env(safe-area-inset-bottom) in CSS pixels"
+      },
+      {
+        "name": "safe_area_left",
+        "type": "number",
+        "required": false,
+        "description": "env(safe-area-inset-left) in CSS pixels"
       },
       {
         "name": "reset",

@@ -188,9 +188,15 @@ mutating operation.
 Call `emulate` before checking a responsive layout, a mobile shell, or a
 progressive web app. The default context is a desktop viewport with a fine
 pointer, so a phone breakpoint or a `pointer: coarse` query never activates
-without it. Use `swipe` rather than `drag` for a touch gesture: `drag` sends
-mouse events, which a touch-only handler ignores. Treat refs as stale after an
-emulation change and re-snapshot.
+without it. For a standalone PWA on a notched phone also pass the safe-area
+insets (`safe_area_top`, `safe_area_bottom`, and the sides when relevant):
+desktop Chromium resolves `env(safe-area-inset-*)` to 0, so a header or bar
+that pads the status bar or the home indicator measures wrong without them.
+The result names the method in force, `cdp` (native override) or
+`css-rewrite` (same-origin stylesheets rewritten on an older Chromium). Use
+`swipe` rather than `drag` for a touch gesture: `drag` sends mouse events,
+which a touch-only handler ignores. Treat refs as stale after an emulation
+change and re-snapshot.
 
 The standalone MCP server owns one browser context and releases Chrome after
 the configured idle timeout while keeping the stdio server available. Keep MCP

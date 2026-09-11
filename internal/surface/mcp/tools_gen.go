@@ -39,7 +39,7 @@ func toolDefs() []toolDef {
 		), (*Server).handleDrag},
 
 		{mcpgo.NewTool("emulate",
-			mcpgo.WithDescription("Emulate a device: viewport size, devicePixelRatio, mobile flag, touch input, user-agent, and prefers-color-scheme. Use it before testing a responsive or mobile-only UI — without it the page is a 1920x1080 desktop with pointer:fine, so a phone shell or a coarse-pointer media query never activates. Pass a preset via `device`, or explicit width/height. Pass reset=true to go back to a plain desktop tab. Invalidates refs: re-snapshot afterwards."),
+			mcpgo.WithDescription("Emulate a device: viewport size, devicePixelRatio, mobile flag, touch input, user-agent, prefers-color-scheme, and safe-area insets. Use it before testing a responsive or mobile-only UI — without it the page is a 1920x1080 desktop with pointer:fine, so a phone shell or a coarse-pointer media query never activates. Pass a preset via `device`, or explicit width/height. For a standalone PWA on a notched iPhone also pass safe_area_top=59 and safe_area_bottom=34: without them env(safe-area-inset-*) is 0 and every header or bar that pads the status bar or home indicator is measured wrong. Pass reset=true to go back to a plain desktop tab. Invalidates refs: re-snapshot afterwards."),
 			mcpgo.WithString("device", mcpgo.Description("Preset: iphone-se, iphone-14, iphone-14-pro, iphone-14-pro-max, pixel-7, pixel-8-pro, ipad, ipad-pro, desktop, desktop-2k")),
 			mcpgo.WithNumber("width", mcpgo.Description("Viewport width in CSS pixels (overrides the preset)")),
 			mcpgo.WithNumber("height", mcpgo.Description("Viewport height in CSS pixels (overrides the preset)")),
@@ -48,6 +48,10 @@ func toolDefs() []toolDef {
 			mcpgo.WithBoolean("touch", mcpgo.Description("Touch input emulation: pointer:coarse, navigator.maxTouchPoints > 0, touch events")),
 			mcpgo.WithString("user_agent", mcpgo.Description("Override navigator.userAgent and the User-Agent header")),
 			mcpgo.WithString("color_scheme", mcpgo.Description("Emulate prefers-color-scheme"), mcpgo.Enum("dark", "light", "no-preference")),
+			mcpgo.WithNumber("safe_area_top", mcpgo.Description("env(safe-area-inset-top) in CSS pixels (59 on an iPhone 15 Pro Max in standalone mode)")),
+			mcpgo.WithNumber("safe_area_right", mcpgo.Description("env(safe-area-inset-right) in CSS pixels")),
+			mcpgo.WithNumber("safe_area_bottom", mcpgo.Description("env(safe-area-inset-bottom) in CSS pixels (34 for the iPhone home indicator)")),
+			mcpgo.WithNumber("safe_area_left", mcpgo.Description("env(safe-area-inset-left) in CSS pixels")),
 			mcpgo.WithBoolean("reset", mcpgo.Description("Drop every emulation override and restore the real desktop viewport and UA"), mcpgo.DefaultBool(false)),
 		), (*Server).handleEmulate},
 

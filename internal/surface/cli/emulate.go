@@ -15,6 +15,7 @@ var (
 	flagEmulateUserAgent   string
 	flagEmulateColorScheme string
 	flagEmulateTimezone    string
+	flagEmulateSafeArea    string
 	flagEmulateList        bool
 	flagEmulateReset       bool
 )
@@ -43,6 +44,8 @@ Per-axis overrides:
   --user-agent "<ua string>"
   --color-scheme dark|light|no-preference
   --timezone Europe/Paris      (IANA tz database name)
+  --safe-area 59,0,34,0        (env(safe-area-inset-*) top,right,bottom,left in px;
+                                "0" clears; an iPhone standalone PWA is 59,0,34,0)
 
 Examples:
   ghostchrome emulate --device iphone-14-pro
@@ -59,7 +62,7 @@ Examples:
 			return
 		}
 		if flagEmulateReset {
-			if flagEmulateDevice != "" || flagEmulateUserAgent != "" || flagEmulateColorScheme != "" || flagEmulateTimezone != "" {
+			if flagEmulateDevice != "" || flagEmulateUserAgent != "" || flagEmulateColorScheme != "" || flagEmulateTimezone != "" || flagEmulateSafeArea != "" {
 				exitErr("emulate", fmt.Errorf("--reset cannot be combined with other emulation flags"))
 			}
 			b, page := openPage()
@@ -74,11 +77,11 @@ Examples:
 				Action string `json:"action"`
 				Reset  bool   `json:"reset"`
 			}
-			output(&emulateResetResult{Action: "emulate", Reset: true}, "[emulate] reset: no viewport, touch, UA, color-scheme or timezone override left")
+			output(&emulateResetResult{Action: "emulate", Reset: true}, "[emulate] reset: no viewport, touch, UA, color-scheme, timezone or safe-area override left")
 			return
 		}
-		if flagEmulateDevice == "" && flagEmulateUserAgent == "" && flagEmulateColorScheme == "" && flagEmulateTimezone == "" {
-			exitErr("emulate", fmt.Errorf("need --device, --user-agent, --color-scheme, --timezone, --reset, or --list"))
+		if flagEmulateDevice == "" && flagEmulateUserAgent == "" && flagEmulateColorScheme == "" && flagEmulateTimezone == "" && flagEmulateSafeArea == "" {
+			exitErr("emulate", fmt.Errorf("need --device, --user-agent, --color-scheme, --timezone, --safe-area, --reset, or --list"))
 		}
 
 		b, page := openPage()
@@ -128,6 +131,25 @@ Examples:
 			state.Timezone = flagEmulateTimezone
 			applied["timezone"] = flagEmulateTimezone
 		}
+		if flagEmulateSafeArea != "" {
+			insets, err := parseSafeAreaFlag(flagEmulateSafeArea)
+			if err != nil {
+				exitErr("emulate", err)
+			}
+			if insets.IsZero() {
+				if err := engine.ClearSafeArea(page); err != nil {
+					exitErr("emulate", err)
+				}
+				applied["safe-area"] = "cleared"
+			} else {
+				method, err := engine.ApplySafeArea(page, insets)
+				if err != nil {
+					exitErr("emulate", err)
+				}
+				applied["safe-area"] = fmt.Sprintf("%d,%d,%d,%d via %s", insets.Top, insets.Right, insets.Bottom, insets.Left, method)
+			}
+			state.SafeArea = insets
+		}
 		// Persist so the next CLI invocation replays it: the CDP overrides
 		// themselves die with this process's DevTools session.
 		if err := b.SetEmulationState(state); err != nil {
@@ -151,6 +173,33 @@ Examples:
 		}
 		output(&emulateResult{Action: "emulate", Applied: applied}, sb.String())
 	},
+}
+
+// parseSafeAreaFlag reads "top,right,bottom,left" (CSS order); a single value
+// applies to all four sides, "0" clears.
+func parseSafeAreaFlag(raw string) (engine.SafeAreaInsets, error) {
+	fields := strings.Split(strings.TrimSpace(raw), ",")
+	values := make([]int, 0, 4)
+	for _, f := range fields {
+		var v int
+		if _, err := fmt.Sscanf(strings.TrimSpace(f), "%d", &v); err != nil {
+			return engine.SafeAreaInsets{}, fmt.Errorf("--safe-area: expected integers top,right,bottom,left, got %q", raw)
+		}
+		values = append(values, v)
+	}
+	var insets engine.SafeAreaInsets
+	switch len(values) {
+	case 1:
+		insets = engine.SafeAreaInsets{Top: values[0], Right: values[0], Bottom: values[0], Left: values[0]}
+	case 4:
+		insets = engine.SafeAreaInsets{Top: values[0], Right: values[1], Bottom: values[2], Left: values[3]}
+	default:
+		return engine.SafeAreaInsets{}, fmt.Errorf("--safe-area: expected one value or four (top,right,bottom,left), got %d", len(values))
+	}
+	if err := insets.Validate(); err != nil {
+		return engine.SafeAreaInsets{}, err
+	}
+	return insets, nil
 }
 
 func listDevices() []engine.Device {
@@ -182,6 +231,7 @@ func init() {
 	emulateCmd.Flags().StringVar(&flagEmulateUserAgent, "user-agent", "", "Override the user-agent header and navigator.userAgent")
 	emulateCmd.Flags().StringVar(&flagEmulateColorScheme, "color-scheme", "", "Emulate prefers-color-scheme: dark, light, no-preference")
 	emulateCmd.Flags().StringVar(&flagEmulateTimezone, "timezone", "", "Override the timezone (IANA tz name)")
+	emulateCmd.Flags().StringVar(&flagEmulateSafeArea, "safe-area", "", "env(safe-area-inset-*) in px as top,right,bottom,left (e.g. 59,0,34,0); 0 clears")
 	emulateCmd.Flags().BoolVar(&flagEmulateReset, "reset", false, "Drop every emulation override (viewport, touch, UA, color-scheme, timezone)")
 	emulateCmd.Flags().BoolVar(&flagEmulateList, "list", false, "List available device presets")
 	rootCmd.AddCommand(emulateCmd)

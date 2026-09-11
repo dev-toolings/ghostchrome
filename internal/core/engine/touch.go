@@ -54,6 +54,13 @@ func EnsureTouchEmulation(page *rod.Page) error {
 // in CSS pixels relative to the viewport: touchStart, `steps` touchMove events
 // spread over `duration`, then touchEnd.
 //
+// Each event carries an explicit CDP timestamp on the requested schedule, so the
+// page reads the speed the caller asked for. A round trip costs tens of
+// milliseconds, which a short gesture cannot outrun: without the timestamps a
+// 90 ms flick reached the page as a 480 ms drag and no velocity threshold ever
+// fired. Pacing is also computed against a fixed start rather than by sleeping
+// a full interval per step, so the round trips stop accumulating.
+//
 // Requires touch emulation (see EnsureTouchEmulation); without it Chrome drops
 // the events and the page sees nothing.
 func SwipeTouch(page *rod.Page, fromX, fromY, toX, toY float64, steps int, duration time.Duration) error {
@@ -67,7 +74,12 @@ func SwipeTouch(page *rod.Page, fromX, fromY, toX, toY float64, steps int, durat
 		duration = defaultSwipeDuration
 	}
 
-	if err := dispatchTouch(page, proto.InputDispatchTouchEventTypeTouchStart, fromX, fromY); err != nil {
+	origin := time.Now()
+	stamp := func(offset time.Duration) proto.TimeSinceEpoch {
+		return proto.TimeSinceEpoch(float64(origin.Add(offset).UnixNano()) / 1e9)
+	}
+
+	if err := dispatchTouch(page, proto.InputDispatchTouchEventTypeTouchStart, fromX, fromY, stamp(0)); err != nil {
 		return fmt.Errorf("touch start: %w", err)
 	}
 
@@ -76,18 +88,22 @@ func SwipeTouch(page *rod.Page, fromX, fromY, toX, toY float64, steps int, durat
 		t := float64(i) / float64(steps)
 		x := fromX + (toX-fromX)*t
 		y := fromY + (toY-fromY)*t
-		if err := dispatchTouch(page, proto.InputDispatchTouchEventTypeTouchMove, x, y); err != nil {
+		offset := time.Duration(float64(duration) * t)
+		if err := dispatchTouch(page, proto.InputDispatchTouchEventTypeTouchMove, x, y, stamp(offset)); err != nil {
 			// Cancel the in-flight gesture so the page is not left with a
 			// finger stuck down.
-			_ = dispatchTouchEnd(page, proto.InputDispatchTouchEventTypeTouchCancel)
+			_ = dispatchTouchEnd(page, proto.InputDispatchTouchEventTypeTouchCancel, stamp(offset))
 			return fmt.Errorf("touch move %d/%d: %w", i, steps, err)
 		}
-		if interval > 0 {
-			time.Sleep(interval)
+		// Wall-clock pacing still matters for anything the page does between
+		// events (a rAF, a transition), but only for the time not already spent
+		// in the round trip.
+		if remaining := time.Until(origin.Add(offset)); remaining > 0 && interval > 0 {
+			time.Sleep(remaining)
 		}
 	}
 
-	if err := dispatchTouchEnd(page, proto.InputDispatchTouchEventTypeTouchEnd); err != nil {
+	if err := dispatchTouchEnd(page, proto.InputDispatchTouchEventTypeTouchEnd, stamp(duration)); err != nil {
 		return fmt.Errorf("touch end: %w", err)
 	}
 	settleAfterAction(page, 0)
@@ -101,10 +117,11 @@ func TapTouch(page *rod.Page, x, y float64) error {
 	if page == nil {
 		return fmt.Errorf("tap: no page")
 	}
-	if err := dispatchTouch(page, proto.InputDispatchTouchEventTypeTouchStart, x, y); err != nil {
+	now := proto.TimeSinceEpoch(float64(time.Now().UnixNano()) / 1e9)
+	if err := dispatchTouch(page, proto.InputDispatchTouchEventTypeTouchStart, x, y, now); err != nil {
 		return fmt.Errorf("touch start: %w", err)
 	}
-	if err := dispatchTouchEnd(page, proto.InputDispatchTouchEventTypeTouchEnd); err != nil {
+	if err := dispatchTouchEnd(page, proto.InputDispatchTouchEventTypeTouchEnd, now); err != nil {
 		return fmt.Errorf("touch end: %w", err)
 	}
 	settleAfterAction(page, 0)
@@ -112,7 +129,7 @@ func TapTouch(page *rod.Page, x, y float64) error {
 }
 
 // dispatchTouch sends one touch event carrying a single active point.
-func dispatchTouch(page *rod.Page, kind proto.InputDispatchTouchEventType, x, y float64) error {
+func dispatchTouch(page *rod.Page, kind proto.InputDispatchTouchEventType, x, y float64, at proto.TimeSinceEpoch) error {
 	id := 0.0
 	force := 1.0
 	radius := 1.0
@@ -126,14 +143,16 @@ func dispatchTouch(page *rod.Page, kind proto.InputDispatchTouchEventType, x, y 
 			RadiusX: &radius,
 			RadiusY: &radius,
 		}},
+		Timestamp: at,
 	}.Call(page)
 }
 
 // dispatchTouchEnd sends a terminating touch event. Per the CDP contract,
 // touchEnd and touchCancel must carry no touch points at all.
-func dispatchTouchEnd(page *rod.Page, kind proto.InputDispatchTouchEventType) error {
+func dispatchTouchEnd(page *rod.Page, kind proto.InputDispatchTouchEventType, at proto.TimeSinceEpoch) error {
 	return proto.InputDispatchTouchEvent{
 		Type:        kind,
 		TouchPoints: []*proto.InputTouchPoint{},
+		Timestamp:   at,
 	}.Call(page)
 }

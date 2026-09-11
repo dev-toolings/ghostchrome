@@ -497,9 +497,16 @@ func (s *Server) handleEmulate(ctx context.Context, req mcpgo.CallToolRequest) (
 	mobile := mcpgo.ParseBoolean(req, "mobile", false)
 	hasTouch := hasArg(req, "touch")
 	touch := mcpgo.ParseBoolean(req, "touch", false)
+	safeAreaKeys := [4]string{"safe_area_top", "safe_area_right", "safe_area_bottom", "safe_area_left"}
+	hasSafeArea := false
+	for _, key := range safeAreaKeys {
+		if hasArg(req, key) {
+			hasSafeArea = true
+		}
+	}
 
 	if reset {
-		if device != "" || width > 0 || height > 0 || dpr > 0 || userAgent != "" || colorScheme != "" || hasMobile || hasTouch {
+		if device != "" || width > 0 || height > 0 || dpr > 0 || userAgent != "" || colorScheme != "" || hasMobile || hasTouch || hasSafeArea {
 			return errResult(fmt.Errorf("reset cannot be combined with other emulation parameters"))
 		}
 		return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
@@ -551,6 +558,19 @@ func (s *Server) handleEmulate(ctx context.Context, req mcpgo.CallToolRequest) (
 		if colorScheme != "" {
 			state.ColorScheme = colorScheme
 		}
+		// Each inset is independent: an absent axis keeps its current value, an
+		// explicit 0 clears that axis.
+		if hasSafeArea {
+			axes := [4]*int{&state.SafeArea.Top, &state.SafeArea.Right, &state.SafeArea.Bottom, &state.SafeArea.Left}
+			for i, key := range safeAreaKeys {
+				if hasArg(req, key) {
+					*axes[i] = int(mcpgo.ParseFloat64(req, key, 0))
+				}
+			}
+			if err := state.SafeArea.Validate(); err != nil {
+				return errResult(err)
+			}
+		}
 		if device == "" && (width > 0 || height > 0 || dpr > 0 || hasMobile || hasTouch) {
 			// A geometry axis was overridden by hand, so the preset label the
 			// profile still carries would lie about what the page actually sees.
@@ -558,7 +578,7 @@ func (s *Server) handleEmulate(ctx context.Context, req mcpgo.CallToolRequest) (
 		}
 
 		if state.Empty() {
-			return errResult(fmt.Errorf("nothing to emulate: pass device, width+height, mobile, touch, user_agent, color_scheme, or reset=true"))
+			return errResult(fmt.Errorf("nothing to emulate: pass device, width+height, mobile, touch, user_agent, color_scheme, safe_area_*, or reset=true"))
 		}
 		if (state.Width > 0) != (state.Height > 0) {
 			return errResult(fmt.Errorf("width and height must be given together"))
@@ -581,7 +601,16 @@ func (s *Server) handleEmulate(ctx context.Context, req mcpgo.CallToolRequest) (
 		// with what the CLI would have persisted.
 		_ = s.browser.SetEmulationState(state)
 		_ = s.browser.InvalidateCachedExtract(page)
-		return jsonResult(state, "emulating "+state.Summary()+" — re-snapshot before using refs")
+		summary := "emulating " + state.Summary()
+		if !state.SafeArea.IsZero() {
+			// The profile is already installed; asking again is idempotent and
+			// tells the caller whether env() itself resolves (cdp) or the page
+			// was rewritten (css-rewrite, same-origin stylesheets only).
+			if method, err := engine.ApplySafeArea(page, state.SafeArea); err == nil {
+				summary += " via " + string(method)
+			}
+		}
+		return jsonResult(state, summary+" — re-snapshot before using refs")
 	})
 }
 

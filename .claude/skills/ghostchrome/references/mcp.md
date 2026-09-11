@@ -38,6 +38,8 @@ breakpoint, or a coarse-pointer media query therefore stays inactive until
 // the same geometry, stated explicitly
 {"width": 430, "height": 932, "device_scale_factor": 3, "mobile": true, "touch": true,
  "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1"}
+// iPhone 15 Pro Max as an installed (standalone) PWA: Dynamic Island + home indicator
+{"device": "iphone-14-pro-max", "safe_area_top": 59, "safe_area_bottom": 34}
 // back to an un-emulated desktop tab
 {"reset": true}
 ```
@@ -45,7 +47,14 @@ breakpoint, or a coarse-pointer media query therefore stays inactive until
 Presets are `iphone-se`, `iphone-14`, `iphone-14-pro`, `iphone-14-pro-max`,
 `pixel-7`, `pixel-8-pro`, `ipad`, `ipad-pro`, `desktop`, and `desktop-2k`.
 Individual axes override the preset, and `color_scheme` emulates
-`prefers-color-scheme`. The profile survives a tab switch, a popup, and a
+`prefers-color-scheme`. `safe_area_top`, `safe_area_right`, `safe_area_bottom`
+and `safe_area_left` set what `env(safe-area-inset-*)` resolves to, in CSS
+pixels; an absent axis keeps its value and an explicit 0 clears it. The reply
+says `via cdp` when the browser honours `Emulation.setSafeAreaInsetsOverride`
+and `via css-rewrite` on an older Chromium, where every same-origin style rule
+that references the insets is copied with the values substituted (a
+cross-origin stylesheet stays untouched). A landscape phone swaps the values:
+top and bottom become the sides. The profile survives a tab switch, a popup, and a
 browser relaunch, because the server replays it whenever it binds a new page.
 An emulation change relayouts the document: take a fresh snapshot before using
 any ref, and reset when the mobile part of the flow is finished.

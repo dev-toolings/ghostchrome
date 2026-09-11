@@ -240,7 +240,7 @@ func Catalog() []Op {
 		},
 		{
 			Name:    "emulate",
-			Summary: "Emulate a device: viewport, DPR, mobile flag, touch, user-agent, color-scheme. MCP surface only (the CLI has `ghostchrome emulate`).",
+			Summary: "Emulate a device: viewport, DPR, mobile flag, touch, user-agent, color-scheme, safe-area insets. MCP surface only (the CLI has `ghostchrome emulate`).",
 			Args: []Arg{
 				{Name: "device", Type: ArgString, Required: false, Description: "Preset name, e.g. iphone-14-pro-max, pixel-7, ipad, desktop"},
 				{Name: "width", Type: ArgNumber, Required: false, Description: "Viewport width in CSS pixels"},
@@ -250,11 +250,15 @@ func Catalog() []Op {
 				{Name: "touch", Type: ArgBoolean, Required: false, Description: "Touch input emulation (pointer:coarse, maxTouchPoints)"},
 				{Name: "user_agent", Type: ArgString, Required: false, Description: "Override navigator.userAgent and the User-Agent header"},
 				{Name: "color_scheme", Type: ArgString, Required: false, Description: "prefers-color-scheme: dark | light | no-preference"},
+				{Name: "safe_area_top", Type: ArgNumber, Required: false, Description: "env(safe-area-inset-top) in CSS pixels"},
+				{Name: "safe_area_right", Type: ArgNumber, Required: false, Description: "env(safe-area-inset-right) in CSS pixels"},
+				{Name: "safe_area_bottom", Type: ArgNumber, Required: false, Description: "env(safe-area-inset-bottom) in CSS pixels"},
+				{Name: "safe_area_left", Type: ArgNumber, Required: false, Description: "env(safe-area-inset-left) in CSS pixels"},
 				{Name: "reset", Type: ArgBoolean, Required: false, Description: "Drop every emulation override and restore the desktop viewport/UA"},
 			},
 			Surfaces: []string{"mcp"},
 			MCP: &SurfaceSpec{
-				Description: "Emulate a device: viewport size, devicePixelRatio, mobile flag, touch input, user-agent, and prefers-color-scheme. Use it before testing a responsive or mobile-only UI — without it the page is a 1920x1080 desktop with pointer:fine, so a phone shell or a coarse-pointer media query never activates. Pass a preset via `device`, or explicit width/height. Pass reset=true to go back to a plain desktop tab. Invalidates refs: re-snapshot afterwards.",
+				Description: "Emulate a device: viewport size, devicePixelRatio, mobile flag, touch input, user-agent, prefers-color-scheme, and safe-area insets. Use it before testing a responsive or mobile-only UI — without it the page is a 1920x1080 desktop with pointer:fine, so a phone shell or a coarse-pointer media query never activates. Pass a preset via `device`, or explicit width/height. For a standalone PWA on a notched iPhone also pass safe_area_top=59 and safe_area_bottom=34: without them env(safe-area-inset-*) is 0 and every header or bar that pads the status bar or home indicator is measured wrong. Pass reset=true to go back to a plain desktop tab. Invalidates refs: re-snapshot afterwards.",
 				Args: []SurfaceArg{
 					{Name: "device", Type: ArgString, Description: "Preset: iphone-se, iphone-14, iphone-14-pro, iphone-14-pro-max, pixel-7, pixel-8-pro, ipad, ipad-pro, desktop, desktop-2k"},
 					{Name: "width", Type: ArgNumber, Description: "Viewport width in CSS pixels (overrides the preset)"},
@@ -264,6 +268,10 @@ func Catalog() []Op {
 					{Name: "touch", Type: ArgBoolean, Description: "Touch input emulation: pointer:coarse, navigator.maxTouchPoints > 0, touch events"},
 					{Name: "user_agent", Type: ArgString, Description: "Override navigator.userAgent and the User-Agent header"},
 					{Name: "color_scheme", Type: ArgString, Description: "Emulate prefers-color-scheme", Enum: []string{"dark", "light", "no-preference"}},
+					{Name: "safe_area_top", Type: ArgNumber, Description: "env(safe-area-inset-top) in CSS pixels (59 on an iPhone 15 Pro Max in standalone mode)"},
+					{Name: "safe_area_right", Type: ArgNumber, Description: "env(safe-area-inset-right) in CSS pixels"},
+					{Name: "safe_area_bottom", Type: ArgNumber, Description: "env(safe-area-inset-bottom) in CSS pixels (34 for the iPhone home indicator)"},
+					{Name: "safe_area_left", Type: ArgNumber, Description: "env(safe-area-inset-left) in CSS pixels"},
 					{Name: "reset", Type: ArgBoolean, Description: "Drop every emulation override and restore the real desktop viewport and UA", Default: false},
 				},
 			},

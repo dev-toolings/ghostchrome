@@ -181,6 +181,11 @@ func ApplyEmulationState(page *rod.Page, s EmulationState) error {
 			return err
 		}
 	}
+	if !s.SafeArea.IsZero() {
+		if _, err := ApplySafeArea(page, s.SafeArea); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -189,7 +194,8 @@ func ApplyEmulationState(page *rod.Page, s EmulationState) error {
 // It differs from ApplyEmulationState, which is a replay helper that only ever
 // adds overrides: this one also turns touch emulation OFF when the profile has
 // Touch=false, so switching from a phone profile back to a desktop one really
-// restores pointer:fine instead of leaving navigator.maxTouchPoints at 5.
+// restores pointer:fine instead of leaving navigator.maxTouchPoints at 5, and
+// it clears the safe-area insets when the profile carries none.
 // Use ResetEmulation to drop the overrides entirely.
 func ApplyEmulationProfile(page *rod.Page, s EmulationState) error {
 	if page == nil {
@@ -230,6 +236,13 @@ func ApplyEmulationProfile(page *rod.Page, s EmulationState) error {
 			return err
 		}
 	}
+	if s.SafeArea.IsZero() {
+		if err := ClearSafeArea(page); err != nil {
+			return err
+		}
+	} else if _, err := ApplySafeArea(page, s.SafeArea); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -253,6 +266,9 @@ func ResetEmulation(page *rod.Page) error {
 	// Empty TimezoneID means "restore the host timezone" per the CDP contract.
 	if err := (proto.EmulationSetTimezoneOverride{TimezoneID: ""}).Call(page); err != nil {
 		return fmt.Errorf("clear timezone override: %w", err)
+	}
+	if err := ClearSafeArea(page); err != nil {
+		return err
 	}
 	version, err := proto.BrowserGetVersion{}.Call(page)
 	if err != nil {
