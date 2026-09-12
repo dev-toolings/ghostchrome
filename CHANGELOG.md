@@ -6,6 +6,11 @@ All notable changes to ghostchrome are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- Stop passing Chromium `--ignore-certificate-errors` whenever a proxy is set.
+  TLS verification now stays on unless the new `IgnoreCertErrors` launcher
+  option asks for it.
+- Bind `GHOSTCHROME_POLICY` in the standalone `ghostchrome-mcp` server, which
+  ignored it and allowed every action. An unreadable policy now stops startup.
 - Bound the `extract`/`snapshot` selector lookup to its own 500 ms budget so a
   selector that matches nothing fails at once instead of inheriting the page
   deadline and blocking for minutes.
