@@ -217,6 +217,8 @@ class Ghostchrome:
             ``(ExtractResult, observation)``
             ``ExtractResult.stats`` has fields:
             ``total_nodes``, ``filtered_nodes``, ``interactive_count``.
+            ``ExtractResult.warnings`` is non-empty when a selector could not
+            be honored; the nodes are then the full page.
         """
         a: dict[str, Any] = {}
         if level is not None:
@@ -235,6 +237,7 @@ class Ghostchrome:
             nodes=d.get("nodes", []),
             refs=d.get("refs", {}),
             stats=stats,
+            warnings=d.get("warnings", []),
         )
         return result, resp.observation
 

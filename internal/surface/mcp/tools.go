@@ -812,6 +812,12 @@ func previewResult(pv *engine.PreviewResult) (*mcpgo.CallToolResult, error) {
 	header := fmt.Sprintf("[%d] %s — %s | %d errors, %d failed reqs, %d interactive",
 		pv.PageInfo.Status, pv.PageInfo.Title, pv.PageInfo.URL,
 		pv.Summary.ErrorCount, pv.Summary.FailedRequests, pv.Summary.InteractiveCount)
+	// A selector the extraction could not honor is a warning, not a failure:
+	// say so on the first line so the agent fixes the selector instead of
+	// reading the full page as if it had asked for it.
+	if pv.DOM != nil && len(pv.DOM.Warnings) > 0 {
+		header += " | warning: " + strings.Join(pv.DOM.Warnings, "; ")
+	}
 	data, err := json.Marshal(pv)
 	if err != nil {
 		return mcpgo.NewToolResultError(fmt.Sprintf("marshal: %v", err)), nil

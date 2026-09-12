@@ -5,6 +5,18 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+- Bound the `extract`/`snapshot` selector lookup to its own 500 ms budget so a
+  selector that matches nothing fails at once instead of inheriting the page
+  deadline and blocking for minutes.
+- Scope a selector to the DOM subtree of its first match, so a wrapper with no
+  accessibility node of its own (a Next.js root, a Tailwind div) returns the
+  named nodes it contains instead of failing, and a scoped extraction actually
+  returns that subtree.
+- Report an unusable selector as a `warnings` entry on a full-page extraction
+  rather than an error, so the page status, console errors and network survive
+  a bad selector.
+
 ## [0.7.1] - 2026-09-08
 
 ### Fixed

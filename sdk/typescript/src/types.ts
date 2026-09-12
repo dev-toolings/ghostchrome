@@ -296,6 +296,9 @@ export interface RefEntry {
  * extract result.
  * Measured: { nodes:A11yNode[], refs:Record<string,RefEntry>,
  *             stats:{ total_nodes:number, filtered_nodes:number, interactive_count:number } }
+ * `warnings` is omitted unless something degraded. Today that means a
+ * `selector` that could not be honored, in which case `nodes` covers the
+ * full page.
  */
 export interface ExtractResult {
   nodes: A11yNode[];
@@ -305,6 +308,7 @@ export interface ExtractResult {
     filtered_nodes: number;
     interactive_count: number;
   };
+  warnings?: string[];
 }
 
 /** A node included in a snapshot diff. */

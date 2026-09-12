@@ -101,7 +101,7 @@ count, compact DOM with refs. The first call when investigating a page.
 |---|---|---|
 | `--level LEVEL` | `content` | `skeleton`, `content`, `full` |
 | `--wait STRATEGY` | `domcontentloaded` | `domcontentloaded`, `load`, `stable`, `idle`, `none` |
-| `--selector CSS` | — | Scope DOM extract to a subtree |
+| `--selector CSS` | — | Scope DOM extract to the subtree of the first match (falls back to the full page with a warning on stderr when it resolves to nothing) |
 | `--no-network` | off | Skip the network section |
 
 ### `navigate <url>`
@@ -129,7 +129,7 @@ link.
 | Flag | Default | Effect |
 |---|---|---|
 | `--level LEVEL` | `content` | `skeleton`, `content`, `full` |
-| `--selector CSS` | — | Scope to a subtree |
+| `--selector CSS` | — | Scope to the subtree of the first match (falls back to the full page with a warning on stderr when it resolves to nothing) |
 | `--filename PATH` | — | Write the snapshot payload to a file |
 | `--depth N` | `-1` | Limit tree depth (`-1` = unlimited) |
 | `--raw` | off | Return only the snapshot tree for `snapshot` |

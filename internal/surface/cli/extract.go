@@ -92,6 +92,9 @@ Extraction levels:
 		if err != nil {
 			exitErr("extract", err)
 		}
+		for _, warning := range result.Warnings {
+			os.Stderr.WriteString("extract: " + warning + "\n")
+		}
 
 		var fresh *engine.PageSnapshot
 		if targetSelector == "" {

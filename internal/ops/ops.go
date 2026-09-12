@@ -533,7 +533,7 @@ func Catalog() []Op {
 				{Name: "url", Type: ArgString, Required: false, Description: "URL to navigate to before snapshotting (optional)"},
 				{Name: "wait", Type: ArgString, Required: false, Description: "Wait strategy: domcontentloaded | load | stable | idle | none"},
 				{Name: "level", Type: ArgString, Required: false, Description: "skeleton | content | full (default: content)"},
-				{Name: "selector", Type: ArgString, Required: false, Description: "Optional CSS selector to scope DOM extraction"},
+				{Name: "selector", Type: ArgString, Required: false, Description: "Optional CSS selector scoping the DOM extraction to the first match's subtree (ignored when url is given)"},
 			},
 			Surfaces: []string{"mcp"},
 			MCP: &SurfaceSpec{
@@ -542,7 +542,7 @@ func Catalog() []Op {
 					{Name: "url", Type: ArgString, Description: "Absolute URL to navigate to before snapshotting (optional — omit to snapshot the current page)"},
 					{Name: "wait", Type: ArgString, Description: "Wait strategy when navigating: domcontentloaded (default), load, stable, idle, none", Enum: []string{"domcontentloaded", "load", "stable", "idle", "none"}, Default: "domcontentloaded"},
 					{Name: "level", Type: ArgString, Description: "DOM extraction depth: skeleton (interactive only, smallest), content (default — adds text), full (everything named)", Enum: []string{"skeleton", "content", "full"}, Default: "content"},
-					{Name: "selector", Type: ArgString, Description: "Optional CSS selector to scope the DOM extraction to a subtree"},
+					{Name: "selector", Type: ArgString, Description: "Optional CSS selector scoping the DOM extraction to the subtree of its first match. The whole subtree is returned even when the element itself carries no role (a Next.js root, a Tailwind wrapper). A selector that matches nothing, or whose subtree holds no accessibility node, returns the full page plus a warning instead of failing. Only applies when url is omitted: with url, the snapshot always covers the whole page."},
 				},
 			},
 		},

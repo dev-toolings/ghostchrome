@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +12,24 @@ import (
 )
 
 const defaultExtractTimeout = 30 * time.Second
+
+// selectorResolveTimeout bounds the DOM lookup behind a scoping selector.
+// It is deliberately independent of the accessibility-tree budget: resolving
+// document.querySelector is a sub-millisecond operation, so a selector that
+// matches nothing must be reported at once rather than retried until the
+// page context expires.
+const selectorResolveTimeout = 500 * time.Millisecond
+
+// Non-fatal scoping failures. ExtractWithTimeout turns both into an entry in
+// ExtractionResult.Warnings and extracts the full page, so a bad selector
+// never costs the caller the page status, the console errors or the network.
+// They are distinct so the caller knows what to fix: a selector that matches
+// no element is a selector bug, an element with no accessibility node in its
+// subtree is a page with nothing to report there.
+var (
+	ErrSelectorNoMatch  = errors.New("matched no element in the DOM")
+	ErrSelectorNoAXNode = errors.New("matched an element whose subtree holds no accessibility node")
+)
 
 // ExtractLevel controls how much of the accessibility tree is returned.
 type ExtractLevel string
@@ -60,6 +79,10 @@ type ExtractionResult struct {
 	// RSC chunks, ...) can carry tokens/PII on an authenticated page, so they
 	// must not be exposed to the LLM by default.
 	SSRPayloads []SSRPayload `json:"ssr_payloads,omitempty"`
+	// Warnings reports what degraded during extraction without failing it.
+	// Today that means a scoping selector that could not be honored: the
+	// result is then a full-page extraction, not an error.
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 // MarshalJSON serializes the extraction result for the wire: the JSONL `agent`
@@ -203,12 +226,19 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 		nodeMap[n.NodeID] = n
 	}
 
-	// If selector is provided, scope to that subtree via DOM + AX query.
-	var scopeNodeIDs map[proto.AccessibilityAXNodeID]bool
+	// If selector is provided, scope to the accessibility subtrees covered by
+	// its DOM subtree. Resolution is non-fatal: a selector that matches
+	// nothing, or an element the accessibility tree pruned, degrades to the
+	// full page plus a warning, so the caller still gets the status, the
+	// console errors and the network of the page it asked about.
+	var (
+		scopeRoots []proto.AccessibilityAXNodeID
+		warnings   []string
+	)
 	if selector != "" {
-		scopeNodeIDs, err = resolveScope(page, selector, nodeMap)
+		scopeRoots, err = resolveScope(page, selector, result.Nodes, nodeMap)
 		if err != nil {
-			return nil, fmt.Errorf("resolve selector %q: %w", selector, err)
+			warnings = append(warnings, scopeFallbackWarning(err))
 		}
 	}
 
@@ -216,20 +246,42 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 	refCounter := 0
 	stats := ExtractionStats{TotalNodes: len(result.Nodes)}
 	refs := make(map[string]ExtractedNode)
+	budget := newEnrichmentBudget()
 
-	// Find root nodes (no parent or parent not in map).
-	var rootIDs []proto.AccessibilityAXNodeID
+	var treeRoots []proto.AccessibilityAXNodeID
 	for _, n := range result.Nodes {
 		if n.ParentID == "" {
-			rootIDs = append(rootIDs, n.NodeID)
+			treeRoots = append(treeRoots, n.NodeID)
 		}
 	}
 
-	budget := newEnrichmentBudget()
-	var extractedNodes []ExtractedNode
-	for _, rootID := range rootIDs {
-		children := buildTree(page, nodeMap, rootID, level, scopeNodeIDs, &refCounter, refs, &stats, budget)
-		extractedNodes = append(extractedNodes, children...)
+	build := func(roots []proto.AccessibilityAXNodeID) []ExtractedNode {
+		refCounter = 0
+		stats = ExtractionStats{TotalNodes: len(result.Nodes)}
+		refs = make(map[string]ExtractedNode)
+		budget = newEnrichmentBudget()
+		var out []ExtractedNode
+		for _, rootID := range roots {
+			out = append(out, buildTree(page, nodeMap, rootID, level, &refCounter, refs, &stats, budget)...)
+		}
+		return out
+	}
+
+	// Start at the scope roots when scoped, at the tree roots otherwise.
+	rootIDs := scopeRoots
+	if len(rootIDs) == 0 {
+		rootIDs = treeRoots
+	}
+	extractedNodes := build(rootIDs)
+
+	// The scope resolved but every node it holds was ignored or filtered out
+	// (an aria-hidden wrapper, a subtree with nothing named). Same deal as a
+	// selector that matches nothing: report it and hand back the whole page
+	// rather than an empty answer.
+	if len(scopeRoots) > 0 && len(extractedNodes) == 0 {
+		warnings = append(warnings, scopeFallbackWarning(fmt.Errorf("selector %q %w", selector, ErrSelectorNoAXNode)))
+		scopeRoots = nil
+		extractedNodes = build(treeRoots)
 	}
 
 	var ssrPayloads []SSRPayload
@@ -242,7 +294,9 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 		ssrPayloads = ssrFallbackPayloads(p)
 	}
 
-	if selector == "" {
+	// Iframes belong to the whole-page view: skip them only when the
+	// extraction really is scoped to a subtree.
+	if len(scopeRoots) == 0 {
 		appendSameOriginIframes(page, level, &extractedNodes, refs, &stats, &refCounter)
 	}
 
@@ -251,6 +305,7 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 		Refs:        refs,
 		Stats:       stats,
 		SSRPayloads: ssrPayloads,
+		Warnings:    warnings,
 	}, nil
 }
 
@@ -307,7 +362,7 @@ func appendSameOriginIframesAt(page *rod.Page, level ExtractLevel, nodes *[]Extr
 		var frameNodes []ExtractedNode
 		for _, n := range result.Nodes {
 			if n.ParentID == "" {
-				frameNodes = append(frameNodes, buildTree(frame, nodeMap, n.NodeID, level, nil, refCounter, refs, stats, budget)...)
+				frameNodes = append(frameNodes, buildTree(frame, nodeMap, n.NodeID, level, refCounter, refs, stats, budget)...)
 			}
 		}
 		stampFrame(frameNodes, frame.FrameID)
@@ -356,61 +411,113 @@ func syncFrameRefs(nodes []ExtractedNode, refs map[string]ExtractedNode) {
 	}
 }
 
-// resolveScope finds all AX node IDs that are descendants of the given CSS selector.
-func resolveScope(page *rod.Page, selector string, nodeMap map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode) (map[proto.AccessibilityAXNodeID]bool, error) {
-	// Get the DOM node for the selector, then query AX tree for its subtree.
-	el, err := page.Element(selector)
-	if err != nil {
-		return nil, fmt.Errorf("element %q not found: %w", selector, err)
-	}
-
-	// Get the backend node ID.
-	desc, err := el.Describe(0, false)
-	if err != nil {
-		return nil, fmt.Errorf("describe element: %w", err)
-	}
-
-	rootID := axNodeIDForBackend(nodeMap, desc.BackendNodeID)
-	if rootID == "" {
-		return nil, fmt.Errorf("no accessibility node for selector %q", selector)
-	}
-	return axSubtreeIDs(nodeMap, rootID), nil
+// scopeFallbackWarning renders a failed scoping as the warning the caller
+// reads on an otherwise complete, full-page result.
+func scopeFallbackWarning(err error) string {
+	return err.Error() + "; extracted the full page instead"
 }
 
-func axNodeIDForBackend(nodeMap map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode, backend proto.DOMBackendNodeID) proto.AccessibilityAXNodeID {
-	var fallback proto.AccessibilityAXNodeID
-	for id, n := range nodeMap {
-		if n == nil || n.BackendDOMNodeID != backend {
+// resolveScope maps a CSS selector to the accessibility nodes that head the
+// matched element's subtree. It never blocks on the page's own deadline: the
+// DOM lookup gets selectorResolveTimeout of its own, so a selector that
+// matches nothing fails in well under a second instead of retrying
+// document.querySelector for as long as the page context allows.
+//
+// The element itself does not need an accessibility node. A structural <div>
+// with no role (a Next.js root, a Tailwind wrapper) is pruned from the
+// accessibility tree, yet its subtree usually holds dozens of named nodes.
+// Scoping therefore works on the DOM subtree: keep the accessibility nodes
+// whose backend DOM node belongs to it, and return the topmost ones.
+func resolveScope(
+	page *rod.Page,
+	selector string,
+	axNodes []*proto.AccessibilityAXNode,
+	nodeMap map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode,
+) ([]proto.AccessibilityAXNodeID, error) {
+	el, err := page.Timeout(selectorResolveTimeout).Element(selector)
+	if err != nil || el == nil {
+		return nil, fmt.Errorf("selector %q %w", selector, ErrSelectorNoMatch)
+	}
+
+	// Describe the whole subtree (depth -1) in one call: the backend node IDs
+	// it carries are what ties the DOM back to the accessibility tree.
+	desc, err := el.CancelTimeout().Timeout(selectorResolveTimeout).Describe(-1, false)
+	if err != nil {
+		return nil, fmt.Errorf("selector %q: describe element: %w", selector, err)
+	}
+
+	backends := map[proto.DOMBackendNodeID]bool{}
+	collectBackendNodeIDs(desc, backends)
+
+	roots := scopeRootsForBackends(axNodes, nodeMap, backends)
+	if len(roots) == 0 {
+		return nil, fmt.Errorf("selector %q %w", selector, ErrSelectorNoAXNode)
+	}
+	return roots, nil
+}
+
+// collectBackendNodeIDs walks a described DOM subtree and records every
+// backend node ID it contains, text nodes included.
+func collectBackendNodeIDs(node *proto.DOMNode, out map[proto.DOMBackendNodeID]bool) {
+	if node == nil || out[node.BackendNodeID] {
+		return
+	}
+	out[node.BackendNodeID] = true
+	for _, child := range node.Children {
+		collectBackendNodeIDs(child, out)
+	}
+}
+
+// scopeRootsForBackends returns, in document order, the accessibility nodes
+// that sit inside the given set of DOM backend nodes and have no in-scope
+// accessibility ancestor. Those roots are where tree building starts, so the
+// caller gets the subtree and nothing above it.
+func scopeRootsForBackends(
+	axNodes []*proto.AccessibilityAXNode,
+	nodeMap map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode,
+	backends map[proto.DOMBackendNodeID]bool,
+) []proto.AccessibilityAXNodeID {
+	inScope := make(map[proto.AccessibilityAXNodeID]bool)
+	for _, n := range axNodes {
+		if n == nil || n.BackendDOMNodeID == 0 {
 			continue
 		}
-		if len(n.ChildIDs) > 0 {
-			return id
-		}
-		if fallback == "" {
-			fallback = id
+		if backends[n.BackendDOMNodeID] {
+			inScope[n.NodeID] = true
 		}
 	}
-	return fallback
+
+	var roots []proto.AccessibilityAXNodeID
+	for _, n := range axNodes {
+		if n == nil || !inScope[n.NodeID] || hasScopedAncestor(nodeMap, inScope, n) {
+			continue
+		}
+		roots = append(roots, n.NodeID)
+	}
+	return roots
 }
 
-func axSubtreeIDs(nodeMap map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode, root proto.AccessibilityAXNodeID) map[proto.AccessibilityAXNodeID]bool {
-	ids := map[proto.AccessibilityAXNodeID]bool{}
-	var walk func(proto.AccessibilityAXNodeID)
-	walk = func(id proto.AccessibilityAXNodeID) {
-		if id == "" || ids[id] {
-			return
+// hasScopedAncestor reports whether any ancestor of node is already in scope.
+// It is cycle-safe: a malformed parent chain stops the walk instead of
+// spinning.
+func hasScopedAncestor(
+	nodeMap map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode,
+	inScope map[proto.AccessibilityAXNodeID]bool,
+	node *proto.AccessibilityAXNode,
+) bool {
+	seen := map[proto.AccessibilityAXNodeID]bool{node.NodeID: true}
+	for parentID := node.ParentID; parentID != "" && !seen[parentID]; {
+		if inScope[parentID] {
+			return true
 		}
-		ids[id] = true
-		n := nodeMap[id]
-		if n == nil {
-			return
+		seen[parentID] = true
+		parent, ok := nodeMap[parentID]
+		if !ok {
+			return false
 		}
-		for _, child := range n.ChildIDs {
-			walk(child)
-		}
+		parentID = parent.ParentID
 	}
-	walk(root)
-	return ids
+	return false
 }
 
 // buildTree recursively builds ExtractedNode tree from the flat AX node map.
@@ -419,7 +526,6 @@ func buildTree(
 	nodeMap map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode,
 	nodeID proto.AccessibilityAXNodeID,
 	level ExtractLevel,
-	scope map[proto.AccessibilityAXNodeID]bool,
 	refCounter *int,
 	refs map[string]ExtractedNode,
 	stats *ExtractionStats,
@@ -430,16 +536,11 @@ func buildTree(
 		return nil
 	}
 
-	// If scoped, skip nodes not in scope.
-	if scope != nil && !scope[nodeID] {
-		return nil
-	}
-
 	// Skip ignored nodes but still recurse into children.
 	if axNode.Ignored {
 		var result []ExtractedNode
 		for _, childID := range axNode.ChildIDs {
-			result = append(result, buildTree(page, nodeMap, childID, level, scope, refCounter, refs, stats, budget)...)
+			result = append(result, buildTree(page, nodeMap, childID, level, refCounter, refs, stats, budget)...)
 		}
 		return result
 	}
@@ -452,7 +553,7 @@ func buildTree(
 		// Still recurse — children might be relevant.
 		var result []ExtractedNode
 		for _, childID := range axNode.ChildIDs {
-			result = append(result, buildTree(page, nodeMap, childID, level, scope, refCounter, refs, stats, budget)...)
+			result = append(result, buildTree(page, nodeMap, childID, level, refCounter, refs, stats, budget)...)
 		}
 		return result
 	}
@@ -512,7 +613,7 @@ func buildTree(
 
 	// Recurse children.
 	for _, childID := range axNode.ChildIDs {
-		node.Children = append(node.Children, buildTree(page, nodeMap, childID, level, scope, refCounter, refs, stats, budget)...)
+		node.Children = append(node.Children, buildTree(page, nodeMap, childID, level, refCounter, refs, stats, budget)...)
 	}
 
 	stats.FilteredNodes++

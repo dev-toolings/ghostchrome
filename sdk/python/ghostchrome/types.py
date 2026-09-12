@@ -152,6 +152,9 @@ class ExtractResult:
     nodes: list[Any]
     refs: dict[str, Any]
     stats: ExtractStats
+    warnings: list[str] = field(default_factory=list)
+    """What degraded without failing the call, e.g. a selector that matched
+    nothing: the result is then the full page."""
 
 
 @dataclass
@@ -279,7 +282,10 @@ def _parse_mutation_result(raw: dict[str, Any] | None) -> SnapshotDiff | Extract
             filtered_nodes=raw_stats.get("filtered_nodes", 0),
             interactive_count=raw_stats.get("interactive_count", 0),
         )
-        return ExtractResult(nodes=raw.get("nodes", []), refs=raw.get("refs", {}), stats=stats)
+        return ExtractResult(
+            nodes=raw.get("nodes", []), refs=raw.get("refs", {}), stats=stats,
+            warnings=raw.get("warnings", []),
+        )
     return _parse_snapshot_diff(raw)
 
 

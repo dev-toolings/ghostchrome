@@ -83,7 +83,7 @@ call when an agent visits or revisits a page. Fuses what the CLI does as
 | `url` | string | — | Optional. If provided, navigate first; otherwise snapshot the current page. |
 | `wait` | enum | `domcontentloaded` | One of `domcontentloaded`, `load`, `stable`, `idle`, `none`. |
 | `level` | enum | `content` | DOM depth: `skeleton` (interactive only), `content` (adds text), `full` (everything named). |
-| `selector` | string | — | Optional CSS scope for the DOM extract. |
+| `selector` | string | — | Optional CSS scope for the DOM extract: the subtree of the first match, even when that element carries no accessibility role. A selector that matches nothing, or whose subtree holds no accessibility node, returns the full page and a `warnings` entry in `dom` instead of failing. Applies only when `url` is omitted. |
 
 **Output** (text content):
 

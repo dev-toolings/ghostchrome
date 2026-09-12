@@ -561,7 +561,7 @@
         "name": "selector",
         "type": "string",
         "required": false,
-        "description": "Optional CSS selector to scope DOM extraction"
+        "description": "Optional CSS selector scoping the DOM extraction to the first match's subtree (ignored when url is given)"
       }
     ],
     "surfaces": [

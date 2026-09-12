@@ -110,7 +110,7 @@ func toolDefs() []toolDef {
 			mcpgo.WithString("url", mcpgo.Description("Absolute URL to navigate to before snapshotting (optional — omit to snapshot the current page)")),
 			mcpgo.WithString("wait", mcpgo.Description("Wait strategy when navigating: domcontentloaded (default), load, stable, idle, none"), mcpgo.Enum("domcontentloaded", "load", "stable", "idle", "none"), mcpgo.DefaultString("domcontentloaded")),
 			mcpgo.WithString("level", mcpgo.Description("DOM extraction depth: skeleton (interactive only, smallest), content (default — adds text), full (everything named)"), mcpgo.Enum("skeleton", "content", "full"), mcpgo.DefaultString("content")),
-			mcpgo.WithString("selector", mcpgo.Description("Optional CSS selector to scope the DOM extraction to a subtree")),
+			mcpgo.WithString("selector", mcpgo.Description("Optional CSS selector scoping the DOM extraction to the subtree of its first match. The whole subtree is returned even when the element itself carries no role (a Next.js root, a Tailwind wrapper). A selector that matches nothing, or whose subtree holds no accessibility node, returns the full page plus a warning instead of failing. Only applies when url is omitted: with url, the snapshot always covers the whole page.")),
 		), (*Server).handleSnapshot},
 
 		{mcpgo.NewTool("swipe",

@@ -451,22 +451,49 @@ func TestContentBoundaryEmptyLabel(t *testing.T) {
 	}
 }
 
-func TestAxSubtreeIDsIncludesNestedDescendants(t *testing.T) {
+func TestScopeRootsForBackendsCollapsesNestedDescendants(t *testing.T) {
 	root := proto.AccessibilityAXNodeID("root")
 	mid := proto.AccessibilityAXNodeID("mid")
 	leaf := proto.AccessibilityAXNodeID("leaf")
 	outside := proto.AccessibilityAXNodeID("outside")
-	nodeMap := map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode{
-		root:    {NodeID: root, ChildIDs: []proto.AccessibilityAXNodeID{mid}, BackendDOMNodeID: 1},
-		mid:     {NodeID: mid, ChildIDs: []proto.AccessibilityAXNodeID{leaf}, BackendDOMNodeID: 2},
-		leaf:    {NodeID: leaf, BackendDOMNodeID: 3},
-		outside: {NodeID: outside, BackendDOMNodeID: 4},
+	axNodes := []*proto.AccessibilityAXNode{
+		{NodeID: root, ChildIDs: []proto.AccessibilityAXNodeID{mid}, BackendDOMNodeID: 1},
+		{NodeID: mid, ParentID: root, ChildIDs: []proto.AccessibilityAXNodeID{leaf}, BackendDOMNodeID: 2},
+		{NodeID: leaf, ParentID: mid, BackendDOMNodeID: 3},
+		{NodeID: outside, BackendDOMNodeID: 4},
 	}
-	got := axSubtreeIDs(nodeMap, root)
-	if !got[root] || !got[mid] || !got[leaf] {
-		t.Fatalf("expected nested descendants in scope, got %#v", got)
+	nodeMap := map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode{}
+	for _, n := range axNodes {
+		nodeMap[n.NodeID] = n
 	}
-	if got[outside] {
-		t.Fatal("did not expect unrelated node in selector scope")
+
+	got := scopeRootsForBackends(axNodes, nodeMap, map[proto.DOMBackendNodeID]bool{1: true, 2: true, 3: true})
+	if len(got) != 1 || got[0] != root {
+		t.Fatalf("expected the topmost in-scope node as the only root, got %#v", got)
+	}
+}
+
+// A wrapper with no accessibility node of its own (a Next.js root, a Tailwind
+// div) must still scope to the named nodes inside it: the DOM subtree is what
+// decides, not the wrapper's own role.
+func TestScopeRootsForBackendsSkipsRolelessWrapper(t *testing.T) {
+	first := proto.AccessibilityAXNodeID("first")
+	second := proto.AccessibilityAXNodeID("second")
+	body := proto.AccessibilityAXNodeID("body")
+	axNodes := []*proto.AccessibilityAXNode{
+		{NodeID: body, ChildIDs: []proto.AccessibilityAXNodeID{first, second}, BackendDOMNodeID: 1},
+		{NodeID: first, ParentID: body, BackendDOMNodeID: 3},
+		{NodeID: second, ParentID: body, BackendDOMNodeID: 4},
+	}
+	nodeMap := map[proto.AccessibilityAXNodeID]*proto.AccessibilityAXNode{}
+	for _, n := range axNodes {
+		nodeMap[n.NodeID] = n
+	}
+
+	// Backend 2 is the roleless wrapper: pruned from the accessibility tree,
+	// present in the DOM subtree along with its two children.
+	got := scopeRootsForBackends(axNodes, nodeMap, map[proto.DOMBackendNodeID]bool{2: true, 3: true, 4: true})
+	if len(got) != 2 || got[0] != first || got[1] != second {
+		t.Fatalf("expected both children of the roleless wrapper, in document order, got %#v", got)
 	}
 }
