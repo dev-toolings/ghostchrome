@@ -12,6 +12,7 @@
 //	GHOSTCHROME_VAULT_KEY   — encryption key for state vault
 //	GHOSTCHROME_MCP_LAZY    — "1" to skip Chrome prewarm
 //	GHOSTCHROME_IDLE_TIMEOUT — idle Chrome reap window (default 15m; 0/off disables)
+//	GHOSTCHROME_POLICY      — path to a JSON policy file (fail closed if unreadable)
 package main
 
 import (
@@ -23,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 	mcpsurface "github.com/dev-toolings/ghostchrome/internal/surface/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 )
@@ -36,14 +38,10 @@ func main() {
 		fmt.Println(version)
 		return
 	}
-	opts := mcpsurface.Options{
-		Connect:     os.Getenv("GHOSTCHROME_CONNECT"),
-		Headless:    envBool("GHOSTCHROME_HEADLESS", true),
-		Stealth:     envBool("GHOSTCHROME_STEALTH", false) || hasArg("--stealth"),
-		Proxy:       os.Getenv("GHOSTCHROME_PROXY"),
-		UserProfile: os.Getenv("GHOSTCHROME_PROFILE"),
-		TimeoutSec:  envInt("GHOSTCHROME_TIMEOUT", 30),
-		IdleTimeout: mcpIdleTimeout(),
+	opts, err := optionsFromEnv()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ghostchrome-mcp: %v\n", err)
+		os.Exit(1)
 	}
 
 	s := mcpsurface.New(opts)
@@ -63,6 +61,39 @@ func main() {
 		fmt.Fprintf(os.Stderr, "mcp server: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// optionsFromEnv reads the server configuration. A policy that cannot be read
+// fails the process instead of starting unrestricted: the whole point of
+// GHOSTCHROME_POLICY is to deny, so silently ignoring it would be the worst
+// possible default.
+func optionsFromEnv() (mcpsurface.Options, error) {
+	p, err := policyFromEnv()
+	if err != nil {
+		return mcpsurface.Options{}, err
+	}
+	return mcpsurface.Options{
+		Connect:     os.Getenv("GHOSTCHROME_CONNECT"),
+		Headless:    envBool("GHOSTCHROME_HEADLESS", true),
+		Stealth:     envBool("GHOSTCHROME_STEALTH", false) || hasArg("--stealth"),
+		Proxy:       os.Getenv("GHOSTCHROME_PROXY"),
+		UserProfile: os.Getenv("GHOSTCHROME_PROFILE"),
+		TimeoutSec:  envInt("GHOSTCHROME_TIMEOUT", 30),
+		IdleTimeout: mcpIdleTimeout(),
+		Policy:      p,
+	}, nil
+}
+
+func policyFromEnv() (*policy.Policy, error) {
+	path := strings.TrimSpace(os.Getenv("GHOSTCHROME_POLICY"))
+	if path == "" {
+		return nil, nil
+	}
+	p, err := policy.Load(path)
+	if err != nil {
+		return nil, fmt.Errorf("GHOSTCHROME_POLICY: %w", err)
+	}
+	return p, nil
 }
 
 func hasArg(want string) bool {

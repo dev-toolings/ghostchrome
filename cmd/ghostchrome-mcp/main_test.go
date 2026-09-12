@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -26,5 +28,45 @@ func TestMCPIdleTimeoutResolution(t *testing.T) {
 				t.Fatalf("mcpIdleTimeout() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// GHOSTCHROME_POLICY used to be read by the CLI only, so the standalone MCP
+// binary started unrestricted whatever the variable said. It must now bind the
+// policy, and refuse to start when the file cannot be read.
+func TestOptionsFromEnvBindsPolicy(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "policy.json")
+	if err := os.WriteFile(path, []byte(`{"allow_eval":false}`), 0o600); err != nil {
+		t.Fatalf("write policy: %v", err)
+	}
+
+	t.Setenv("GHOSTCHROME_POLICY", path)
+	opts, err := optionsFromEnv()
+	if err != nil {
+		t.Fatalf("options: %v", err)
+	}
+	if opts.Policy == nil {
+		t.Fatal("expected the policy file to be bound to the server options")
+	}
+	if err := opts.Policy.AllowAction("eval"); err == nil {
+		t.Fatal("expected the bound policy to deny eval")
+	}
+}
+
+func TestOptionsFromEnvFailsClosedOnUnreadablePolicy(t *testing.T) {
+	t.Setenv("GHOSTCHROME_POLICY", filepath.Join(t.TempDir(), "missing.json"))
+	if _, err := optionsFromEnv(); err == nil {
+		t.Fatal("expected an unreadable policy to fail the server startup")
+	}
+}
+
+func TestOptionsFromEnvWithoutPolicy(t *testing.T) {
+	t.Setenv("GHOSTCHROME_POLICY", "")
+	opts, err := optionsFromEnv()
+	if err != nil {
+		t.Fatalf("options: %v", err)
+	}
+	if opts.Policy != nil {
+		t.Fatalf("expected no policy when the variable is unset, got %+v", opts.Policy)
 	}
 }
