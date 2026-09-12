@@ -46,6 +46,11 @@ type LauncherOpts struct {
 	// It uses Chromium's bypass list syntax, matching Playwright's proxy.bypass.
 	ProxyBypass string
 
+	// IgnoreCertErrors adds Chromium --ignore-certificate-errors. Opt-in and
+	// independent of Proxy: a proxy URL must not weaken TLS by itself.
+	// Playwright ignoreHTTPSErrors maps here (and/or to CDP IgnoreCertErrors).
+	IgnoreCertErrors bool
+
 	// ExecutablePath forces a specific Chrome/Chromium binary. It maps
 	// Playwright's browser.launchOptions.executablePath and overrides
 	// ghostchrome's system-Chrome preference.
@@ -268,6 +273,8 @@ func NewLauncher(opts LauncherOpts) *launcher.Launcher {
 		if opts.ProxyBypass != "" {
 			l = l.Set("proxy-bypass-list", opts.ProxyBypass)
 		}
+	}
+	if opts.IgnoreCertErrors {
 		l = l.Set("ignore-certificate-errors")
 	}
 	if len(opts.Extensions) > 0 {

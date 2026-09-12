@@ -334,7 +334,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&flagWaitSelector, "wait-selector", "", "After navigation, wait for this CSS selector to be visible (useful for SPAs)")
 	rootCmd.PersistentFlags().IntVar(&flagWaitMs, "wait-ms", 0, "After navigation (and after --wait-selector if any), sleep this many ms (lets late XHR finish)")
 	rootCmd.PersistentFlags().StringVar(&flagUserProfile, "user-profile", "", "Persistent Chrome profile name (auto-launch only): cookies/cache stored under ~/.ghostchrome/profiles/<name>")
-	rootCmd.PersistentFlags().StringVar(&flagProxy, "proxy", "", "Upstream proxy URL for Chrome (auto-launch only), e.g. http://user:pass@host:port or socks5://host:1080")
+	rootCmd.PersistentFlags().StringVar(&flagProxy, "proxy", "", "Upstream proxy URL for Chrome (auto-launch only), e.g. http://user:pass@host:port or socks5://host:1080. TLS is still verified by default")
 	rootCmd.PersistentFlags().StringVar(&flagProxyBypass, "proxy-bypass", "", "Comma-separated Chromium proxy bypass list (auto-launch only)")
 	rootCmd.PersistentFlags().BoolVar(&flagHuman, "human", false, "Simulate human input dynamics (Bezier mouse paths, jittered key delays, occasional typos)")
 	rootCmd.PersistentFlags().StringVar(&flagExtensions, "extensions", "", "Comma-separated absolute paths to unpacked Chrome extensions (auto-launch only)")
