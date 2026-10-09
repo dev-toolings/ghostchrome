@@ -13,7 +13,7 @@ require (
 	github.com/ysmood/gson v0.7.3
 	golang.org/x/crypto v0.57.0
 	golang.org/x/net v0.60.0
-	golang.org/x/sys v0.48.0
+	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.46.0
 	modernc.org/sqlite v1.60.1
 )
