@@ -335,6 +335,7 @@ type Browser struct {
 	timeout           time.Duration
 	connected         bool // true if connected to external Chrome (don't close it)
 	attachFresh       bool // true when ConnectURL points at a foreign Chrome we must not disturb
+	ownTab            bool // foreign Chrome: work in a ghostchrome-created tab kept across invocations
 	ownership         Ownership
 	connectURL        string
 	statePath         string
@@ -378,6 +379,14 @@ type BrowserOpts struct {
 	// freshly created background target so the user's foreground tab is
 	// left untouched. Ignored in auto-launch mode.
 	AttachFresh bool
+
+	// OwnTab is set by one-shot CLI commands against a foreign Chrome (an
+	// explicit --connect or an `attach`ed session). Instead of driving one of
+	// the user's tabs, ghostchrome creates a background tab, records it as
+	// owned in the session state and reuses it across invocations so refs
+	// survive between commands. `close` or `sessions stop` closes it again.
+	// An explicit TargetTabIndex still selects a user tab.
+	OwnTab bool
 
 	// ContextName, when non-empty, routes all page operations through a
 	// named isolated BrowserContext (incognito). The name→contextID mapping
@@ -519,6 +528,7 @@ func NewBrowserWith(opts BrowserOpts) (*Browser, error) {
 		timeout:           timeout,
 		connected:         connectURL != "",
 		attachFresh:       connectURL != "" && opts.AttachFresh,
+		ownTab:            connectURL != "" && opts.OwnTab && !opts.AttachFresh && opts.ContextName == "",
 		ownership:         browserOwnership(opts, ownedLauncher, providerCleanup),
 		connectURL:        connectURL,
 		statePath:         statePath,
@@ -776,6 +786,10 @@ func (b *Browser) Page() (page *rod.Page, err error) {
 		return b.page, nil
 	}
 
+	if b.connected && b.ownTab && b.targetTab == nil {
+		return b.ownedPage()
+	}
+
 	if b.connected && !b.attachFresh {
 		if b.targetTab != nil {
 			p, err := pageAtIndex(b.browser, *b.targetTab)
@@ -826,11 +840,10 @@ func (b *Browser) Page() (page *rod.Page, err error) {
 		}
 	}
 
-	// When attached to an external Chrome we create the new tab in the
-	// background so we don't steal focus from whatever the user is doing.
-	// In auto-launch mode the field is irrelevant (no visible UI), so we
-	// pass the same struct unconditionally.
-	p, err := b.browser.Page(proto.TargetCreateTarget{Background: b.connected})
+	// In a foreign Chrome (attach-fresh) the tab gets a window of its own:
+	// none of the user's tabs is switched, and unlike a background tab it is
+	// not hidden, where Chrome stops requestAnimationFrame and clicks hang.
+	p, err := b.browser.Page(proto.TargetCreateTarget{NewWindow: b.attachFresh, Background: b.connected && !b.attachFresh})
 	if err != nil {
 		return nil, err
 	}

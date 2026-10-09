@@ -19,12 +19,15 @@ type sessionState struct {
 	// baseline records what this client read, so a stale writer only changes
 	// its own fields when another process has updated the same session.
 	baseline        map[string]json.RawMessage
-	CurrentTargetID string                  `json:"current_target_id,omitempty"`
-	Snapshots       map[string]PageSnapshot `json:"snapshots,omitempty"`
-	PlaywrightLog   PlaywrightLogState      `json:"playwright_log,omitempty"`
-	BrowserTrace    BrowserTraceState       `json:"browser_trace,omitempty"`
-	Video           VideoState              `json:"video,omitempty"`
-	Emulation       EmulationState          `json:"emulation,omitempty"`
+	CurrentTargetID string `json:"current_target_id,omitempty"`
+	// OwnedTargetIDs are tabs ghostchrome created in a foreign Chrome (see
+	// BrowserOpts.OwnTab); they are the only tabs it closes on cleanup.
+	OwnedTargetIDs []string                `json:"owned_target_ids,omitempty"`
+	Snapshots      map[string]PageSnapshot `json:"snapshots,omitempty"`
+	PlaywrightLog  PlaywrightLogState      `json:"playwright_log,omitempty"`
+	BrowserTrace   BrowserTraceState       `json:"browser_trace,omitempty"`
+	Video          VideoState              `json:"video,omitempty"`
+	Emulation      EmulationState          `json:"emulation,omitempty"`
 }
 
 // EmulationState is the emulation profile of a managed session.

@@ -104,12 +104,24 @@ Then in another terminal:
 		// agent-browser's AGENT_BROWSER_IDLE_TIMEOUT_MS and bounding the disk/RAM
 		// growth of a forgotten daemon.
 		idleTimeout := serveIdleTimeoutForSession(flagHeadless)
+		// Earlier stage: pages go back to about:blank so no site keeps running
+		// while the browser stays warm. Headed Chrome is a live user session.
+		pageIdle := engine.PageIdleTimeout()
+		if !flagHeadless {
+			pageIdle = 0
+		}
 		var lastActivity time.Time
 		var lastTargets string
-		if idleTimeout > 0 && port > 0 {
+		pagesBlanked := false
+		if (idleTimeout > 0 || pageIdle > 0) && port > 0 {
 			lastActivity = time.Now()
 			lastTargets, _ = fetchCDPTargets(port)
+		}
+		if idleTimeout > 0 && port > 0 {
 			fmt.Fprintf(os.Stderr, "idle-timeout: serve will exit after %s of inactivity\n", idleTimeout)
+		}
+		if pageIdle > 0 && port > 0 {
+			fmt.Fprintf(os.Stderr, "page-idle-timeout: pages reset to about:blank after %s of inactivity\n", pageIdle)
 		}
 
 		sig := make(chan os.Signal, 1)
@@ -157,12 +169,23 @@ Then in another terminal:
 				// Idle shutdown: the CDP target set (open tabs + their URLs)
 				// changes whenever an agent navigates or opens/closes a tab. If
 				// it hasn't changed for idleTimeout, the daemon is idle — exit.
-				if idleTimeout > 0 && port > 0 {
+				if (idleTimeout > 0 || pageIdle > 0) && port > 0 {
 					if cur, ok := fetchCDPTargets(port); ok {
 						if cur != lastTargets {
 							lastTargets = cur
 							lastActivity = time.Now()
-						} else if time.Since(lastActivity) >= idleTimeout {
+							pagesBlanked = false
+						} else if pageIdle > 0 && !pagesBlanked && time.Since(lastActivity) >= pageIdle &&
+							!(flagUserProfile != "" && engine.SessionLeaseFresh(flagUserProfile, pageIdle)) {
+							if n, err := engine.BlankPages(port, serveProbeTimeout); err != nil {
+								fmt.Fprintf(os.Stderr, "page cleanup failed: %v\n", err)
+							} else if n > 0 {
+								fmt.Fprintf(os.Stderr, "idle for %s: %d page(s) reset to about:blank\n", pageIdle, n)
+							}
+							pagesBlanked = true
+							// The cleanup changed the target set; it is not activity.
+							lastTargets, _ = fetchCDPTargets(port)
+						} else if idleTimeout > 0 && time.Since(lastActivity) >= idleTimeout {
 							if flagUserProfile != "" && engine.SessionLeaseFresh(flagUserProfile, idleTimeout) {
 								lastActivity = time.Now()
 								continue

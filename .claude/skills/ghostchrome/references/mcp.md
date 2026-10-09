@@ -110,7 +110,10 @@ client supports them:
 | `GHOSTCHROME_TIMEOUT` | Bound individual tool operations. |
 | `GHOSTCHROME_MCP_LAZY` | Defer browser launch until the first tool call. |
 | `GHOSTCHROME_IDLE_TIMEOUT` | Release idle Chrome while retaining the stdio server. |
+| `GHOSTCHROME_PAGE_IDLE_TIMEOUT` | Earlier cleanup: blank owned pages, or close the server's tab in an attached Chrome. |
 
+After 5 minutes without a tool call the pages go back to `about:blank` (or, with
+`--connect`, the tab the server opened is closed); snapshot again afterwards.
 The default idle timeout is 15 minutes. The MCP process remains available while
 the browser is released; the next browser tool call recreates the context. This
 keeps idle RSS bounded without requiring a client re-registration.

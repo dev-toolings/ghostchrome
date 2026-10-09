@@ -279,22 +279,74 @@ func TestReapIfIdleReleasesThenRelaunches(t *testing.T) {
 	}
 }
 
-func TestReapIfIdleSkipsAttachedAndHeaded(t *testing.T) {
+func TestReapIfIdleAttachedAndHeaded(t *testing.T) {
 	now := time.Now().Add(-time.Hour)
+	cases := []struct {
+		name     string
+		opts     Options
+		released bool
+	}{
+		// The user's Chrome is never closed, but the tab the server opened in
+		// it is (Browser.Close on an attach-fresh handle closes only that tab).
+		{"attached, page idle elapsed", Options{Headless: true, Connect: "ws://127.0.0.1:9222", IdleTimeout: time.Second, PageIdleTimeout: time.Second}, true},
+		{"attached, page stage disabled", Options{Headless: true, Connect: "ws://127.0.0.1:9222", IdleTimeout: time.Second, PageIdleTimeout: -1}, false},
+		// A named session's serve daemon cleans its own pages.
+		{"named session", Options{Headless: true, Connect: "ws://127.0.0.1:9222", SessionName: "work", IdleTimeout: time.Second, PageIdleTimeout: time.Second}, false},
+		{"headed", Options{Headless: false, IdleTimeout: time.Second, PageIdleTimeout: time.Second}, false},
+	}
+	for _, tc := range cases {
+		s := New(tc.opts)
+		s.browser = &engine.Browser{}
+		s.lastActivity = now
+		s.reapIfIdle()
+		if got := s.browser == nil; got != tc.released {
+			t.Errorf("%s: released=%v, want %v", tc.name, got, tc.released)
+		}
+	}
+}
 
-	attached := New(Options{Headless: true, Connect: "ws://127.0.0.1:9222", IdleTimeout: time.Second})
-	attached.browser = &engine.Browser{}
-	attached.lastActivity = now
-	attached.reapIfIdle()
-	if attached.browser == nil {
-		t.Fatal("attached chrome must not be reaped")
+// TestReapIfIdleBlanksPagesBeforeRelease covers the earlier stage: after
+// PageIdleTimeout the owned Chrome stays up but its page is back on
+// about:blank and the old refs are gone.
+func TestReapIfIdleBlanksPagesBeforeRelease(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requires Chrome")
+	}
+	s := New(Options{Headless: true, TimeoutSec: 15, IdleTimeout: time.Hour, PageIdleTimeout: time.Second})
+	defer s.Close()
+
+	s.mu.Lock()
+	b1, page, err := s.ensurePageLocked()
+	s.mu.Unlock()
+	if err != nil {
+		t.Fatalf("launch: %v", err)
+	}
+	if err := page.Navigate("data:text/html,<h1>loaded</h1>"); err != nil {
+		t.Fatalf("navigate: %v", err)
 	}
 
-	headed := New(Options{Headless: false, IdleTimeout: time.Second})
-	headed.browser = &engine.Browser{}
-	headed.lastActivity = now
-	headed.reapIfIdle()
-	if headed.browser == nil {
-		t.Fatal("headed chrome must not be reaped")
+	s.mu.Lock()
+	s.lastActivity = time.Now().Add(-2 * time.Second)
+	s.mu.Unlock()
+	s.reapIfIdle()
+
+	s.mu.Lock()
+	held, blanked, refs := s.browser, s.pagesBlanked, s.refs()
+	s.mu.Unlock()
+	if held != b1 || !blanked || refs != nil {
+		t.Fatalf("held=%v blanked=%v refs=%v: want the same browser, pages blanked, refs dropped", held == b1, blanked, refs)
+	}
+	info, err := page.Info()
+	if err != nil || info.URL != "about:blank" {
+		t.Fatalf("page after cleanup: url=%v err=%v, want about:blank", info, err)
+	}
+
+	// The next tool call is activity again: the stage can run once more later.
+	s.mu.Lock()
+	_, _, err = s.ensurePageLocked()
+	again := s.pagesBlanked
+	s.mu.Unlock()
+	if err != nil || again {
+		t.Fatalf("after a call: err=%v blanked=%v", err, again)
 	}
 }

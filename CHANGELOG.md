@@ -18,9 +18,20 @@ All notable changes to ghostchrome are documented here. The format is based on
   Results: `tools/benchmark/results-cdp-modes.md`.
 - The Chrome image has a mode-aware healthcheck (green in `cdp`, MCP and CLI
   modes) and `CDP_RELAY=0` for host-network runs.
+- Page cleanup when an agent stops browsing. A Chrome ghostchrome owns (daemon,
+  MCP) sends its pages back to `about:blank` after 5 minutes without a command
+  (`GHOSTCHROME_PAGE_IDLE_TIMEOUT`, `0` disables) and stays warm; CLI commands
+  on the implicit `default` session now refresh its lease, so clicks and evals
+  count as activity.
 
 ### Changed
 - Release tags run the full CI suite and publish only when it passes.
+- In a Chrome you attach to (`--connect <url>`, `attach`, `mcp --connect`, the
+  JSONL agent), ghostchrome no longer drives one of your tabs. It opens its own
+  tab in a new window and closes it on `close`, `sessions stop`, process exit,
+  or MCP page idle; `--tab <index>` still targets an existing tab. Tabs opened
+  for `--connect=auto` and attach-fresh also get their own window: a background
+  tab is hidden, where Chrome pauses `requestAnimationFrame` and clicks hung.
 - Drop the macOS CI jobs for now. Darwin release binaries are still
   cross-compiled from Linux, but no CI job tests them.
 - Upgrade `mcp-go` to v1.2.1 and bump Go dependencies (`x/net`, `x/crypto`,

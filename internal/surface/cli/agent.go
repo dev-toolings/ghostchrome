@@ -90,7 +90,7 @@ func agentRuntimeConfig() runtime.Config {
 		// on the first launch, so the lease must be touched with whatever
 		// flagSession holds at that point, not at construction time.
 		SessionName:       func() string { return flagSession },
-		BrowserOpts:       buildBrowserOpts,
+		BrowserOpts:       agentBrowserOpts,
 		ResolveOutputPath: validateOutputPath,
 		Stealth:           flagStealth,
 		Observe:           flagObserve,
@@ -194,4 +194,16 @@ func (w agentWriter) write(resp agentResponse) {
 	if err := w.enc.Encode(resp); err != nil {
 		fmt.Fprintf(os.Stderr, "agent: write response %s: %v\n", resp.ID, err)
 	}
+}
+
+// agentBrowserOpts is buildBrowserOpts for the long-lived JSONL loop: in a
+// foreign Chrome the agent works in a tab it creates and closes when the loop
+// ends, instead of the CLI's tab kept across separate invocations.
+func agentBrowserOpts() engine.BrowserOpts {
+	opts := buildBrowserOpts()
+	if opts.OwnTab {
+		opts.OwnTab = false
+		opts.AttachFresh = true
+	}
+	return opts
 }

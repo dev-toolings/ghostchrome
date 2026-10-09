@@ -62,6 +62,12 @@ The standalone `ghostchrome-mcp` binary reads the same endpoint from
 `GHOSTCHROME_CONNECT`. `auto` instead of a URL finds a Chrome on ports
 9222-9229 without naming one.
 
+ghostchrome works in a tab it opens in a window of its own, never in yours,
+and closes it at the end: `ghostchrome close`, `ghostchrome sessions stop
+default` (after `attach`), or when the MCP server or JSONL agent exits or sits
+idle for `GHOSTCHROME_PAGE_IDLE_TIMEOUT` (5 minutes). Pass `--tab <index>` to
+drive one of your tabs deliberately.
+
 The DevTools port has no authentication: any local process can drive that
 Chrome and every site it is signed in to. Keep it on loopback, keep the
 profile dedicated to agents, and close Chrome when you are done.
