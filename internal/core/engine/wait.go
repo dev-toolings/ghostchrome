@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,7 +17,8 @@ import (
 //   - "domcontentloaded": fires when HTML parsed, before sub-resources. ~200-500ms
 //     faster than "load" on real-world pages with images/iframes/3P scripts.
 //   - "load":             "load" event — DOM + sub-resources fetched.
-//   - "stable":           DOM mutations have settled for 500ms.
+//   - "stable":           DOM mutations have settled for 500ms, best effort
+//     within stableWaitTimeout.
 //   - "idle":             network has been idle for 500ms.
 //   - "none":             return immediately.
 //
@@ -25,7 +28,7 @@ import (
 func WaitForPage(page *rod.Page, waitStrategy string) error {
 	switch waitStrategy {
 	case "stable":
-		return page.WaitStable(500 * time.Millisecond)
+		return waitStable(page, 500*time.Millisecond)
 	case "idle", "networkidle":
 		// Bound the idle wait: WaitRequestIdle's duration is *quiet time*, not a
 		// deadline. A never-finishing XHR would otherwise stall the agent loop.
@@ -44,6 +47,31 @@ func WaitForPage(page *rod.Page, waitStrategy string) error {
 	default:
 		return fmt.Errorf("invalid wait strategy %q: use domcontentloaded, load, stable, idle, or none", waitStrategy)
 	}
+}
+
+// stableWaitTimeout caps the "stable" strategy. Rod's WaitStable has no deadline
+// of its own: it needs a quiet network and an unchanged DOM, which a dev
+// server's HMR socket, a polling page or a ticking clock never provide, so an
+// unbounded call hung the agent loop indefinitely.
+var stableWaitTimeout = 10 * time.Second
+
+// waitStable waits for a settled page, then gives up quietly at the cap: like
+// "idle", a page that never settles is still usable for extraction.
+func waitStable(page *rod.Page, quiet time.Duration) error {
+	if page == nil {
+		return fmt.Errorf("page is nil")
+	}
+	timeout := navTimeout(page)
+	if timeout <= 0 || timeout > stableWaitTimeout {
+		timeout = stableWaitTimeout
+	}
+	bounded := page.Timeout(timeout)
+	defer bounded.CancelTimeout()
+	err := bounded.WaitStable(quiet)
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return nil
+	}
+	return err
 }
 
 func waitDOMContentLoaded(page *rod.Page) error {

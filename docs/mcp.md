@@ -44,7 +44,7 @@ work with `mcp`:
 | Flag | Effect |
 |---|---|
 | `--connect=auto` | Attach to an existing Chrome on `127.0.0.1:9222-9229` in a fresh tab. Lets multiple agents share one Chrome. |
-| `--connect=ws://...` | Attach to a specific Chrome DevTools endpoint. |
+| `--connect=ws://...` | Attach to a specific Chrome DevTools endpoint: `http(s)://host:port` or `ws(s)://host:port` (resolved through `/json/version`), or a full `ws://.../devtools/browser/<id>`. Same for `GHOSTCHROME_CONNECT`. |
 | `--headless=false` | Show a window. Useful for debugging the agent. |
 | `--user-profile NAME` | Persist cookies/localStorage under `~/.ghostchrome/profiles/NAME/`. |
 | `--proxy http://...` | Route all requests through a proxy (basic auth supported). |
@@ -81,7 +81,7 @@ call when an agent visits or revisits a page. Fuses what the CLI does as
 | Param | Type | Default | Description |
 |---|---|---|---|
 | `url` | string | — | Optional. If provided, navigate first; otherwise snapshot the current page. |
-| `wait` | enum | `domcontentloaded` | One of `domcontentloaded`, `load`, `stable`, `idle`, `none`. |
+| `wait` | enum | `domcontentloaded` | One of `domcontentloaded`, `load`, `stable`, `idle`, `none`. `stable` and `idle` are best effort and never block past their cap (10 s for `stable`). |
 | `level` | enum | `content` | DOM depth: `skeleton` (interactive only), `content` (adds text), `full` (everything named). |
 | `selector` | string | — | Optional CSS scope for the DOM extract: the subtree of the first match, even when that element carries no accessibility role. A selector that matches nothing, or whose subtree holds no accessibility node, returns the full page and a `warnings` entry in `dom` instead of failing. Applies only when `url` is omitted. |
 

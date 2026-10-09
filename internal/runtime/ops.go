@@ -109,11 +109,16 @@ func (s *Session) opExtract(raw json.RawMessage) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if a.Selector == "" {
-		_ = b.SaveSnapshot(page, result)
-		if snap, serr := engine.BuildSnapshot(page, result); serr == nil {
-			s.snapshot = snap
-		}
+	// A scoped extraction numbers its refs from @1 inside the subtree, so it
+	// must become the ref table too: resolving those refs against the previous
+	// full-page table made @N click a different element. Its partial tree must
+	// never serve as the cached full-page extraction, though.
+	_ = b.SaveSnapshot(page, result)
+	if a.Selector != "" {
+		_ = b.InvalidateCachedExtract(page)
+	}
+	if snap, serr := engine.BuildSnapshot(page, result); serr == nil {
+		s.snapshot = snap
 	}
 	return result, nil
 }

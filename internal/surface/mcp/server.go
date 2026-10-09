@@ -47,6 +47,12 @@ type Options struct {
 	// cmd/mcp.go supplies a 15m default (GHOSTCHROME_IDLE_TIMEOUT overrides,
 	// =0 disables).
 	IdleTimeout time.Duration
+	// PageIdleTimeout, when > 0, is the earlier cleanup stage: after this long
+	// without tool activity the pages of a Chrome the server owns go back to
+	// about:blank (Chrome stays warm), and in a foreign Chrome the tab the
+	// server opened is closed. Zero means GHOSTCHROME_PAGE_IDLE_TIMEOUT (5m by
+	// default); a negative value disables the stage.
+	PageIdleTimeout time.Duration
 	// Policy restricts which domains can be navigated to, and which actions
 	// (eval, upload, clipboard) are allowed. Nil means no restrictions.
 	Policy *policy.Policy
@@ -79,6 +85,7 @@ type Server struct {
 	// phone-shell test silently snaps back to 1920x1080 mid-flow.
 	emulation      engine.EmulationState
 	lastActivity   time.Time // updated on every ensurePageLocked; drives the idle reaper
+	pagesBlanked   bool      // the page-idle stage ran since the last tool call
 	lastRecovery   string    // last target/browser recovery reason for diagnostics
 	lastRecoveryAt time.Time
 	recoveryCount  uint64
@@ -96,6 +103,9 @@ func New(opts Options) *Server {
 	}
 	if opts.Policy != nil {
 		engine.ActivePolicy = opts.Policy
+	}
+	if opts.PageIdleTimeout == 0 {
+		opts.PageIdleTimeout = engine.PageIdleTimeout()
 	}
 	return &Server{opts: opts, done: make(chan struct{}), closeDone: make(chan struct{})}
 }
@@ -174,13 +184,17 @@ func (s *Server) PrewarmAsync() {
 // the process lifetime; once the browser is released, ticks are near-free
 // (browser == nil short-circuits) until the next call relaunches it.
 func (s *Server) StartIdleReaper() {
-	if s.opts.IdleTimeout <= 0 {
+	window := s.opts.IdleTimeout
+	if p := s.opts.PageIdleTimeout; p > 0 && (window <= 0 || p < window) {
+		window = p
+	}
+	if window <= 0 {
 		return
 	}
 	go func() {
-		// Poll at a quarter of the timeout, clamped to [5s, 1m], so the reap
-		// fires within ~timeout+interval without a hot spin loop.
-		interval := s.opts.IdleTimeout / 4
+		// Poll at a quarter of the shortest stage, clamped to [5s, 1m], so a
+		// stage fires within ~timeout+interval without a hot spin loop.
+		interval := window / 4
 		if interval < 5*time.Second {
 			interval = 5 * time.Second
 		}
@@ -207,17 +221,42 @@ func (s *Server) StartIdleReaper() {
 func (s *Server) reapIfIdle() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed || s.opts.IdleTimeout <= 0 || s.browser == nil || s.lastActivity.IsZero() {
+	if s.closed || s.browser == nil || s.lastActivity.IsZero() {
 		return
 	}
-	if !s.opts.Headless || s.opts.Connect != "" {
-		// Attached or headed Chrome is a live user session. Never reap it.
+	idle := time.Since(s.lastActivity)
+	pageIdle := s.opts.PageIdleTimeout > 0 && idle >= s.opts.PageIdleTimeout
+	switch {
+	case s.foreignChrome():
+		// The user's browser is never closed, but the tab this server opened
+		// in it is (attach-fresh): leave nothing behind once the agent stops.
+		if pageIdle {
+			fmt.Fprintf(os.Stderr, "[ghostchrome mcp] idle for %s: closing its tab in the attached Chrome\n", s.opts.PageIdleTimeout)
+			s.closeLocked()
+		}
+	case s.opts.Connect != "" || !s.opts.Headless:
+		// A named ghostchrome session (its serve daemon cleans its pages) or a
+		// headed Chrome, which is a live user session.
 		return
-	}
-	if time.Since(s.lastActivity) >= s.opts.IdleTimeout {
+	case s.opts.IdleTimeout > 0 && idle >= s.opts.IdleTimeout:
 		fmt.Fprintf(os.Stderr, "[ghostchrome mcp] idle for %s — releasing chrome (relaunches on next call)\n", s.opts.IdleTimeout)
 		s.closeLocked()
+	case pageIdle && !s.pagesBlanked:
+		if err := s.browser.BlankPages(s.page); err != nil {
+			fmt.Fprintf(os.Stderr, "[ghostchrome mcp] page cleanup failed: %v\n", err)
+		}
+		s.pagesBlanked = true
+		// The old document is gone: refs from its snapshot must not resolve.
+		if s.ops != nil {
+			s.ops.SetRefs(nil)
+		}
 	}
+}
+
+// foreignChrome reports whether the server drives a Chrome it does not own:
+// an explicit --connect endpoint that is not a named ghostchrome session.
+func (s *Server) foreignChrome() bool {
+	return s.opts.Connect != "" && s.opts.SessionName == ""
 }
 
 // ExtraToolRegistrars lets optional, build-tagged recipes (compiled with
@@ -307,6 +346,7 @@ func (s *Server) ensurePageLocked() (*engine.Browser, *rod.Page, error) {
 	// Refresh the idle clock on every call (cached-page reuse, cold launch, and
 	// crash-relaunch alike) so the reaper only fires after real inactivity.
 	s.lastActivity = time.Now()
+	s.pagesBlanked = false
 	defer func() { s.lastActivity = time.Now() }()
 	if s.opts.SessionName != "" {
 		engine.TouchSessionLease(s.opts.SessionName)
@@ -435,6 +475,11 @@ func (s *Server) launchPageLocked() (*engine.Browser, *rod.Page, error) {
 			return nil, nil, fmt.Errorf("connect=auto: %w (start Chrome with --remote-debugging-port=9222)", err)
 		}
 		bopts.ConnectURL = ws
+		bopts.AttachFresh = true
+	}
+	if s.foreignChrome() {
+		// Work in a tab this server creates and closes, never in one of the
+		// user's tabs.
 		bopts.AttachFresh = true
 	}
 	if s.opts.UserProfile != "" && s.opts.Connect == "" {

@@ -59,9 +59,10 @@ ghostchrome/
 |   +-- python/              Typed Python JSONL client
 |   +-- examples/            SDK and integration examples
 |   +-- npm/                 CLI distribution package manifests and launcher
+|   +-- launcher/            GitHub launcher (root package.json bin, bunx)
 +-- tools/
 |   +-- benchmark/           Fixtures, runners, reports, and comparison tools
-|   +-- deploy/              Deployment helpers, including SearXNG
+|   +-- deploy/              Deployment helpers: chrome/ image, SearXNG
 +-- scripts/                 Installers and validation scripts
 +-- docs/                    Documentation, architecture audit, and plans
 +-- recipes/                 Private local scraping implementations
@@ -153,10 +154,21 @@ Documentation-only changes require path and diff checks, not a full test run.
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on branch pushes, version tags, pull requests
-to main, and manual dispatch. It checks Linux/macOS builds with race detection,
-lint, the 10,000-operation browser loop, Linux integration tests, macOS and
-Windows smoke tests, and both SDKs.
+`.github/workflows/ci.yml` runs on branch pushes, pull requests to main, and
+manual dispatch. It checks the Linux build with race detection, lint, the
+10,000-operation browser loop, Linux integration tests, Windows smoke tests,
+both SDKs, the GitHub launcher on Linux and Windows, and the
+`tools/deploy/chrome` image (CLI, MCP and host-attached CDP modes, a
+`healthy` status in every mode, and the `tools/benchmark/cdp_modes.py`
+latency table in the job summary). macOS has no CI job for now; darwin release
+binaries are cross-compiled but untested.
+
+`.github/workflows/release.yml` runs on `v*` tags. It calls `ci.yml` and
+publishes only when it passes: GitHub Release binaries and checksums, the
+`ghcr.io/dev-toolings/ghostchrome` image, a launcher smoke test against the new
+release, and npm/PyPI packages when `NPM_TOKEN`/`PYPI_TOKEN` are set (a missing
+token is a workflow warning, not a failure). `.github/dependabot.yml` opens
+weekly grouped updates for Go modules, Actions, Bun and the Docker base image.
 
 `.github/workflows/security-audit.yml` installs the frozen Bun workspace with
 scripts disabled and runs `bun audit --audit-level=high`, plus the JavaScript
@@ -226,7 +238,9 @@ Follow SemVer (vMAJOR.MINOR.PATCH):
 - PATCH: Bug fixes, performance improvements
 
 Release versions come from Git tags and are embedded with `-X main.version`.
-When preparing a release, update `CHANGELOG.md`, the TypeScript SDK manifest,
+When preparing a release, update `CHANGELOG.md`, the root `package.json`
+version (the GitHub launcher downloads the release it names, and the release
+workflow fails when it differs from the tag), the TypeScript SDK manifest,
 all `sdk/npm/*/package.json` versions and internal optional dependencies, and
 both the Python `pyproject.toml` version and `ghostchrome/__init__.py` version.
 Run `bun install` and verify workspace versions in `bun.lock` match the

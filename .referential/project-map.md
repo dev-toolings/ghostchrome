@@ -26,7 +26,7 @@ The project optimizes for:
 | `internal/compat/playwright/` | Playwright CLI config schema and value rules. |
 | `internal/ops/` | Canonical operation catalog; `internal/ops/gen` renders every surface registration from it. |
 | `contracts/` | Generated command/op contract consumed by SDK coverage tests. |
-| `tools/deploy/` | Deployment helpers. |
+| `tools/deploy/` | Deployment helpers: `chrome/` (Ubuntu + Chrome + ghostchrome image, see `docs/cdp.md`) and `searxng/`. |
 | `.local/` | Ignored binaries, browser captures, and scratch notes. |
 | `docs/` | Human documentation for architecture, CLI, MCP, anti-bot, fast path, recipes. |
 | `sdk/typescript/` | TypeScript JSONL agent client, Bun-based tests/build. |
@@ -34,7 +34,8 @@ The project optimizes for:
 | `sdk/examples/` | End-to-end SDK examples. |
 | `tools/benchmark/` | Benchmark fixtures, runner, and result docs. |
 | `recipes/<site>/` | Private site scrapers. Gitignored, built only with `-tags recipes`. |
-| `sdk/npm/` | Six versioned npm distribution manifests (`@ghostchrome/cli` + 5 platforms). |
+| `sdk/npm/` | Six versioned npm distribution manifests (`@ghostchrome/cli` + 5 platforms), published only when `NPM_TOKEN` is set. |
+| `sdk/launcher/` | GitHub launcher, the root `package.json` bin: `bunx github:dev-toolings/ghostchrome` downloads, verifies and caches the release binary. |
 | `.claude/skills/ghostchrome/` | Embedded agent skill bundled into the binary. |
 
 ## Engine Responsibilities

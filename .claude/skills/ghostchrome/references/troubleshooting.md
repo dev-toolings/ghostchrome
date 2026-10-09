@@ -66,7 +66,8 @@ ghostchrome sessions prune
 ghostchrome profiles list
 ```
 
-MCP keeps the stdio process available but releases Chrome after
+MCP keeps the stdio process available, blanks its pages after
+`GHOSTCHROME_PAGE_IDLE_TIMEOUT` (5 minutes) and releases Chrome after
 `GHOSTCHROME_IDLE_TIMEOUT` (15 minutes by default). Closing stdin should close
 the browser immediately. If RSS remains elevated, inspect the process tree and
 the client-owned MCP process before taking action. Report the process IDs and

@@ -16,6 +16,11 @@ The benchmark is task-based. It is designed to answer the only comparison that m
 
 instead of only `tokens per snapshot`.
 
+Connection-mode latency (daemon, attach, MCP, Docker, GitHub launcher) has its
+own runner, `cdp_modes.py`, and results in
+[`results-cdp-modes.md`](results-cdp-modes.md). The CI `docker` job reruns it
+and writes the table to the job summary.
+
 ## What To Measure
 
 For each run, record:

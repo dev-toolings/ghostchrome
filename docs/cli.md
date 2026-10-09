@@ -498,6 +498,21 @@ the browser for you.
 
 Idle shutdown defaults to 1 hour (`GHOSTCHROME_IDLE_TIMEOUT`). Set `0` to keep the daemon until the machine reboots. Attached / headed / leased Chrome is never reaped.
 
+Before that, after 5 minutes without a command (`GHOSTCHROME_PAGE_IDLE_TIMEOUT`,
+`0` disables) the daemon sends its pages back to `about:blank` and closes extra
+tabs, so no site keeps running scripts or network while Chrome stays warm.
+Every command refreshes the session lease, so an agent that only clicks or
+evaluates is not idle. Refs taken before the cleanup are stale: snapshot again.
+
+### Tabs in a Chrome you own
+
+With `--connect <url>` or an `attach`ed session, ghostchrome never drives one
+of your tabs. It opens a tab of its own in a new window, reuses it across
+commands, and closes it on `ghostchrome close` or `ghostchrome sessions stop
+<name>`. `--tab <index>` still targets one of your existing tabs on purpose.
+The JSONL `agent` and `mcp --connect` open their tab the same way and close it
+when they exit (MCP also after `GHOSTCHROME_PAGE_IDLE_TIMEOUT` idle).
+
 ### `attach [session-name]`
 
 Attach to an existing Chromium browser via CDP and register it as a session.
@@ -786,7 +801,7 @@ Apply to every command (where meaningful):
 | Flag | Default | Effect |
 |---|---|---|
 | `-s, --session NAME` | `$PLAYWRIGHT_CLI_SESSION`, then `$GHOSTCHROME_SESSION` | Auto-managed persistent session: spawn a Chrome (profile `NAME`) on first use, reuse it after. |
-| `--connect URL` | — | Attach to existing Chrome (`auto` to discover on 127.0.0.1:9222-9229). |
+| `--connect URL` | — | Attach to existing Chrome: `http://host:port` or `ws://host:port` (resolved through `/json/version`), a full `ws://.../devtools/browser/<id>`, or `auto` to discover on 127.0.0.1:9222-9229. |
 | `--context NAME` | — | Use a named isolated context in the connected Chrome (parallel sessions, no extra Chrome). |
 | `--headless` | true | Headless mode. Set `--headless=false` to show a window. |
 | `--headed` | false | Playwright CLI-compatible inverse of `--headless`. |

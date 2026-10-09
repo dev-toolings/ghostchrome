@@ -696,7 +696,7 @@ func WaitForBotChallenge(page *rod.Page, timeout time.Duration) bool {
 
 		if !challenged {
 			// Challenge cleared — let the real page settle before returning.
-			_ = page.WaitStable(time.Second)
+			_ = waitStable(page, time.Second)
 			return true
 		}
 

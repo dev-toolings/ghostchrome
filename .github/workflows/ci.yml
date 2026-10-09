@@ -3,18 +3,25 @@ name: CI
 on:
   push:
     branches: ["**"]
-    tags: ["v*"]
   workflow_dispatch:
   pull_request:
     branches: [main]
+  # release.yml calls this workflow on version tags and publishes only when it
+  # passes, so tags do not trigger a second, ungated run here.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref_type != 'tag' }}
 
 jobs:
+  # macOS is not covered for now: no macOS runner jobs. Darwin release
+  # binaries are still cross-compiled from Linux in release.yml.
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -70,17 +77,6 @@ jobs:
           chrome-version: stable
       - run: go test -count=1 -race ./...
 
-  macos-smoke:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: 'go.mod'
-      # Keep browser-backed coverage on pull requests as well as main pushes;
-      # the regular macOS job only runs -short and cannot catch CDP regressions.
-      - run: go test ./internal/core/engine -run 'TestConformanceCoreLoop|TestNavigateUsesEventHub|TestStartEventHubIdempotent|TestCaptureMutationWaitsForXHR|TestClickIframeLinkWaitsForFrameNav|TestExtractClickNestedIframeRef|TestClickFileInputInIframeDoesNotHang|TestClickFileInputInIframeAfterNavigationDoesNotHang|TestDialogAfterNavigationDoesNotHang|TestHandleNextDialogWaitsForAndHandlesDialogs|TestDialogAutoHandlerAcceptsTwoAlerts|TestResolveRefReportsStaleSnapshots' -count=1 -timeout 30m
-
   windows-smoke:
     runs-on: windows-latest
     steps:
@@ -111,3 +107,115 @@ jobs:
       - name: Test the Python SDK
         working-directory: sdk/python
         run: python3 -m unittest discover -s tests -q
+
+  launcher:
+    # The GitHub launcher (bunx github:dev-toolings/ghostchrome) downloads the
+    # release named by the root package.json. On a tag that release does not
+    # exist yet; release.yml smoke-tests the launcher after publishing it.
+    if: github.ref_type != 'tag'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Launcher downloads, verifies, caches, and runs the release binary
+        shell: bash
+        env:
+          GHOSTCHROME_HOME: ${{ runner.temp }}/ghostchrome-home
+        run: |
+          want="v$(jq -r .version package.json)"
+          bun sdk/launcher/ghostchrome.mjs --version | tee out.txt
+          grep -q "$want" out.txt
+          bun sdk/launcher/ghostchrome.mjs --version 2>&1 | grep -vq downloading
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Build the Chrome image
+        run: docker build -f tools/deploy/chrome/Dockerfile -t ghostchrome:ci .
+      - name: CLI and MCP inside the container
+        run: |
+          docker run --rm ghostchrome:ci --version
+          docker run --rm --shm-size=1g ghostchrome:ci preview 'data:text/html,<h1>in-container</h1>' | grep -q in-container
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            | docker run -i --rm ghostchrome:ci mcp | grep -q '"protocolVersion"'
+      - name: Host ghostchrome attaches to the container's CDP endpoint
+        run: |
+          docker run -d --name gc-cdp --shm-size=1g -p 127.0.0.1:9222:9223 ghostchrome:ci cdp
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9222/json/version && break; sleep 1; done
+          go build -o "$RUNNER_TEMP/ghostchrome" ./cmd/ghostchrome
+          export HOME="$RUNNER_TEMP/home"
+          "$RUNNER_TEMP/ghostchrome" attach --cdp=http://127.0.0.1:9222
+          "$RUNNER_TEMP/ghostchrome" preview 'data:text/html,<h1>from-host</h1>' | grep -q from-host
+      - name: Containers report healthy in every mode
+        # A container must be green: a healthcheck that probes a port its
+        # mode never opens leaves it "unhealthy" while it works.
+        run: |
+          docker run -d -i --name gc-mcp --shm-size=1g ghostchrome:ci mcp
+          for c in gc-cdp gc-mcp; do
+            for i in $(seq 1 30); do
+              h=$(docker inspect -f '{{.State.Health.Status}}' "$c")
+              [ "$h" = healthy ] && break
+              sleep 2
+            done
+            echo "$c: $h"
+            [ "$h" = healthy ] || { docker inspect -f '{{json .State.Health}}' "$c"; exit 1; }
+          done
+          docker rm -f gc-mcp gc-cdp   # frees host port 9222
+          # Host network: Chrome's loopback port is the host's, no relay.
+          docker run -d --name gc-hostnet --network host -e CDP_RELAY=0 ghostchrome:ci cdp
+          for i in $(seq 1 30); do
+            h=$(docker inspect -f '{{.State.Health.Status}}' gc-hostnet)
+            [ "$h" = healthy ] && break
+            sleep 2
+          done
+          echo "gc-hostnet: $h"
+          [ "$h" = healthy ]
+          if curl -fsS -m 2 http://127.0.0.1:9223/json/version; then
+            echo "::error::CDP_RELAY=0 still listens on 9223"; exit 1
+          fi
+          docker rm -f gc-hostnet
+      - name: Upload paths resolve on the browser's filesystem (cdp mode)
+        # docs/cdp.md: a host-only file passes ghostchrome's local check but
+        # the container's Chrome cannot read it; a volume mounted at the same
+        # path on both sides works.
+        run: |
+          shared="$RUNNER_TEMP/shared"; mkdir -p "$shared"
+          printf hello > "$shared/in-volume.txt"; printf hello > "$RUNNER_TEMP/host-only.txt"
+          chmod 755 "$shared"; chmod 644 "$shared/in-volume.txt"
+          docker run -d --name gc-up --shm-size=1g -p 127.0.0.1:9224:9223 -v "$shared:$shared:ro" ghostchrome:ci cdp
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9224/json/version >/dev/null && break; sleep 1; done
+          gc() { HOME="$RUNNER_TEMP/up-home" "$RUNNER_TEMP/ghostchrome" --connect http://127.0.0.1:9224 "$@"; }
+          page='data:text/html,<input type=file id=f>'
+          probe="new Promise(r=>{const f=document.querySelector('#f').files[0]; if(!f) return r('none'); f.text().then(t=>r('read:'+t.length)).catch(()=>r('unreadable'))})"
+          gc preview "$page" >/dev/null
+          gc upload --selector '#f' "$shared/in-volume.txt"
+          vol=$(gc eval "$probe"); echo "mounted volume: $vol"
+          gc preview "$page" >/dev/null
+          gc upload --selector '#f' "$RUNNER_TEMP/host-only.txt" || true
+          host=$(gc eval "$probe"); echo "host-only file: $host"
+          docker rm -f gc-up
+          [ "$vol" = read:5 ] && [ "$host" != read:5 ]
+      - name: Benchmark connection modes (host vs container)
+        # Latency per Chrome connection mode on the same runner; the table
+        # lands in the job summary. See tools/benchmark/cdp_modes.py.
+        run: |
+          python3 tools/benchmark/cdp_modes.py --bin "$RUNNER_TEMP/ghostchrome" \
+            --image ghostchrome:ci --chrome "$(command -v google-chrome)" --runs 10 \
+            --modes cli-daemon,cli-attach,mcp-local,mcp-connect,docker-cdp,docker-cdp-hostnet,docker-exec,docker-mcp,launcher \
+            --bunx-ref "$GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Container logs
+        if: always()
+        run: docker logs gc-cdp 2>&1 | tail -50 || true

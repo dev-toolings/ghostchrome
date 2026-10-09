@@ -236,9 +236,16 @@ func cdpVersionURL(raw string) (string, error) {
 }
 
 // ResolveCDPEndpoint returns a browser WebSocket debugger URL for a CDP
-// endpoint. ws:// and wss:// inputs are already resolved; http(s) inputs are
-// probed via /json/version.
+// endpoint. A ws(s) URL that carries a path (for example
+// ws://host:9222/devtools/browser/<id>) is already resolved. http(s) URLs and
+// bare ws(s)://host:port URLs are resolved via /json/version.
 func ResolveCDPEndpoint(raw string, timeout time.Duration) (string, error) {
+	return ResolveCDPEndpointWithHeaders(raw, timeout, nil)
+}
+
+// ResolveCDPEndpointWithHeaders is ResolveCDPEndpoint with extra HTTP headers
+// (for example auth) sent on the /json/version request.
+func ResolveCDPEndpointWithHeaders(raw string, timeout time.Duration, headers map[string]string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "", fmt.Errorf("cdp endpoint is empty")
@@ -249,35 +256,61 @@ func ResolveCDPEndpoint(raw string, timeout time.Duration) (string, error) {
 	}
 	switch u.Scheme {
 	case "ws", "wss":
-		return raw, nil
+		if !needsCDPResolve(raw) {
+			return raw, nil
+		}
 	case "http", "https":
-		if timeout <= 0 {
-			timeout = 800 * time.Millisecond
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-		versionURL := strings.TrimRight(raw, "/") + "/json/version"
-		req, err := http.NewRequestWithContext(ctx, "GET", versionURL, nil)
-		if err != nil {
-			return "", err
-		}
-		resp, err := (&http.Client{Timeout: timeout}).Do(req)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("%s returned HTTP %d", versionURL, resp.StatusCode)
-		}
-		var payload cdpVersionInfo
-		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-			return "", err
-		}
-		if payload.WebSocketDebuggerURL == "" {
-			return "", fmt.Errorf("%s did not return webSocketDebuggerUrl", versionURL)
-		}
-		return payload.WebSocketDebuggerURL, nil
 	default:
 		return "", fmt.Errorf("unsupported cdp endpoint scheme %q (use http(s) or ws(s))", u.Scheme)
 	}
+	if timeout <= 0 {
+		timeout = 800 * time.Millisecond
+	}
+	versionURL, err := cdpVersionURL(raw)
+	if err != nil {
+		return "", err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", versionURL, nil)
+	if err != nil {
+		return "", err
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := (&http.Client{Timeout: timeout}).Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%s returned HTTP %d", versionURL, resp.StatusCode)
+	}
+	var payload cdpVersionInfo
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return "", err
+	}
+	if payload.WebSocketDebuggerURL == "" {
+		return "", fmt.Errorf("%s did not return webSocketDebuggerUrl", versionURL)
+	}
+	return payload.WebSocketDebuggerURL, nil
+}
+
+// needsCDPResolve reports whether raw is an http(s) endpoint or a bare
+// ws(s)://host:port without a /devtools/ path. A ws(s) URL with a query
+// (wss://provider?token=...) is a hosted endpoint used as is: resolving it
+// would drop the query.
+func needsCDPResolve(raw string) bool {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return false
+	}
+	switch u.Scheme {
+	case "http", "https":
+		return true
+	case "ws", "wss":
+		return strings.Trim(u.Path, "/") == "" && u.RawQuery == ""
+	}
+	return false
 }

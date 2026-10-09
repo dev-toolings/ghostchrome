@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/dev-toolings/ghostchrome/internal/core/policy"
 	mcpsurface "github.com/dev-toolings/ghostchrome/internal/surface/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
@@ -47,6 +48,8 @@ func main() {
 	s := mcpsurface.New(opts)
 	defer s.Close()
 	s.StartIdleReaper()
+	// Reclaim /tmp from Rod profiles whose owner was SIGKILLed earlier.
+	go engine.SweepDeadRodProfiles()
 
 	if os.Getenv("GHOSTCHROME_MCP_LAZY") != "1" {
 		s.PrewarmAsync()

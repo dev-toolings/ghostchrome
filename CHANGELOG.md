@@ -5,7 +5,62 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- Run ghostchrome from GitHub with no install: `bunx github:dev-toolings/ghostchrome
+  <command>` (or `mcp`) downloads the release binary for the platform, checks
+  it against `checksums.txt` and caches it under `~/.ghostchrome/releases/`.
+- `tools/deploy/chrome`: an Ubuntu + Chrome + ghostchrome image with MCP, CLI
+  and bare-CDP modes, pushed to `ghcr.io/dev-toolings/ghostchrome` by release
+  tags. `docs/cdp.md` covers it and attaching to your own Chrome.
+- Dependabot for Go modules, GitHub Actions, Bun and the Docker base image.
+- `tools/benchmark/cdp_modes.py` measures loop latency per connection mode
+  (daemon, attach, MCP, Docker, launcher); CI reruns it in the Docker job.
+  Results: `tools/benchmark/results-cdp-modes.md`.
+- The Chrome image has a mode-aware healthcheck (green in `cdp`, MCP and CLI
+  modes) and `CDP_RELAY=0` for host-network runs.
+- Page cleanup when an agent stops browsing. A Chrome ghostchrome owns (daemon,
+  MCP) sends its pages back to `about:blank` after 5 minutes without a command
+  (`GHOSTCHROME_PAGE_IDLE_TIMEOUT`, `0` disables) and stays warm; CLI commands
+  on the implicit `default` session now refresh its lease, so clicks and evals
+  count as activity.
+
+### Changed
+- Release tags run the full CI suite and publish only when it passes.
+- In a Chrome you attach to (`--connect <url>`, `attach`, `mcp --connect`, the
+  JSONL agent), ghostchrome no longer drives one of your tabs. It opens its own
+  tab in a new window and closes it on `close`, `sessions stop`, process exit,
+  or MCP page idle; `--tab <index>` still targets an existing tab. Tabs opened
+  for `--connect=auto` and attach-fresh also get their own window: a background
+  tab is hidden, where Chrome pauses `requestAnimationFrame` and clicks hung.
+- Drop the macOS CI jobs for now. Darwin release binaries are still
+  cross-compiled from Linux, but no CI job tests them.
+- Upgrade `mcp-go` to v1.2.1 and bump Go dependencies (`x/net`, `x/crypto`,
+  `tls-client`, `modernc.org/sqlite`). With mcp-go v1, closing the MCP
+  server's stdin cancels tool calls still in flight.
+- A missing `NPM_TOKEN` or `PYPI_TOKEN` now shows as a release warning
+  instead of a silent skip.
+
 ### Fixed
+- Resolve `--connect` (and `GHOSTCHROME_CONNECT`, the JSONL agent and sessions)
+  through `/json/version` when it is `http(s)://host:port` or a bare
+  `ws(s)://host:port`, instead of failing with `websocket bad handshake: 404`.
+  Full `ws://.../devtools/browser/<id>` URLs and `auto` are unchanged, CDP
+  headers are sent on the lookup, and session state stays keyed by the URL as
+  given so it survives a Chrome restart.
+- Make a selector-scoped `extract` (and the MCP `snapshot` with `selector`)
+  replace the ref table. Its refs restart at `@1` inside the subtree but were
+  resolved against the previous full-page table, so `click @N` could hit a
+  different element (a login submit opened a select instead). The scoped tree
+  never becomes the cached full-page extraction.
+- Sweep Rod temporary profiles left in `/tmp` by a Chrome whose owner was
+  SIGKILLed (OOM, a client killing its MCP server) when an MCP server starts.
+  Only profiles whose `SingletonLock` names this host and a dead PID are
+  removed; each leak cost 3 to 35 MB of often RAM-backed `/tmp`.
+- Cap the `stable` wait strategy at 10 s (or the remaining page deadline) and
+  return best effort. Rod's `WaitStable` had no deadline, so a page that never
+  goes quiet (a Next.js dev server's HMR socket, polling, a ticking clock) made
+  `snapshot`/`navigate` with `wait=stable` hang indefinitely. The anti-bot
+  post-challenge settle uses the same bounded wait.
 - Stop passing Chromium `--ignore-certificate-errors` whenever a proxy is set.
   TLS verification now stays on unless the new `IgnoreCertErrors` launcher
   option asks for it.

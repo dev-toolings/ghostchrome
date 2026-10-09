@@ -42,6 +42,47 @@ func TestResolveCDPEndpointWS(t *testing.T) {
 	}
 }
 
+func TestResolveCDPEndpointBareWSWithHeaders(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/json/version" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		if r.Header.Get("X-Token") != "secret" {
+			t.Fatalf("missing CDP header on /json/version")
+		}
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"webSocketDebuggerUrl": "ws://127.0.0.1:9333/devtools/browser/abc",
+		})
+	}))
+	defer srv.Close()
+
+	bare := "ws" + strings.TrimPrefix(srv.URL, "http")
+	got, err := ResolveCDPEndpointWithHeaders(bare, time.Second, map[string]string{"X-Token": "secret"})
+	if err != nil {
+		t.Fatalf("ResolveCDPEndpointWithHeaders: %v", err)
+	}
+	if got != "ws://127.0.0.1:9333/devtools/browser/abc" {
+		t.Fatalf("unexpected ws url %q", got)
+	}
+}
+
+func TestNeedsCDPResolve(t *testing.T) {
+	cases := map[string]bool{
+		"http://127.0.0.1:9333":                  true,
+		"https://host:9333/":                     true,
+		"ws://127.0.0.1:9333":                    true,
+		"wss://host:9333/":                       true,
+		"ws://127.0.0.1:9333/devtools/browser/x": false,
+		"wss://provider.example?token=abc":       false,
+		"auto":                                   false,
+	}
+	for in, want := range cases {
+		if got := needsCDPResolve(in); got != want {
+			t.Errorf("needsCDPResolve(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
 func TestProbeCDPEndpointFromWebsocketURL(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/json/version" {

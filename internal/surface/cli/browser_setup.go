@@ -33,6 +33,9 @@ func buildBrowserOpts() engine.BrowserOpts {
 	if flagSession == "" && !skipImplicitDaemon {
 		flagSession = sessionNameFromEnv()
 	}
+	// A user-supplied endpoint is a Chrome ghostchrome does not own (their
+	// personal browser, a container): work in a tab of our own there.
+	foreignChrome := flagConnect != "" && flagConnect != "auto"
 	// A connect URL resolved from the session registry points at a Chrome we
 	// own, so it is safe (and expected) to replay our own emulation profile on
 	// it. A user-supplied --connect is not: it may be their personal browser.
@@ -41,6 +44,11 @@ func buildBrowserOpts() engine.BrowserOpts {
 		if ws, ok := engine.DefaultSession(); ok {
 			flagConnect = ws
 			managedSession = true
+			// Refresh the lease like `-s default` does, so the daemon's idle
+			// stages see this command even when it changes no tab or URL.
+			engine.TouchSessionLease(engine.DefaultSessionName)
+			// `attach` without -s registers the user's Chrome as "default".
+			foreignChrome = engine.SessionAttached(engine.DefaultSessionName)
 			fmt.Fprintf(os.Stderr, "[session %s] %s\n", engine.DefaultSessionName, ws)
 		} else if implicitSessionEnabled() {
 			flagSession = engine.DefaultSessionName
@@ -86,6 +94,7 @@ func buildBrowserOpts() engine.BrowserOpts {
 		ExecutablePath: flagConfigExecutablePath,
 		LaunchArgs:     flagConfigLaunchArgs,
 		AttachFresh:    attachFresh,
+		OwnTab:         foreignChrome || (flagSession != "" && engine.SessionAttached(flagSession)),
 		ContextName:    flagContext,
 		ManagedSession: managedSession,
 	}

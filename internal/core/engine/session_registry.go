@@ -492,6 +492,20 @@ func AttachSession(name string, wsURL string) (SessionEntry, error) {
 	return entry, nil
 }
 
+// SessionAttached reports whether the named session is an `attach`ed
+// external Chrome (no port or process of ours) rather than a spawned daemon.
+func SessionAttached(name string) bool {
+	if validateSessionName(name) != nil {
+		return false
+	}
+	reg, _, err := loadSessionRegistry()
+	if err != nil {
+		return false
+	}
+	e, ok := reg.Sessions[name]
+	return ok && e.Port == 0 && e.PID == 0 && e.WSURL != ""
+}
+
 // waitForCDP polls the port until Chrome's /json/version answers or timeout.
 func waitForCDP(port int, timeout time.Duration) (string, error) {
 	deadline := time.Now().Add(timeout)
@@ -552,6 +566,13 @@ func StopSession(name string) error {
 		entry, ok := reg.Sessions[name]
 		if !ok {
 			return fmt.Errorf("session %q: %w", name, ErrSessionNotFound)
+		}
+		if entry.Port == 0 && entry.PID == 0 && entry.WSURL != "" {
+			// Attached external Chrome: it keeps running, but the tabs
+			// ghostchrome opened in it are closed.
+			if n, err := CloseOwnedTabs(entry.WSURL, 5*time.Second); err == nil && n > 0 {
+				fmt.Fprintf(os.Stderr, "[session %s] closed %d ghostchrome tab(s)\n", name, n)
+			}
 		}
 		killSessionProcess(entry)
 		waitSessionDead(entry, 5*time.Second)

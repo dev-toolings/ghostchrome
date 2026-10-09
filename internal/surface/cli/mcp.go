@@ -112,6 +112,8 @@ The server speaks MCP 2025-11-25 and exposes 16 tools:
 		s := mcpsurface.New(opts)
 		defer s.Close()
 		s.StartIdleReaper()
+		// Reclaim /tmp from Rod profiles whose owner was SIGKILLed earlier.
+		go engine.SweepDeadRodProfiles()
 
 		// Pre-spawn Chrome in the background while the MCP client is still
 		// negotiating capabilities. The 1-2s cold start is hidden from the

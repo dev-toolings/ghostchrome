@@ -246,7 +246,9 @@ Legend:
 | `internal/setup/` | Installation state, CLI/MCP transport selection, global instructions, `doctor`, embedded skill copy. |
 | `internal/compat/playwright/` | The Playwright CLI config schema and its value rules. |
 | `sdk/typescript/`, `sdk/python/` | Thin clients that spawn `ghostchrome agent` and speak the JSONL protocol. |
-| `sdk/npm/` | Six versioned npm distribution manifests: the `@ghostchrome/cli` meta package plus five per-platform packages. Not build output. |
+| `sdk/npm/` | Six versioned npm distribution manifests: the `@ghostchrome/cli` meta package plus five per-platform packages. Not build output; published only when `NPM_TOKEN` is set. |
+| `sdk/launcher/` | GitHub launcher exposed as the root `package.json` bin: `bunx github:dev-toolings/ghostchrome` downloads the matching release binary, verifies `checksums.txt` and caches it. |
+| `tools/deploy/chrome/` | Ubuntu + Chrome + ghostchrome image (MCP, CLI or bare CDP mode), see `docs/cdp.md`. |
 | `recipes/<site>/` | Private site scrapers, gitignored, compiled in only with `go build -tags recipes`. Their cobra entry points are `internal/surface/cli/<site>.go`, also gitignored. |
 | `tools/benchmark/` | Fixtures, runner and recorded results. |
 | `sdk/examples/` | Runnable end-to-end TypeScript and Python examples. |
