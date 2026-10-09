@@ -3,10 +3,19 @@ name: CI
 on:
   push:
     branches: ["**"]
-    tags: ["v*"]
   workflow_dispatch:
   pull_request:
     branches: [main]
+  # release.yml calls this workflow on version tags and publishes only when it
+  # passes, so tags do not trigger a second, ungated run here.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref_type != 'tag' }}
 
 jobs:
   build:
@@ -111,3 +120,55 @@ jobs:
       - name: Test the Python SDK
         working-directory: sdk/python
         run: python3 -m unittest discover -s tests -q
+
+  launcher:
+    # The GitHub launcher (bunx github:dev-toolings/ghostchrome) downloads the
+    # release named by the root package.json. On a tag that release does not
+    # exist yet; release.yml smoke-tests the launcher after publishing it.
+    if: github.ref_type != 'tag'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Launcher downloads, verifies, caches, and runs the release binary
+        shell: bash
+        env:
+          GHOSTCHROME_HOME: ${{ runner.temp }}/ghostchrome-home
+        run: |
+          want="v$(jq -r .version package.json)"
+          bun sdk/launcher/ghostchrome.mjs --version | tee out.txt
+          grep -q "$want" out.txt
+          bun sdk/launcher/ghostchrome.mjs --version 2>&1 | grep -vq downloading
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Build the Chrome image
+        run: docker build -f tools/deploy/chrome/Dockerfile -t ghostchrome:ci .
+      - name: CLI and MCP inside the container
+        run: |
+          docker run --rm ghostchrome:ci --version
+          docker run --rm --shm-size=1g ghostchrome:ci preview 'data:text/html,<h1>in-container</h1>' | grep -q in-container
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            | docker run -i --rm ghostchrome:ci mcp | grep -q '"protocolVersion"'
+      - name: Host ghostchrome attaches to the container's CDP endpoint
+        run: |
+          docker run -d --name gc-cdp --shm-size=1g -p 127.0.0.1:9222:9223 ghostchrome:ci cdp
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9222/json/version && break; sleep 1; done
+          go build -o "$RUNNER_TEMP/ghostchrome" ./cmd/ghostchrome
+          export HOME="$RUNNER_TEMP/home"
+          "$RUNNER_TEMP/ghostchrome" attach --cdp=http://127.0.0.1:9222
+          "$RUNNER_TEMP/ghostchrome" preview 'data:text/html,<h1>from-host</h1>' | grep -q from-host
+      - name: Container logs
+        if: always()
+        run: docker logs gc-cdp 2>&1 | tail -50 || true

@@ -7,26 +7,32 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
+  # The full CI suite gates every publication below.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
+      - name: Tag matches the root package.json version
+        # bunx github:dev-toolings/ghostchrome#<tag> downloads the release
+        # named by that file, so a mismatch would serve another version.
+        run: |
+          want="${GITHUB_REF_NAME#v}"
+          have="$(jq -r .version package.json)"
+          [ "$want" = "$have" ] || { echo "::error::package.json version $have does not match tag $GITHUB_REF_NAME"; exit 1; }
+
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
-
-      - name: Smoke build & vet
-        # Tests run in ci.yml on every push; release only re-checks that the
-        # tag compiles cleanly. Some tests need a real browser (internal/core/engine/) and
-        # can't run on a stock GH runner.
-        run: |
-          go build ./...
-          go vet ./...
 
       - name: Build binaries
         # CGO_ENABLED=0 forces the pure-Go net/os-user resolvers so every binary
@@ -75,13 +81,20 @@ jobs:
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Smoke-test the GitHub launcher against this release
+        env:
+          GHOSTCHROME_HOME: ${{ runner.temp }}/ghostchrome-home
+        run: bun sdk/launcher/ghostchrome.mjs --version | grep -q "$GITHUB_REF_NAME"
 
       - name: Assemble & publish npm packages (@ghostchrome/cli)
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NPM_TOKEN" ]; then
-            echo "NPM_TOKEN secret not set: skipping npm publish."
+            echo "::warning::NPM_TOKEN secret not set: skipping npm publish."
             exit 0
           fi
           VER="${{ github.ref_name }}"; VER="${VER#v}"   # v0.3.0 -> 0.3.0
@@ -113,7 +126,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NPM_TOKEN" ]; then
-            echo "NPM_TOKEN secret not set: skipping TS SDK publish."
+            echo "::warning::NPM_TOKEN secret not set: skipping TS SDK publish."
             exit 0
           fi
           VER="${{ github.ref_name }}"; VER="${VER#v}"
@@ -134,7 +147,7 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           if [ -z "$PYPI_TOKEN" ]; then
-            echo "PYPI_TOKEN secret not set: skipping PyPI publish."
+            echo "::warning::PYPI_TOKEN secret not set: skipping PyPI publish."
             exit 0
           fi
           VER="${{ github.ref_name }}"; VER="${VER#v}"
@@ -144,3 +157,23 @@ jobs:
           python -m pip install --upgrade build twine
           python -m build
           TWINE_USERNAME=__token__ TWINE_PASSWORD="$PYPI_TOKEN" python -m twine upload dist/*
+
+  docker:
+    # Ubuntu + Chrome + ghostchrome image (tools/deploy/chrome), amd64 only:
+    # Google Chrome has no Linux arm64 build.
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push ghcr.io image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker build -f tools/deploy/chrome/Dockerfile --build-arg VERSION="$GITHUB_REF_NAME" \
+            -t "$image:$GITHUB_REF_NAME" -t "$image:latest" .
+          docker push "$image:$GITHUB_REF_NAME"
+          docker push "$image:latest"
