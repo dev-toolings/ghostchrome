@@ -5,6 +5,23 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- Run ghostchrome from GitHub with no install: `bunx github:dev-toolings/ghostchrome
+  <command>` (or `mcp`) downloads the release binary for the platform, checks
+  it against `checksums.txt` and caches it under `~/.ghostchrome/releases/`.
+- `tools/deploy/chrome`: an Ubuntu + Chrome + ghostchrome image with MCP, CLI
+  and bare-CDP modes, pushed to `ghcr.io/dev-toolings/ghostchrome` by release
+  tags. `docs/cdp.md` covers it and attaching to your own Chrome.
+- Dependabot for Go modules, GitHub Actions, Bun and the Docker base image.
+
+### Changed
+- Release tags run the full CI suite and publish only when it passes.
+- Upgrade `mcp-go` to v1.2.1 and bump Go dependencies (`x/net`, `x/crypto`,
+  `tls-client`, `modernc.org/sqlite`). With mcp-go v1, closing the MCP
+  server's stdin cancels tool calls still in flight.
+- A missing `NPM_TOKEN` or `PYPI_TOKEN` now shows as a release warning
+  instead of a silent skip.
+
 ### Fixed
 - Stop passing Chromium `--ignore-certificate-errors` whenever a proxy is set.
   TLS verification now stays on unless the new `IgnoreCertErrors` launcher

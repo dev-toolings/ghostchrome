@@ -10,6 +10,7 @@ Ultra-light browser automation **and** HTTP-first fast-path for LLM agents. Sing
 | [`cli.md`](./cli.md) | Full command reference grouped by category. |
 | [`mcp.md`](./mcp.md) | The 11-tool MCP stdio server — what Claude Code, Codex, Cursor see. |
 | [`fast-path.md`](./fast-path.md) | `fastfetch` + `fetchapi` — sub-second scraping without Chrome. **Most users want this.** |
+| [`cdp.md`](./cdp.md) | Attach to your own Chrome, or run Chrome in Docker (Ubuntu image, MCP/CLI/CDP modes). |
 | [`chrome-path.md`](./chrome-path.md) | Browser commands, locator auto-wait, observer, agent JSONL loop, recovery hooks. |
 | [`anti-bot.md`](./anti-bot.md) | DataDome / Cloudflare detection, fallback strategy, what works and what doesn't. |
 | [`recipes/`](./recipes) | Site-by-site working pipelines (autoscout24, bulk autosphere, Algolia, agent JSONL). |

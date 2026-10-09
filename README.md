@@ -128,7 +128,7 @@ single static Go binary.
 
 | | playwright-cli | ghostchrome |
 |---|---|---|
-| Get the tool | `npm install -g @playwright/cli` | `curl \| bash` or `bun install -g @ghostchrome/cli` |
+| Get the tool | `npm install -g @playwright/cli` | `bunx github:dev-toolings/ghostchrome` or `curl \| bash` |
 | Wire into the agent | `playwright-cli install --skills` | `ghostchrome install --skills` |
 | Daemon | requires `open` before `goto` | transparent: just run any command |
 | Uninstall | manual | `ghostchrome uninstall --purge --yes` |
@@ -136,16 +136,23 @@ single static Go binary.
 
 ### 1. Install one runtime
 
+Nothing to install: run it straight from GitHub with Bun.
+
 ```bash
-bun install -g @ghostchrome/cli       # or: bunx @ghostchrome/cli <cmd>
-# npm install -g @ghostchrome/cli     # works too
+bunx github:dev-toolings/ghostchrome preview https://example.com   # CLI
+claude mcp add ghostchrome -- bunx github:dev-toolings/ghostchrome mcp   # MCP
+bun add -g github:dev-toolings/ghostchrome   # optional: a global `ghostchrome`
 ```
 
-The package resolves the prebuilt Go CLI binary for your platform (Linux/macOS,
-amd64/arm64; Windows amd64): no Node runtime, no postinstall, no browser
-download. For exclusive CLI/MCP setup and global Claude/Codex/Grok skill
-installation, use the mode-aware installer below.
-Prefer a single binary with no package manager? Use the installer:
+The launcher downloads the release binary for your platform (Linux/macOS,
+amd64/arm64; Windows amd64), verifies it against the release `checksums.txt`
+and caches it under `~/.ghostchrome/releases/<version>/`; later starts skip
+the download. Pin a version with `github:dev-toolings/ghostchrome#v0.7.1` or
+`GHOSTCHROME_VERSION=v0.7.1`. A container image is also available: see
+[`docs/cdp.md`](docs/cdp.md).
+
+For exclusive CLI/MCP setup and global Claude/Codex/Grok skill installation,
+use the mode-aware installer instead:
 
 ```bash
 # Install exactly one runtime (the mode is intentionally mandatory).
@@ -193,6 +200,10 @@ For Codex, Cursor, Aider, or a custom loop see [Using it with LLM agents](#using
 - **Prebuilt binaries**: macOS (Intel/ARM), Linux (amd64/arm64), Windows on the
   [Releases](https://github.com/dev-toolings/ghostchrome/releases) page (`ghostchrome` +
   `ghostchrome-mcp`, with `checksums.txt`).
+- **Docker** (Ubuntu + Chrome): `ghcr.io/dev-toolings/ghostchrome`, pushed by
+  release tags, or build
+  [`tools/deploy/chrome`](tools/deploy/chrome/README.md). Attaching to your own
+  Chrome or to a container over CDP is covered in [`docs/cdp.md`](docs/cdp.md).
 - **From source**: `git clone https://github.com/dev-toolings/ghostchrome && cd ghostchrome && go build -o ghostchrome ./cmd/ghostchrome`
 
 > **Note:** `go install …@latest` is not supported on this repo. Versioning was
