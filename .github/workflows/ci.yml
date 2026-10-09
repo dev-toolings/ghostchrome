@@ -191,9 +191,10 @@ jobs:
         # Latency per Chrome connection mode on the same runner; the table
         # lands in the job summary. See tools/benchmark/cdp_modes.py.
         run: |
+          docker rm -f gc-cdp   # frees host port 9222 for docker-cdp-hostnet
           python3 tools/benchmark/cdp_modes.py --bin "$RUNNER_TEMP/ghostchrome" \
             --image ghostchrome:ci --chrome "$(command -v google-chrome)" --runs 10 \
-            --modes cli-daemon,cli-attach,mcp-local,mcp-connect,docker-cdp,docker-exec,docker-mcp,launcher \
+            --modes cli-daemon,cli-attach,mcp-local,mcp-connect,docker-cdp,docker-cdp-hostnet,docker-exec,docker-mcp,launcher \
             --bunx-ref "$GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Container logs
         if: always()

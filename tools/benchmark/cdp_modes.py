@@ -15,6 +15,8 @@ Modes (pick with --modes, comma-separated):
   mcp-local      `ghostchrome mcp`, Chrome owned by the server
   mcp-connect    `ghostchrome mcp --connect http://127.0.0.1:PORT`
   docker-cdp     host CLI, --connect to a container in `cdp` mode (needs --image)
+  docker-cdp-hostnet  same, but --network host and Chrome's own 9222: no
+                 docker-proxy or socat hop (port 9222 must be free)
   docker-exec    CLI inside a running container via `docker exec` (needs --image)
   docker-mcp     `docker run -i <image> mcp` (needs --image)
   launcher       `--version` overhead: binary vs sdk/launcher vs bunx github:
@@ -258,6 +260,13 @@ class Bench:
             self.container("-p", f"127.0.0.1:{port}:9223", image, "cdp")
             wait_http(f"http://127.0.0.1:{port}/json/version")
             return self.run_cli(name, b + ["--connect", f"http://127.0.0.1:{port}"], self.env, self.docker_url())
+        if name == "docker-cdp-hostnet":
+            name_ = f"gc-bench-{os.getpid()}-{len(self.containers)}"
+            subprocess.run(["docker", "run", "-d", "--name", name_, "--shm-size=1g", "--network", "host",
+                            image, "cdp"], check=True, capture_output=True)
+            self.containers.append(name_)
+            wait_http("http://127.0.0.1:9222/json/version")
+            return self.run_cli(name, b + ["--connect", "http://127.0.0.1:9222"], self.env)
         if name == "docker-exec":
             c = self.container("--entrypoint", "sleep", image, "infinity")
             return self.run_cli(name, ["docker", "exec", c, "ghostchrome"], self.env, self.docker_url())
