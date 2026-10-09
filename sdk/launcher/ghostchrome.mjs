@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // GitHub launcher: runs ghostchrome straight from the repository, with no npm
 // publication and no binary to carry around.
 //
@@ -10,6 +10,10 @@
 // caches it under ~/.ghostchrome/releases/<version>/. Later runs start the
 // cached binary directly. stdout belongs to the child (the MCP channel), so
 // every launcher message goes to stderr.
+//
+// The shebang is bun, not node: `bun add -g github:...` links this file as a
+// global bin, and the install path is Bun-only. Node still runs it directly
+// (`node sdk/launcher/ghostchrome.mjs`).
 //
 // Version: GHOSTCHROME_VERSION (e.g. v0.8.0), else the version of the
 // package.json next to this checkout (the ref bunx fetched), else the latest
