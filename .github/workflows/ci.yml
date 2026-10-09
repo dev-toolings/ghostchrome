@@ -153,6 +153,9 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
       - name: Build the Chrome image
         run: docker build -f tools/deploy/chrome/Dockerfile -t ghostchrome:ci .
       - name: CLI and MCP inside the container
@@ -169,6 +172,14 @@ jobs:
           export HOME="$RUNNER_TEMP/home"
           "$RUNNER_TEMP/ghostchrome" attach --cdp=http://127.0.0.1:9222
           "$RUNNER_TEMP/ghostchrome" preview 'data:text/html,<h1>from-host</h1>' | grep -q from-host
+      - name: Benchmark connection modes (host vs container)
+        # Latency per Chrome connection mode on the same runner; the table
+        # lands in the job summary. See tools/benchmark/cdp_modes.py.
+        run: |
+          python3 tools/benchmark/cdp_modes.py --bin "$RUNNER_TEMP/ghostchrome" \
+            --image ghostchrome:ci --chrome "$(command -v google-chrome)" --runs 10 \
+            --modes cli-daemon,cli-attach,mcp-local,mcp-connect,docker-cdp,docker-exec,docker-mcp,launcher \
+            --bunx-ref "$GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Container logs
         if: always()
         run: docker logs gc-cdp 2>&1 | tail -50 || true
