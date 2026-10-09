@@ -73,6 +73,7 @@ func TestNeedsCDPResolve(t *testing.T) {
 		"ws://127.0.0.1:9333":                    true,
 		"wss://host:9333/":                       true,
 		"ws://127.0.0.1:9333/devtools/browser/x": false,
+		"wss://provider.example?token=abc":       false,
 		"auto":                                   false,
 	}
 	for in, want := range cases {

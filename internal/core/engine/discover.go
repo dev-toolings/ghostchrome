@@ -256,7 +256,7 @@ func ResolveCDPEndpointWithHeaders(raw string, timeout time.Duration, headers ma
 	}
 	switch u.Scheme {
 	case "ws", "wss":
-		if strings.Trim(u.Path, "/") != "" {
+		if !needsCDPResolve(raw) {
 			return raw, nil
 		}
 	case "http", "https":
@@ -298,7 +298,9 @@ func ResolveCDPEndpointWithHeaders(raw string, timeout time.Duration, headers ma
 }
 
 // needsCDPResolve reports whether raw is an http(s) endpoint or a bare
-// ws(s)://host:port without a /devtools/ path.
+// ws(s)://host:port without a /devtools/ path. A ws(s) URL with a query
+// (wss://provider?token=...) is a hosted endpoint used as is: resolving it
+// would drop the query.
 func needsCDPResolve(raw string) bool {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
@@ -308,7 +310,7 @@ func needsCDPResolve(raw string) bool {
 	case "http", "https":
 		return true
 	case "ws", "wss":
-		return strings.Trim(u.Path, "/") == ""
+		return strings.Trim(u.Path, "/") == "" && u.RawQuery == ""
 	}
 	return false
 }
