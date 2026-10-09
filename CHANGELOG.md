@@ -47,6 +47,20 @@ All notable changes to ghostchrome are documented here. The format is based on
   Full `ws://.../devtools/browser/<id>` URLs and `auto` are unchanged, CDP
   headers are sent on the lookup, and session state stays keyed by the URL as
   given so it survives a Chrome restart.
+- Make a selector-scoped `extract` (and the MCP `snapshot` with `selector`)
+  replace the ref table. Its refs restart at `@1` inside the subtree but were
+  resolved against the previous full-page table, so `click @N` could hit a
+  different element (a login submit opened a select instead). The scoped tree
+  never becomes the cached full-page extraction.
+- Sweep Rod temporary profiles left in `/tmp` by a Chrome whose owner was
+  SIGKILLed (OOM, a client killing its MCP server) when an MCP server starts.
+  Only profiles whose `SingletonLock` names this host and a dead PID are
+  removed; each leak cost 3 to 35 MB of often RAM-backed `/tmp`.
+- Cap the `stable` wait strategy at 10 s (or the remaining page deadline) and
+  return best effort. Rod's `WaitStable` had no deadline, so a page that never
+  goes quiet (a Next.js dev server's HMR socket, polling, a ticking clock) made
+  `snapshot`/`navigate` with `wait=stable` hang indefinitely. The anti-bot
+  post-challenge settle uses the same bounded wait.
 - Stop passing Chromium `--ignore-certificate-errors` whenever a proxy is set.
   TLS verification now stays on unless the new `IgnoreCertErrors` launcher
   option asks for it.
