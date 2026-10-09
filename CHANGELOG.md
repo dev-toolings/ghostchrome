@@ -21,6 +21,8 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ### Changed
 - Release tags run the full CI suite and publish only when it passes.
+- Drop the macOS CI jobs for now. Darwin release binaries are still
+  cross-compiled from Linux, but no CI job tests them.
 - Upgrade `mcp-go` to v1.2.1 and bump Go dependencies (`x/net`, `x/crypto`,
   `tls-client`, `modernc.org/sqlite`). With mcp-go v1, closing the MCP
   server's stdin cancels tool calls still in flight.

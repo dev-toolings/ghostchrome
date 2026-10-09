@@ -18,12 +18,10 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref_type != 'tag' }}
 
 jobs:
+  # macOS is not covered for now: no macOS runner jobs. Darwin release
+  # binaries are still cross-compiled from Linux in release.yml.
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -79,17 +77,6 @@ jobs:
           chrome-version: stable
       - run: go test -count=1 -race ./...
 
-  macos-smoke:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: 'go.mod'
-      # Keep browser-backed coverage on pull requests as well as main pushes;
-      # the regular macOS job only runs -short and cannot catch CDP regressions.
-      - run: go test ./internal/core/engine -run 'TestConformanceCoreLoop|TestNavigateUsesEventHub|TestStartEventHubIdempotent|TestCaptureMutationWaitsForXHR|TestClickIframeLinkWaitsForFrameNav|TestExtractClickNestedIframeRef|TestClickFileInputInIframeDoesNotHang|TestClickFileInputInIframeAfterNavigationDoesNotHang|TestDialogAfterNavigationDoesNotHang|TestHandleNextDialogWaitsForAndHandlesDialogs|TestDialogAutoHandlerAcceptsTwoAlerts|TestResolveRefReportsStaleSnapshots' -count=1 -timeout 30m
-
   windows-smoke:
     runs-on: windows-latest
     steps:
@@ -129,7 +116,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6

@@ -155,12 +155,13 @@ Documentation-only changes require path and diff checks, not a full test run.
 ### Continuous integration
 
 `.github/workflows/ci.yml` runs on branch pushes, pull requests to main, and
-manual dispatch. It checks Linux/macOS builds with race detection, lint, the
-10,000-operation browser loop, Linux integration tests, macOS and Windows smoke
-tests, both SDKs, the GitHub launcher on three OSes, and the
+manual dispatch. It checks the Linux build with race detection, lint, the
+10,000-operation browser loop, Linux integration tests, Windows smoke tests,
+both SDKs, the GitHub launcher on Linux and Windows, and the
 `tools/deploy/chrome` image (CLI, MCP and host-attached CDP modes, a
 `healthy` status in every mode, and the `tools/benchmark/cdp_modes.py`
-latency table in the job summary).
+latency table in the job summary). macOS has no CI job for now; darwin release
+binaries are cross-compiled but untested.
 
 `.github/workflows/release.yml` runs on `v*` tags. It calls `ci.yml` and
 publishes only when it passes: GitHub Release binaries and checksums, the
