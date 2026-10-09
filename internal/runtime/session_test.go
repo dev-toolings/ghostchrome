@@ -152,3 +152,34 @@ func TestMutationAdvancesRefsWithEmbeddedChrome(t *testing.T) {
 		t.Fatal("the ref table still points at the extract; later diffs would keep comparing against it")
 	}
 }
+
+// Refs printed by a selector-scoped extract restart at @1 inside the subtree.
+// They must resolve against that scoped table: clicking @1 used to hit the
+// first ref of the previous full-page extract instead.
+func TestScopedExtractRefsResolveToTheScopedElements(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requires Chrome")
+	}
+	t.Setenv("HOME", t.TempDir())
+	s := New(localChromeConfig())
+	t.Cleanup(s.Shutdown)
+
+	page := "data:text/html," + url.PathEscape(`<title>start</title><button onclick="document.title='outside'">Outside</button><main><button onclick="document.title='inside'">Inside</button></main>`)
+	dispatch := func(op string, args map[string]string) {
+		t.Helper()
+		raw, err := json.Marshal(args)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.Dispatch(op, raw); err != nil {
+			t.Fatalf("%s: %v", op, err)
+		}
+	}
+	dispatch("navigate", map[string]string{"url": page})
+	dispatch("extract", map[string]string{"level": "skeleton"})
+	dispatch("extract", map[string]string{"level": "skeleton", "selector": "main"})
+	dispatch("click", map[string]string{"ref": "@1", "snapshot": "none"})
+	if title := s.page.MustEval("() => document.title").Str(); title != "inside" {
+		t.Fatalf("@1 from the scoped extract clicked the wrong element: title %q", title)
+	}
+}
