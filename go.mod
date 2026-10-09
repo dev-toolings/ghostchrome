@@ -7,7 +7,7 @@ require (
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/go-rod/rod v0.116.2
 	github.com/joho/godotenv v1.5.1
-	github.com/mark3labs/mcp-go v0.51.0
+	github.com/mark3labs/mcp-go v1.2.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/ysmood/gson v0.7.3
