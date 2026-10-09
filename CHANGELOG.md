@@ -13,6 +13,11 @@ All notable changes to ghostchrome are documented here. The format is based on
   and bare-CDP modes, pushed to `ghcr.io/dev-toolings/ghostchrome` by release
   tags. `docs/cdp.md` covers it and attaching to your own Chrome.
 - Dependabot for Go modules, GitHub Actions, Bun and the Docker base image.
+- `tools/benchmark/cdp_modes.py` measures loop latency per connection mode
+  (daemon, attach, MCP, Docker, launcher); CI reruns it in the Docker job.
+  Results: `tools/benchmark/results-cdp-modes.md`.
+- The Chrome image has a mode-aware healthcheck (green in `cdp`, MCP and CLI
+  modes) and `CDP_RELAY=0` for host-network runs.
 
 ### Changed
 - Release tags run the full CI suite and publish only when it passes.

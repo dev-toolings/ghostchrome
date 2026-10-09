@@ -186,12 +186,24 @@ jobs:
             echo "$c: $h"
             [ "$h" = healthy ] || { docker inspect -f '{{json .State.Health}}' "$c"; exit 1; }
           done
-          docker rm -f gc-mcp
+          docker rm -f gc-mcp gc-cdp   # frees host port 9222
+          # Host network: Chrome's loopback port is the host's, no relay.
+          docker run -d --name gc-hostnet --network host -e CDP_RELAY=0 ghostchrome:ci cdp
+          for i in $(seq 1 30); do
+            h=$(docker inspect -f '{{.State.Health.Status}}' gc-hostnet)
+            [ "$h" = healthy ] && break
+            sleep 2
+          done
+          echo "gc-hostnet: $h"
+          [ "$h" = healthy ]
+          if curl -fsS -m 2 http://127.0.0.1:9223/json/version; then
+            echo "::error::CDP_RELAY=0 still listens on 9223"; exit 1
+          fi
+          docker rm -f gc-hostnet
       - name: Benchmark connection modes (host vs container)
         # Latency per Chrome connection mode on the same runner; the table
         # lands in the job summary. See tools/benchmark/cdp_modes.py.
         run: |
-          docker rm -f gc-cdp   # frees host port 9222 for docker-cdp-hostnet
           python3 tools/benchmark/cdp_modes.py --bin "$RUNNER_TEMP/ghostchrome" \
             --image ghostchrome:ci --chrome "$(command -v google-chrome)" --runs 10 \
             --modes cli-daemon,cli-attach,mcp-local,mcp-connect,docker-cdp,docker-cdp-hostnet,docker-exec,docker-mcp,launcher \

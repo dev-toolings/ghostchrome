@@ -263,7 +263,7 @@ class Bench:
         if name == "docker-cdp-hostnet":
             name_ = f"gc-bench-{os.getpid()}-{len(self.containers)}"
             subprocess.run(["docker", "run", "-d", "--name", name_, "--shm-size=1g", "--network", "host",
-                            image, "cdp"], check=True, capture_output=True)
+                            "-e", "CDP_RELAY=0", image, "cdp"], check=True, capture_output=True)
             self.containers.append(name_)
             wait_http("http://127.0.0.1:9222/json/version")
             return self.run_cli(name, b + ["--connect", "http://127.0.0.1:9222"], self.env)

@@ -18,6 +18,9 @@ docker run -d --shm-size=1g -p 127.0.0.1:9222:9223 ghostchrome cdp       # CDP
 - The container runs as the unprivileged `ghost` user with
   `GHOSTCHROME_NO_SANDBOX=1`: the container is the isolation boundary.
 - `CHROME_PROFILE_DIR` moves the `cdp` profile, for example onto a volume.
+- `CDP_RELAY=0` skips the socat relay, for `--network host` where Chrome's
+  loopback 9222 is already reachable from the host (and 2.6x faster than a
+  published port, see `tools/benchmark/results-cdp-modes.md`).
 - `healthcheck.sh` follows the mode the entrypoint recorded: `cdp` probes
   Chrome on 9222 and the relay on 9223, every other mode runs
   `ghostchrome --version`. CI fails unless both modes report `healthy`. If you

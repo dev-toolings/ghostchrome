@@ -26,6 +26,19 @@ you run yourself, and running Chrome in a Docker container.
 | File paths (`upload`, downloads) | Shared with the host | Seen by the container's Chrome |
 | Fit | Daily agent work on your machine | Servers, CI, disposable runs |
 
+Measured loop latency (navigate + snapshot, eval, click; median, CI runner,
+[`results-cdp-modes.md`](../tools/benchmark/results-cdp-modes.md)):
+
+| Path | ms per loop |
+|---|---:|
+| MCP, local or `docker run -i ... mcp` | 116-118 |
+| CLI, implicit daemon | 283 |
+| CLI, attach or `--connect` to a Chrome on loopback | 325 |
+| CLI, container on `--network host` with `CDP_RELAY=0` | 327 |
+| CLI, `docker exec` into the container | 434 |
+| CLI, container `cdp` mode through a published port | 845 |
+| CLI without daemon (`GHOSTCHROME_NO_DAEMON=1`) | about 5,000 |
+
 ## A. Attach to your own Chrome
 
 Chrome refuses remote debugging on its default profile directory, so give it a
@@ -83,6 +96,16 @@ only binds loopback). Publish it on the host loopback only.
 docker run -d --name gc-chrome --shm-size=1g -p 127.0.0.1:9222:9223 ghostchrome cdp
 ghostchrome attach --cdp=http://127.0.0.1:9222
 ghostchrome mcp --connect http://127.0.0.1:9222             # MCP equivalent
+```
+
+Every CDP message then crosses `docker-proxy` and the `socat` relay, which
+makes this path 2.6x slower than a local attach. On a host you trust, run the
+container on the host network instead: Chrome's loopback port is then the
+host's, and `CDP_RELAY=0` keeps the relay from listening on other interfaces.
+
+```bash
+docker run -d --name gc-chrome --shm-size=1g --network host -e CDP_RELAY=0 ghostchrome cdp
+ghostchrome attach --cdp=http://127.0.0.1:9222
 ```
 
 In this mode `upload` paths and downloads refer to the container's filesystem,

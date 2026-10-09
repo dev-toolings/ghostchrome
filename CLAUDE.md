@@ -158,7 +158,9 @@ Documentation-only changes require path and diff checks, not a full test run.
 manual dispatch. It checks Linux/macOS builds with race detection, lint, the
 10,000-operation browser loop, Linux integration tests, macOS and Windows smoke
 tests, both SDKs, the GitHub launcher on three OSes, and the
-`tools/deploy/chrome` image (CLI, MCP and host-attached CDP modes).
+`tools/deploy/chrome` image (CLI, MCP and host-attached CDP modes, a
+`healthy` status in every mode, and the `tools/benchmark/cdp_modes.py`
+latency table in the job summary).
 
 `.github/workflows/release.yml` runs on `v*` tags. It calls `ci.yml` and
 publishes only when it passes: GitHub Release binaries and checksums, the

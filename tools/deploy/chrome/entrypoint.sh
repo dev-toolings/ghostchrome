@@ -17,7 +17,11 @@ shift
 
 profile="${CHROME_PROFILE_DIR:-$HOME/chrome-profile}"
 mkdir -p "$profile"
-socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222 &
+# With --network host, Chrome's loopback 9222 is already the host's: set
+# CDP_RELAY=0 so nothing listens on the host's other interfaces.
+if [ "${CDP_RELAY:-1}" != "0" ]; then
+  socat TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 TCP:127.0.0.1:9222 &
+fi
 # exec keeps Chrome as the container's main process: the container stops when
 # Chrome does, and tini reaps both.
 exec google-chrome-stable \
