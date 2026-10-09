@@ -6,6 +6,12 @@ All notable changes to ghostchrome are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- Resolve `--connect` (and `GHOSTCHROME_CONNECT`, the JSONL agent and sessions)
+  through `/json/version` when it is `http(s)://host:port` or a bare
+  `ws(s)://host:port`, instead of failing with `websocket bad handshake: 404`.
+  Full `ws://.../devtools/browser/<id>` URLs and `auto` are unchanged, CDP
+  headers are sent on the lookup, and session state stays keyed by the URL as
+  given so it survives a Chrome restart.
 - Stop passing Chromium `--ignore-certificate-errors` whenever a proxy is set.
   TLS verification now stays on unless the new `IgnoreCertErrors` launcher
   option asks for it.

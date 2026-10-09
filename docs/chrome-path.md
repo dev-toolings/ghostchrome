@@ -7,7 +7,7 @@ When fast-path can't deliver — JS rendering, interaction, anti-bot challenges 
 | Mode | Flag | Behavior |
 |---|---|---|
 | **Attach to running Chrome** (preferred) | `--connect=auto` | Scan ports 9222-9229, pick lowest. Zero spawn cost. |
-| Attach to specific endpoint | `--connect=ws://...` | Use the WebSocket URL given. |
+| Attach to specific endpoint | `--connect=ws://...` | `http(s)://host:port` and bare `ws(s)://host:port` resolve through `/json/version`; a full `ws://.../devtools/browser/<id>` is used as given. |
 | Spawn fresh headless | `--launch` (alias) or no `--connect` | Ephemeral profile. Default. |
 | Headful off-screen | `--invisible` | Real GPU, no visible window. Best for anti-bot. |
 
