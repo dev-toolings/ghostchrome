@@ -313,7 +313,7 @@ func registerGroups() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&flagConnect, "connect", "", "WebSocket URL to connect to existing Chrome (e.g. ws://127.0.0.1:9222), or \"auto\" to discover one on 127.0.0.1:9222-9229 and work in a background tab")
+	rootCmd.PersistentFlags().StringVar(&flagConnect, "connect", "", "URL of an existing Chrome: http://127.0.0.1:9222 or ws://127.0.0.1:9222 (both resolved through /json/version), or a full ws://.../devtools/browser/<id>; or \"auto\" to discover one on 127.0.0.1:9222-9229 and work in a background tab")
 	rootCmd.PersistentFlags().StringVarP(&flagSession, "session", "s", "", "Named auto-managed session: spawns a persistent Chrome (bound to profile <name>) on first use and reuses it across calls. Defaults from $PLAYWRIGHT_CLI_SESSION, then $GHOSTCHROME_SESSION. Manage with `ghostchrome sessions`.")
 	rootCmd.PersistentFlags().StringVar(&flagContext, "context", "", "Named isolated BrowserContext (incognito) within the connected Chrome; enables parallel sessions without spawning multiple Chrome processes. Only meaningful with --connect.")
 	rootCmd.PersistentFlags().IntVar(&flagTab, "tab", -1, "Target tab index when using --connect (use `ghostchrome tabs --connect ...` to list)")

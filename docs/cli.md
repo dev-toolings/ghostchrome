@@ -786,7 +786,7 @@ Apply to every command (where meaningful):
 | Flag | Default | Effect |
 |---|---|---|
 | `-s, --session NAME` | `$PLAYWRIGHT_CLI_SESSION`, then `$GHOSTCHROME_SESSION` | Auto-managed persistent session: spawn a Chrome (profile `NAME`) on first use, reuse it after. |
-| `--connect URL` | — | Attach to existing Chrome (`auto` to discover on 127.0.0.1:9222-9229). |
+| `--connect URL` | — | Attach to existing Chrome: `http://host:port` or `ws://host:port` (resolved through `/json/version`), a full `ws://.../devtools/browser/<id>`, or `auto` to discover on 127.0.0.1:9222-9229. |
 | `--context NAME` | — | Use a named isolated context in the connected Chrome (parallel sessions, no extra Chrome). |
 | `--headless` | true | Headless mode. Set `--headless=false` to show a window. |
 | `--headed` | false | Playwright CLI-compatible inverse of `--headless`. |

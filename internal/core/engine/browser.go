@@ -617,6 +617,22 @@ func CleanupFailedLauncher(l *launcher.Launcher, removeProfile bool) {
 }
 
 func connectRodBrowser(connectURL string, timeout time.Duration, cdpTimeoutMS int, headers map[string]string) (*rod.Browser, error) {
+	// http(s)://host:port and bare ws(s)://host:port are not websocket
+	// endpoints: resolve them to the browser webSocketDebuggerUrl first.
+	if needsCDPResolve(connectURL) {
+		resolveTimeout := timeout
+		if cdpTimeoutMS > 0 {
+			resolveTimeout = time.Duration(cdpTimeoutMS) * time.Millisecond
+		}
+		if resolveTimeout <= 0 {
+			resolveTimeout = 5 * time.Second
+		}
+		resolved, err := ResolveCDPEndpointWithHeaders(connectURL, resolveTimeout, headers)
+		if err != nil {
+			return nil, fmt.Errorf("resolve cdp endpoint: %w", err)
+		}
+		connectURL = resolved
+	}
 	if len(headers) == 0 && cdpTimeoutMS <= 0 {
 		// Do not wrap Connect in Browser.Timeout: initEvents binds to that
 		// context, and CancelTimeout kills the CDP event fan-out. Popup

@@ -44,7 +44,7 @@ work with `mcp`:
 | Flag | Effect |
 |---|---|
 | `--connect=auto` | Attach to an existing Chrome on `127.0.0.1:9222-9229` in a fresh tab. Lets multiple agents share one Chrome. |
-| `--connect=ws://...` | Attach to a specific Chrome DevTools endpoint. |
+| `--connect=ws://...` | Attach to a specific Chrome DevTools endpoint: `http(s)://host:port` or `ws(s)://host:port` (resolved through `/json/version`), or a full `ws://.../devtools/browser/<id>`. Same for `GHOSTCHROME_CONNECT`. |
 | `--headless=false` | Show a window. Useful for debugging the agent. |
 | `--user-profile NAME` | Persist cookies/localStorage under `~/.ghostchrome/profiles/NAME/`. |
 | `--proxy http://...` | Route all requests through a proxy (basic auth supported). |
