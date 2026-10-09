@@ -187,6 +187,27 @@ jobs:
             echo "::error::CDP_RELAY=0 still listens on 9223"; exit 1
           fi
           docker rm -f gc-hostnet
+      - name: Upload paths resolve on the browser's filesystem (cdp mode)
+        # docs/cdp.md: a host-only file passes ghostchrome's local check but
+        # the container's Chrome cannot read it; a volume mounted at the same
+        # path on both sides works.
+        run: |
+          shared="$RUNNER_TEMP/shared"; mkdir -p "$shared"
+          printf hello > "$shared/in-volume.txt"; printf hello > "$RUNNER_TEMP/host-only.txt"
+          chmod 755 "$shared"; chmod 644 "$shared/in-volume.txt"
+          docker run -d --name gc-up --shm-size=1g -p 127.0.0.1:9224:9223 -v "$shared:$shared:ro" ghostchrome:ci cdp
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:9224/json/version >/dev/null && break; sleep 1; done
+          gc() { HOME="$RUNNER_TEMP/up-home" "$RUNNER_TEMP/ghostchrome" --connect http://127.0.0.1:9224 "$@"; }
+          page='data:text/html,<input type=file id=f>'
+          probe="new Promise(r=>{const f=document.querySelector('#f').files[0]; if(!f) return r('none'); f.text().then(t=>r('read:'+t.length)).catch(()=>r('unreadable'))})"
+          gc preview "$page" >/dev/null
+          gc upload --selector '#f' "$shared/in-volume.txt"
+          vol=$(gc eval "$probe"); echo "mounted volume: $vol"
+          gc preview "$page" >/dev/null
+          gc upload --selector '#f' "$RUNNER_TEMP/host-only.txt" || true
+          host=$(gc eval "$probe"); echo "host-only file: $host"
+          docker rm -f gc-up
+          [ "$vol" = read:5 ] && [ "$host" != read:5 ]
       - name: Benchmark connection modes (host vs container)
         # Latency per Chrome connection mode on the same runner; the table
         # lands in the job summary. See tools/benchmark/cdp_modes.py.
