@@ -1,8 +1,11 @@
 {
   "name": "ghostchrome-monorepo",
-  "version": "0.0.0",
+  "version": "0.7.1",
   "private": true,
-  "description": "Bun workspace root for the ghostchrome JavaScript packages (SDK + npm distribution wrappers). The Go binary is built with the justfile, not from here.",
+  "description": "Bun workspace root for the ghostchrome JavaScript packages (SDK + npm distribution wrappers). Its bin is the GitHub launcher: `bunx github:dev-toolings/ghostchrome <command>` downloads and runs the matching release binary. The Go binary is built with the justfile, not from here.",
+  "bin": {
+    "ghostchrome": "sdk/launcher/ghostchrome.mjs"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
