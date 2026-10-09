@@ -849,3 +849,39 @@ func TestClickFileInputInIframeAfterNavigationDoesNotHang(t *testing.T) {
 		t.Fatal("iframe file input after navigation must not be treated as navigation")
 	}
 }
+
+func TestWaitForPageStableIsBoundedOnAPageThatNeverSettles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requires Chrome")
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		// A ticking DOM plus a request every 100ms: neither a quiet network nor a
+		// stable DOM ever happens, exactly like a dev server with HMR.
+		_, _ = w.Write([]byte(`<!doctype html><title>busy</title><body><p id="t">0</p><script>
+let n = 0
+setInterval(() => { document.getElementById("t").textContent = String(++n); fetch("/ping?" + n).catch(() => {}) }, 100)
+</script></body>`))
+	}))
+	t.Cleanup(server.Close)
+	previous := stableWaitTimeout
+	stableWaitTimeout = time.Second
+	t.Cleanup(func() { stableWaitTimeout = previous })
+	_, page := newIsolatedPage(t)
+	if _, err := Navigate(page, server.URL, "domcontentloaded"); err != nil {
+		t.Fatalf("navigate: %v", err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- WaitForPage(page, "stable") }()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("WaitForPage(stable) on a busy page should settle best effort, got %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("WaitForPage(stable) hung past its cap on a page that never settles")
+	}
+	if _, err := page.Info(); err != nil {
+		t.Fatalf("page unusable after the bounded wait: %v", err)
+	}
+}
