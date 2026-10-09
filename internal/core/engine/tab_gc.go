@@ -203,9 +203,10 @@ func listPageTargets(client *http.Client, base string) ([]cdpTarget, error) {
 }
 
 // BlankPages is the in-process variant for a held Browser (MCP, JSONL agent):
-// the current page goes back to about:blank, other pages are closed, and the
-// stored refs are dropped because they pointed at the old document.
-func (b *Browser) BlankPages() error {
+// keep (the caller's current page, or the Browser's when nil) goes back to
+// about:blank, other pages are closed, and the stored refs are dropped
+// because they pointed at the old document.
+func (b *Browser) BlankPages(keep *rod.Page) error {
 	if b == nil || b.browser == nil {
 		return nil
 	}
@@ -213,7 +214,9 @@ func (b *Browser) BlankPages() error {
 	if err != nil {
 		return err
 	}
-	keep := b.page
+	if keep == nil {
+		keep = b.page
+	}
 	if keep == nil && len(pages) > 0 {
 		keep = pages[0]
 	}

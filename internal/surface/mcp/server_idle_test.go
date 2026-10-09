@@ -336,9 +336,9 @@ func TestReapIfIdleBlanksPagesBeforeRelease(t *testing.T) {
 	if held != b1 || !blanked || refs != nil {
 		t.Fatalf("held=%v blanked=%v refs=%v: want the same browser, pages blanked, refs dropped", held == b1, blanked, refs)
 	}
-	info, err := page.Info()
-	if err != nil || info.URL != "about:blank" {
-		t.Fatalf("page after cleanup: url=%v err=%v, want about:blank", info, err)
+	href, err := page.Timeout(5 * time.Second).Eval("() => location.href")
+	if err != nil || href.Value.Str() != "about:blank" {
+		t.Fatalf("page after cleanup: href=%v err=%v, want about:blank", href, err)
 	}
 
 	// The next tool call is activity again: the stage can run once more later.

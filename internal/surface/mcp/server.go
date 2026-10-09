@@ -242,7 +242,7 @@ func (s *Server) reapIfIdle() {
 		fmt.Fprintf(os.Stderr, "[ghostchrome mcp] idle for %s — releasing chrome (relaunches on next call)\n", s.opts.IdleTimeout)
 		s.closeLocked()
 	case pageIdle && !s.pagesBlanked:
-		if err := s.browser.BlankPages(); err != nil {
+		if err := s.browser.BlankPages(s.page); err != nil {
 			fmt.Fprintf(os.Stderr, "[ghostchrome mcp] page cleanup failed: %v\n", err)
 		}
 		s.pagesBlanked = true
