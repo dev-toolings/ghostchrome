@@ -35,6 +35,7 @@ RUN apt-get update \
 
 COPY --from=build /out/ghostchrome /usr/local/bin/ghostchrome
 COPY tools/deploy/chrome/entrypoint.sh /usr/local/bin/ghostchrome-entrypoint
+COPY tools/deploy/chrome/healthcheck.sh /usr/local/bin/ghostchrome-healthcheck
 
 # Chrome's own sandbox needs user namespaces the default Docker seccomp
 # profile denies; the container is the isolation boundary instead.
@@ -44,5 +45,9 @@ USER ghost
 WORKDIR /home/ghost
 
 EXPOSE 9223
+# Mode-aware: cdp checks Chrome's DevTools endpoint, the other modes check the
+# ghostchrome binary. Override it whenever you replace the entrypoint.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \
+  CMD ["/usr/local/bin/ghostchrome-healthcheck"]
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/ghostchrome-entrypoint"]
 CMD ["--help"]

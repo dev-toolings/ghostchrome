@@ -5,9 +5,14 @@
 # argument list runs ghostchrome inside the container.
 set -eu
 
+# The healthcheck reads the mode, so one image is green in every mode instead
+# of probing a port that only one mode opens.
+mode_file=/tmp/ghostchrome-mode
 if [ "${1:-}" != "cdp" ]; then
+  echo run > "$mode_file"
   exec ghostchrome "$@"
 fi
+echo cdp > "$mode_file"
 shift
 
 profile="${CHROME_PROFILE_DIR:-$HOME/chrome-profile}"

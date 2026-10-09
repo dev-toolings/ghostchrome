@@ -172,6 +172,21 @@ jobs:
           export HOME="$RUNNER_TEMP/home"
           "$RUNNER_TEMP/ghostchrome" attach --cdp=http://127.0.0.1:9222
           "$RUNNER_TEMP/ghostchrome" preview 'data:text/html,<h1>from-host</h1>' | grep -q from-host
+      - name: Containers report healthy in every mode
+        # A container must be green: a healthcheck that probes a port its
+        # mode never opens leaves it "unhealthy" while it works.
+        run: |
+          docker run -d -i --name gc-mcp --shm-size=1g ghostchrome:ci mcp
+          for c in gc-cdp gc-mcp; do
+            for i in $(seq 1 30); do
+              h=$(docker inspect -f '{{.State.Health.Status}}' "$c")
+              [ "$h" = healthy ] && break
+              sleep 2
+            done
+            echo "$c: $h"
+            [ "$h" = healthy ] || { docker inspect -f '{{json .State.Health}}' "$c"; exit 1; }
+          done
+          docker rm -f gc-mcp
       - name: Benchmark connection modes (host vs container)
         # Latency per Chrome connection mode on the same runner; the table
         # lands in the job summary. See tools/benchmark/cdp_modes.py.
