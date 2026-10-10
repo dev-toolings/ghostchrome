@@ -148,7 +148,7 @@ func (t *requestTracker) Entries() []NetworkEntry {
 		}
 		entries = append(entries, NetworkEntry{
 			Method:   req.method,
-			URL:      req.url,
+			URL:      ElideDataURL(req.url),
 			Status:   req.status,
 			Size:     req.sizeBytes,
 			TimeMs:   req.timeMs,
@@ -174,7 +174,7 @@ func (t *requestTracker) ErrorEntries() []ErrorEntry {
 			errors = append(errors, ErrorEntry{
 				Type:    "network",
 				Level:   "error",
-				Message: req.url,
+				Message: ElideDataURL(req.url),
 				Source:  req.errorText,
 				Method:  req.method,
 				TimeMs:  req.timeMs,
@@ -183,8 +183,8 @@ func (t *requestTracker) ErrorEntries() []ErrorEntry {
 			errors = append(errors, ErrorEntry{
 				Type:    "network",
 				Level:   "5xx",
-				Message: req.url,
-				Source:  req.url,
+				Message: ElideDataURL(req.url),
+				Source:  ElideDataURL(req.url),
 				Status:  req.status,
 				Method:  req.method,
 				TimeMs:  req.timeMs,
@@ -193,8 +193,8 @@ func (t *requestTracker) ErrorEntries() []ErrorEntry {
 			errors = append(errors, ErrorEntry{
 				Type:    "network",
 				Level:   "4xx",
-				Message: req.url,
-				Source:  req.url,
+				Message: ElideDataURL(req.url),
+				Source:  ElideDataURL(req.url),
 				Status:  req.status,
 				Method:  req.method,
 				TimeMs:  req.timeMs,

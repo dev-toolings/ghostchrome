@@ -39,7 +39,7 @@ func ErrorsFromEvents(events []ObserverEvent) []ErrorEntry {
 				} else if e.Status >= 400 {
 					level = "4xx"
 				}
-				out = append(out, ErrorEntry{Type: "network", Level: level, Message: e.URL, Source: e.URL, Status: e.Status, Method: e.Method, TimeMs: e.DurationMs})
+				out = append(out, ErrorEntry{Type: "network", Level: level, Message: ElideDataURL(e.URL), Source: ElideDataURL(e.URL), Status: e.Status, Method: e.Method, TimeMs: e.DurationMs})
 			}
 		}
 	}

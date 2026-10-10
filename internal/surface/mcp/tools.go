@@ -926,7 +926,7 @@ func (s *Server) observerNetwork() []engine.NetworkEntry {
 		}
 		out = append(out, engine.NetworkEntry{
 			Method:   e.Method,
-			URL:      e.URL,
+			URL:      engine.ElideDataURL(e.URL),
 			Status:   e.Status,
 			Size:     int(e.Size),
 			TimeMs:   e.DurationMs,

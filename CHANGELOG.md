@@ -5,6 +5,11 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+- MCP and `preview` JSON no longer copy `data:` URLs verbatim into network and
+  error entries: they are elided to the media type plus the payload length
+  (`data:image/svg+xml;charset=utf8,[10234 chars]`). Other URLs are untouched.
+
 ## [0.8.0] - 2026-10-10
 
 ### Added
