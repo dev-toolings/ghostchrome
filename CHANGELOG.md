@@ -5,6 +5,8 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-10
+
 ### Added
 - Run ghostchrome from GitHub with no install: `bunx github:dev-toolings/ghostchrome
   <command>` (or `mcp`) downloads the release binary for the platform, checks

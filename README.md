@@ -147,8 +147,8 @@ bun add -g github:dev-toolings/ghostchrome   # optional: a global `ghostchrome`
 The launcher downloads the release binary for your platform (Linux/macOS,
 amd64/arm64; Windows amd64), verifies it against the release `checksums.txt`
 and caches it under `~/.ghostchrome/releases/<version>/`; later starts skip
-the download. Pin a version with `github:dev-toolings/ghostchrome#v0.7.1` or
-`GHOSTCHROME_VERSION=v0.7.1`. A container image is also available: see
+the download. Pin a version with `github:dev-toolings/ghostchrome#v0.8.0` or
+`GHOSTCHROME_VERSION=v0.8.0`. A container image is also available: see
 [`docs/cdp.md`](docs/cdp.md).
 
 For exclusive CLI/MCP setup and global Claude/Codex/Grok skill installation,
