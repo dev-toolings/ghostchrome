@@ -72,9 +72,16 @@ func TestAgentRetainsDialogPolicyAndErrors(t *testing.T) {
 	if _, err := engine.Navigate(page, "data:text/html,"+url.PathEscape(`<script>document.title=String(confirm('test'))</script>`), "load"); err != nil {
 		t.Fatal(err)
 	}
-	info, err := page.Info()
-	if err != nil || info.Title != "false" {
-		t.Fatalf("dialog was not dismissed: %+v, %v", info, err)
+	titleDeadline := time.Now().Add(2 * time.Second)
+	for {
+		info, err := page.Info()
+		if err == nil && info.Title == "false" {
+			break
+		}
+		if time.Now().After(titleDeadline) {
+			t.Fatalf("dialog was not dismissed: %+v, %v", info, err)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 	if _, err := page.Eval(`() => console.error("retained-error")`); err != nil {
 		t.Fatal(err)
