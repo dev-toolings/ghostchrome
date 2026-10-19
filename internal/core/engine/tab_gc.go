@@ -162,19 +162,42 @@ func BlankPages(port int, timeout time.Duration) (int, error) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return 0, fmt.Errorf("open blank tab: HTTP %d %v", resp.StatusCode, err)
 	}
-	cleared := 0
+	pending := map[string]bool{}
 	for _, p := range pages {
-		if p.ID == fresh.ID {
-			continue
+		if p.ID != fresh.ID {
+			pending[p.ID] = true
 		}
-		resp, err := client.Get(base + "/json/close/" + p.ID)
-		if err != nil {
-			continue
-		}
-		resp.Body.Close()
-		cleared++
 	}
-	return cleared, nil
+	total := len(pending)
+	// /json/close only starts the close: a tab can stay listed for a while,
+	// and a request can fail on a busy browser. Re-send it until /json/list
+	// confirms every tab is gone, so the count reports closed tabs only.
+	deadline := time.Now().Add(timeout)
+	for {
+		for id := range pending {
+			if resp, err := client.Get(base + "/json/close/" + id); err == nil {
+				resp.Body.Close()
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+		if current, err := listPageTargets(client, base); err == nil {
+			open := map[string]bool{}
+			for _, p := range current {
+				open[p.ID] = true
+			}
+			for id := range pending {
+				if !open[id] {
+					delete(pending, id)
+				}
+			}
+		}
+		if len(pending) == 0 {
+			return total, nil
+		}
+		if time.Now().After(deadline) {
+			return total - len(pending), fmt.Errorf("%d page(s) still open after close", len(pending))
+		}
+	}
 }
 
 type cdpTarget struct {
