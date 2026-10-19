@@ -235,8 +235,12 @@ global AGENTS/CLAUDE instruction edits explicit with `setup instructions --write
 
 Follow SemVer (vMAJOR.MINOR.PATCH):
 - MAJOR: Breaking CLI interface changes (renamed commands, changed output format)
-- MINOR: New commands or flags (backward compatible)
+- MINOR: New commands, flags, MCP tools or SDK methods (backward compatible)
 - PATCH: Bug fixes, performance improvements
+
+The assistant derives the bump from the commits since the last tag (the
+highest one wins) and flags an operator-given version that contradicts it
+before tagging. Details: `.claude/rules/versioning.md`.
 
 Release versions come from Git tags and are embedded with `-X main.version`.
 When preparing a release, update `CHANGELOG.md`, the root `package.json`
