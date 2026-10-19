@@ -168,7 +168,8 @@ publishes only when it passes: GitHub Release binaries and checksums, the
 `ghcr.io/dev-toolings/ghostchrome` image, a launcher smoke test against the new
 release, and npm/PyPI packages when `NPM_TOKEN`/`PYPI_TOKEN` are set (a missing
 token is a workflow warning, not a failure). `.github/dependabot.yml` opens
-weekly grouped updates for Go modules, Actions, Bun and the Docker base image.
+weekly grouped updates for Go modules, Actions, Bun and the Docker base image
+against `develop`, which reaches `main` through the release merge.
 
 `.github/workflows/security-audit.yml` installs the frozen Bun workspace with
 scripts disabled and runs `bun audit --audit-level=high`, plus the JavaScript
