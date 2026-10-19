@@ -112,6 +112,8 @@ jobs:
     # The GitHub launcher (bunx github:dev-toolings/ghostchrome) downloads the
     # release named by the root package.json. On a tag that release does not
     # exist yet; release.yml smoke-tests the launcher after publishing it.
+    # A version bump reaches develop and main before its tag, so until that
+    # release is published the job runs the launcher against the latest one.
     if: github.ref_type != 'tag'
     strategy:
       fail-fast: false
@@ -127,8 +129,14 @@ jobs:
         shell: bash
         env:
           GHOSTCHROME_HOME: ${{ runner.temp }}/ghostchrome-home
+          GH_TOKEN: ${{ github.token }}
         run: |
           want="v$(jq -r .version package.json)"
+          if ! gh release view "$want" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            want=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+            echo "::notice::package.json names an unpublished release; testing the launcher with $want"
+            export GHOSTCHROME_VERSION="$want"
+          fi
           bun sdk/launcher/ghostchrome.mjs --version | tee out.txt
           grep -q "$want" out.txt
           bun sdk/launcher/ghostchrome.mjs --version 2>&1 | grep -vq downloading
