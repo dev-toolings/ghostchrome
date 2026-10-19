@@ -5,6 +5,8 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-10-19
+
 ### Fixed
 - The MCP server (`ghostchrome-mcp` and `ghostchrome mcp`) launches Chrome on
   the first tool call instead of at startup. Before, every agent session that
