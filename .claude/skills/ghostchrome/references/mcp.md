@@ -121,7 +121,7 @@ client supports them:
 
 After 5 minutes without a tool call the pages go back to `about:blank` (or, with
 `--connect`, the tab the server opened is closed); snapshot again afterwards.
-The default idle timeout is 15 minutes. The MCP process remains available while
+The default idle timeout is 5 minutes. The MCP process remains available while
 the browser is released; the next browser tool call recreates the context. This
 keeps idle RSS bounded without requiring a client re-registration.
 

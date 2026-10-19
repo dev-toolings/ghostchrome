@@ -5,6 +5,12 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+- The MCP server releases an idle Chrome after 5 minutes instead of 15
+  (`GHOSTCHROME_IDLE_TIMEOUT` still overrides it).
+- CI and the security audit run on pushes and pull requests to `main` only;
+  `develop` and feature branches are validated locally.
+
 ## [0.8.2] - 2026-10-19
 
 ### Fixed

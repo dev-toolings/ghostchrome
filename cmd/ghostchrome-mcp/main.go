@@ -11,7 +11,7 @@
 //	GHOSTCHROME_TIMEOUT     — timeout in seconds (default 30)
 //	GHOSTCHROME_VAULT_KEY   — encryption key for state vault
 //	GHOSTCHROME_MCP_PREWARM — "1" to launch Chrome at startup (default: first tool call)
-//	GHOSTCHROME_IDLE_TIMEOUT — idle Chrome reap window (default 15m; 0/off disables)
+//	GHOSTCHROME_IDLE_TIMEOUT — idle Chrome reap window (default 5m; 0/off disables)
 //	GHOSTCHROME_POLICY      — path to a JSON policy file (fail closed if unreadable)
 package main
 
@@ -32,7 +32,7 @@ import (
 
 var version = "dev"
 
-const defaultMCPIdleTimeout = 15 * time.Minute
+const defaultMCPIdleTimeout = 5 * time.Minute
 
 func main() {
 	if hasArg("--version") || hasArg("-v") {

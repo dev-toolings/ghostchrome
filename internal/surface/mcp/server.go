@@ -46,7 +46,7 @@ type Options struct {
 	// tool activity. Unlike the serve daemon (which exits), the MCP server
 	// stays up and relaunches Chrome on the next tool call — bounding the RAM a
 	// forgotten-but-still-open session holds. The zero value disables reaping;
-	// cmd/mcp.go supplies a 15m default (GHOSTCHROME_IDLE_TIMEOUT overrides,
+	// cmd/mcp.go supplies a 5m default (GHOSTCHROME_IDLE_TIMEOUT overrides,
 	// =0 disables).
 	IdleTimeout time.Duration
 	// PageIdleTimeout, when > 0, is the earlier cleanup stage: after this long

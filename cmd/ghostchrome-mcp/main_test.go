@@ -13,8 +13,8 @@ func TestMCPIdleTimeoutResolution(t *testing.T) {
 		value string
 		want  time.Duration
 	}{
-		{name: "unset defaults to 15m", value: "", want: defaultMCPIdleTimeout},
-		{name: "blank defaults to 15m", value: "   ", want: defaultMCPIdleTimeout},
+		{name: "unset defaults to 5m", value: "", want: defaultMCPIdleTimeout},
+		{name: "blank defaults to 5m", value: "   ", want: defaultMCPIdleTimeout},
 		{name: "duration", value: "30m", want: 30 * time.Minute},
 		{name: "bare seconds", value: "900", want: 900 * time.Second},
 		{name: "zero disables", value: "0", want: 0},

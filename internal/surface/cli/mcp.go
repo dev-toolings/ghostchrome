@@ -21,7 +21,7 @@ import (
 // releasing idle Chrome to avoid forgotten sessions squatting ~600MB each. The
 // server stays up and relaunches Chrome on the next call, so the only cost is a
 // ~1s cold start after a long pause.
-const defaultMCPIdleTimeout = 15 * time.Minute
+const defaultMCPIdleTimeout = 5 * time.Minute
 
 // mcpIdleTimeout resolves the idle-reap window for the MCP server. Empty env
 // falls back to defaultMCPIdleTimeout (reaping on by default here); an explicit
@@ -45,7 +45,7 @@ same global flags as the regular CLI: --connect, --headless, --user-profile,
 --stealth, --dismiss-cookies, --proxy, --timeout.
 
 Idle Chrome is auto-released after GHOSTCHROME_IDLE_TIMEOUT of no tool activity
-(default 15m; e.g. "30m" or "900") — the server stays up and relaunches Chrome
+(default 5m; e.g. "30m" or "900"). The server stays up and relaunches Chrome
 on the next call, so a forgotten-but-open session stops squatting idle memory.
 Set GHOSTCHROME_IDLE_TIMEOUT=0 to disable and keep Chrome pinned for the whole
 session.
@@ -106,7 +106,7 @@ The server speaks MCP 2025-11-25 and exposes 16 tools:
 			// Same GHOSTCHROME_IDLE_TIMEOUT knob as `serve`, but here it reaps
 			// only the held browser (the stdio server stays up and relaunches
 			// Chrome on demand) instead of exiting the process — and it is ON by
-			// default (15m) so idle sessions can't squat memory indefinitely.
+			// default (5m) so idle sessions can't squat memory indefinitely.
 			IdleTimeout: mcpIdleTimeout(),
 		}
 		s := mcpsurface.New(opts)

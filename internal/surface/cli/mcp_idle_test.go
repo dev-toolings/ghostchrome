@@ -6,7 +6,7 @@ import (
 )
 
 // TestMCPIdleTimeoutResolution locks the "reaping is on by default for the MCP
-// server" invariant: unset -> 15m default, explicit values honoured, and
+// server" invariant: unset -> 5m default, explicit values honoured, and
 // 0/off/garbage disable it. If someone later reverts the default to opt-in this
 // test fails loudly.
 func TestMCPIdleTimeoutResolution(t *testing.T) {
@@ -16,8 +16,8 @@ func TestMCPIdleTimeoutResolution(t *testing.T) {
 		set  bool
 		want time.Duration
 	}{
-		{"unset defaults to 15m", "", false, defaultMCPIdleTimeout},
-		{"blank defaults to 15m", "   ", true, defaultMCPIdleTimeout},
+		{"unset defaults to 5m", "", false, defaultMCPIdleTimeout},
+		{"blank defaults to 5m", "   ", true, defaultMCPIdleTimeout},
 		{"explicit duration", "30m", true, 30 * time.Minute},
 		{"bare seconds", "900", true, 900 * time.Second},
 		{"zero disables", "0", true, 0},
