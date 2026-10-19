@@ -5,7 +5,28 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-19
+
+### Added
+- MCP `network` tool: reloads the current page (or navigates to `url`) while
+  recording every request from the first one, and returns them in start order
+  with method, status, duration and the application call stack that issued
+  each. Duplicates are grouped by method and URL with their distinct callers.
+  Headers, cookies and bodies are never returned; sensitive query values are
+  redacted.
+
+### Changed
+- Dependabot opens its pull requests against `develop`.
+- Dependencies: Go minor updates, GitHub Actions, the `golang:1.27-bookworm`
+  and `ubuntu:26.04` bases of the Chrome image, and TypeScript 7 for the SDK.
+
 ### Fixed
+- Page cleanup now confirms each tab is gone before counting it, and reports
+  the tabs still open. Before, a slow close could leave a tab behind while the
+  daemon counted the next tick as activity.
+- The TypeScript SDK configuration builds with TypeScript 7.
+- README: `claude mcp add -e GHOSTCHROME_CONNECT=auto` registers the variable
+  with the server instead of the `claude` command.
 - MCP and `preview` JSON no longer copy `data:` URLs verbatim into network and
   error entries: they are elided to the media type plus the payload length
   (`data:image/svg+xml;charset=utf8,[10234 chars]`). Other URLs are untouched.
