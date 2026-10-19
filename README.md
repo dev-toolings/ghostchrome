@@ -190,7 +190,7 @@ automatically. The equivalent manual Claude registration is:
 claude mcp add ghostchrome -- ~/.ghostchrome/bin/ghostchrome-mcp
 
 # …or attach to an already-running Chrome instead of launching one
-GHOSTCHROME_CONNECT=auto claude mcp add ghostchrome -- ~/.ghostchrome/bin/ghostchrome-mcp
+claude mcp add -e GHOSTCHROME_CONNECT=auto ghostchrome -- ~/.ghostchrome/bin/ghostchrome-mcp
 ```
 
 For Codex, Cursor, Aider, or a custom loop see [Using it with LLM agents](#using-it-with-llm-agents).
@@ -205,6 +205,8 @@ For Codex, Cursor, Aider, or a custom loop see [Using it with LLM agents](#using
   [`tools/deploy/chrome`](tools/deploy/chrome/README.md). Attaching to your own
   Chrome or to a container over CDP is covered in [`docs/cdp.md`](docs/cdp.md).
 - **From source**: `git clone https://github.com/dev-toolings/ghostchrome && cd ghostchrome && go build -o ghostchrome ./cmd/ghostchrome`
+  (CLI). For the MCP server, `go build -o ~/.ghostchrome/bin/ghostchrome-mcp ./cmd/ghostchrome-mcp`
+  then register it as above. Build from `develop` to get tools not yet released.
 
 > **Note:** `go install …@latest` is not supported on this repo. Versioning was
 > reset to `v0.1.0`, but the earlier `v1.0.0` is pinned immutably in the Go module
