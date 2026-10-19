@@ -398,6 +398,51 @@
     ]
   },
   {
+    "name": "network",
+    "summary": "Audit every request a page makes while it reloads or navigates, with the code that issued each one and the duplicates. MCP surface only.",
+    "args": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": false,
+        "description": "URL to navigate to while recording (default: reload the current page)"
+      },
+      {
+        "name": "match",
+        "type": "string",
+        "required": false,
+        "description": "Regex on the request URL (default: every request)"
+      },
+      {
+        "name": "include_static",
+        "type": "boolean",
+        "required": false,
+        "description": "Keep scripts, styles, images, fonts and media (default false)"
+      },
+      {
+        "name": "quiet_ms",
+        "type": "number",
+        "required": false,
+        "description": "Stop after this long without network activity (default 1500, max 10000)"
+      },
+      {
+        "name": "timeout_ms",
+        "type": "number",
+        "required": false,
+        "description": "Upper bound for the whole audit (default 15000, max 60000)"
+      },
+      {
+        "name": "stack_depth",
+        "type": "number",
+        "required": false,
+        "description": "Application frames kept per initiator (default 4, max 10)"
+      }
+    ],
+    "surfaces": [
+      "mcp"
+    ]
+  },
+  {
     "name": "press",
     "summary": "Press a keyboard key; optionally focus an element by @ref first.",
     "args": [

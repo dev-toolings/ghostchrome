@@ -415,6 +415,30 @@ func Catalog() []Op {
 			},
 		},
 		{
+			Name:    "network",
+			Summary: "Audit every request a page makes while it reloads or navigates, with the code that issued each one and the duplicates. MCP surface only.",
+			Args: []Arg{
+				{Name: "url", Type: ArgString, Required: false, Description: "URL to navigate to while recording (default: reload the current page)"},
+				{Name: "match", Type: ArgString, Required: false, Description: "Regex on the request URL (default: every request)"},
+				{Name: "include_static", Type: ArgBoolean, Required: false, Description: "Keep scripts, styles, images, fonts and media (default false)"},
+				{Name: "quiet_ms", Type: ArgNumber, Required: false, Description: "Stop after this long without network activity (default 1500, max 10000)"},
+				{Name: "timeout_ms", Type: ArgNumber, Required: false, Description: "Upper bound for the whole audit (default 15000, max 60000)"},
+				{Name: "stack_depth", Type: ArgNumber, Required: false, Description: "Application frames kept per initiator (default 4, max 10)"},
+			},
+			Surfaces: []string{"mcp"},
+			MCP: &SurfaceSpec{
+				Description: "Audit a page load: reload the current page (or navigate to url) while recording every request from the very first one, then return them in start order with method, status, duration, and the application call stack that issued each (initiator). Duplicates are grouped by method and URL with their distinct callers. Use it to find repeated API calls on a refresh. Never returns headers, cookies or bodies; sensitive query values are redacted.",
+				Args: []SurfaceArg{
+					{Name: "url", Type: ArgString, Description: "Absolute URL to navigate to while recording (omit to reload the current page)"},
+					{Name: "match", Type: ArgString, Description: "Regex on the request URL, e.g. /api/ (default: every request)"},
+					{Name: "include_static", Type: ArgBoolean, Description: "Keep scripts, styles, images, fonts and media (default false)", Default: false},
+					{Name: "quiet_ms", Type: ArgNumber, Description: "Stop once no request started or finished for this long (default 1500). A long-lived stream does not block it.", Default: 1500},
+					{Name: "timeout_ms", Type: ArgNumber, Description: "Upper bound for the whole audit (default 15000)", Default: 15000},
+					{Name: "stack_depth", Type: ArgNumber, Description: "Application frames kept per initiator (default 4)", Default: 4},
+				},
+			},
+		},
+		{
 			Name:    "press",
 			Summary: "Press a keyboard key; optionally focus an element by @ref first.",
 			Args: []Arg{

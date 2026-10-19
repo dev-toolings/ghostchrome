@@ -1,6 +1,6 @@
 // Package mcp tool registrations.
 //
-// MCP v2.0 surface: 19 tools for an LLM-agent browser loop (snapshot, navigate,
+// MCP v2.0 surface: 20 tools for an LLM-agent browser loop (snapshot, navigate,
 // click, type, select, press, wait_for, eval, screenshot, hover, drag, swipe,
 // emulate, fill_form, upload, tabs, dialog, back, forward). Everything that
 // isn't on the hot path (sniff/trace/cookies/storage/blocker_stats) lives in
@@ -192,6 +192,57 @@ func (s *Server) handleNavigate(ctx context.Context, req mcpgo.CallToolRequest) 
 		summary := fmt.Sprintf("[%d] %s — %s (%dms)", info.Status, info.Title, info.URL, info.TimeMs)
 		return jsonResult(info, summary)
 	})
+}
+
+func (s *Server) handleNetwork(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+	target := strings.TrimSpace(mcpgo.ParseString(req, "url", ""))
+	spec := engine.NetworkAuditSpec{
+		Match:         mcpgo.ParseString(req, "match", ""),
+		IncludeStatic: mcpgo.ParseBoolean(req, "include_static", false),
+		QuietWindow:   time.Duration(clampInt(int(mcpgo.ParseFloat64(req, "quiet_ms", 1500)), 1500, 10000)) * time.Millisecond,
+		Timeout:       time.Duration(clampInt(int(mcpgo.ParseFloat64(req, "timeout_ms", 15000)), 15000, 60000)) * time.Millisecond,
+		StackDepth:    clampInt(int(mcpgo.ParseFloat64(req, "stack_depth", 4)), 4, 10),
+	}
+	return s.withPage(ctx, func(page *rod.Page) (*mcpgo.CallToolResult, error) {
+		// The trigger runs after the listeners are attached: the first request
+		// of the load is recorded, not only what follows the DOM being ready.
+		trigger := func() error {
+			if target != "" {
+				return page.Navigate(target)
+			}
+			return page.Reload()
+		}
+		report, err := engine.AuditNetwork(page, spec, trigger)
+		if err != nil {
+			return errResult(fmt.Errorf("network: %w", err))
+		}
+		// The page reloaded: refs and the cached extract belong to the old DOM.
+		_ = s.browser.InvalidateCachedExtract(page)
+		summary := fmt.Sprintf("[network] %d requests, %d duplicated, %dms: %s", report.Total, len(report.Duplicates), report.ElapsedMs, report.URL)
+		for i, dup := range report.Duplicates {
+			if i == 5 {
+				summary += "\n  ..."
+				break
+			}
+			starts := make([]string, 0, len(dup.StartsMs))
+			for _, ms := range dup.StartsMs {
+				starts = append(starts, fmt.Sprintf("%dms", ms))
+			}
+			summary += fmt.Sprintf("\n  %dx %s %s at %s <- %s", dup.Count, dup.Method, dup.URL, strings.Join(starts, ", "), strings.Join(dup.Callers, " | "))
+		}
+		return jsonResult(report, summary)
+	})
+}
+
+// clampInt returns fallback for a non-positive value and caps it at max.
+func clampInt(value, fallback, max int) int {
+	if value <= 0 {
+		return fallback
+	}
+	if value > max {
+		return max
+	}
+	return value
 }
 
 func (s *Server) handleClick(ctx context.Context, req mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {

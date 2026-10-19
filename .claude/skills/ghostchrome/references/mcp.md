@@ -12,12 +12,19 @@ metadata, console/network observations, and a compact accessibility tree with
 refs. Use a fresh snapshot after navigation, a route transition, a modal, or a
 DOM-changing interaction.
 
-The 19-tool surface is:
+The 20-tool surface is:
 
 ```text
 snapshot, navigate, click, type, select, press, hover, drag, swipe, emulate,
-fill_form, upload, tabs, dialog, wait_for, eval, screenshot, back, forward
+fill_form, upload, tabs, dialog, wait_for, eval, screenshot, back, forward,
+network
 ```
+
+Use `network` to audit a page load: it reloads (or navigates) with listeners
+already attached and returns every request with the application call stack
+that issued it, plus duplicates grouped with their start times and callers.
+Prefer it to `eval` on the Resource Timing buffer, which a dev server fills
+with modules before the first API call.
 
 Use refs from the current snapshot for interaction. Validate each mutating tool
 call through a URL/title change, a control state, visible text, or a new

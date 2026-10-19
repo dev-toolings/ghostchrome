@@ -177,12 +177,13 @@ session only when the browser itself is unhealthy.
 
 ## MCP mode
 
-Use the registered Ghostchrome MCP connection and its 19 browser tools. Start
+Use the registered Ghostchrome MCP connection and its 20 browser tools. Start
 with `snapshot` when entering or revisiting a page; it combines page status,
 console/network observations, and a compact DOM with refs. Continue with
 `navigate`, `click`, `type`, `select`, `press`, `hover`, `drag`, `swipe`,
 `emulate`, `fill_form`, `upload`, `tabs`, `dialog`, `wait_for`, `eval`,
-`screenshot`, `back`, or `forward` as the task requires. Verify state after each
+`screenshot`, `back`, `forward`, or `network` as the task requires. Use
+`network` to audit the requests of a page load and the code that issued them. Verify state after each
 mutating operation.
 
 Call `emulate` before checking a responsive layout, a mobile shell, or a

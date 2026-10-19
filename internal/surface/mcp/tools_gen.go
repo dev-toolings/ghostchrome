@@ -83,6 +83,16 @@ func toolDefs() []toolDef {
 			mcpgo.WithString("wait", mcpgo.Description("domcontentloaded (default), load, stable, idle, none"), mcpgo.Enum("domcontentloaded", "load", "stable", "idle", "none"), mcpgo.DefaultString("domcontentloaded")),
 		), (*Server).handleNavigate},
 
+		{mcpgo.NewTool("network",
+			mcpgo.WithDescription("Audit a page load: reload the current page (or navigate to url) while recording every request from the very first one, then return them in start order with method, status, duration, and the application call stack that issued each (initiator). Duplicates are grouped by method and URL with their distinct callers. Use it to find repeated API calls on a refresh. Never returns headers, cookies or bodies; sensitive query values are redacted."),
+			mcpgo.WithString("url", mcpgo.Description("Absolute URL to navigate to while recording (omit to reload the current page)")),
+			mcpgo.WithString("match", mcpgo.Description("Regex on the request URL, e.g. /api/ (default: every request)")),
+			mcpgo.WithBoolean("include_static", mcpgo.Description("Keep scripts, styles, images, fonts and media (default false)"), mcpgo.DefaultBool(false)),
+			mcpgo.WithNumber("quiet_ms", mcpgo.Description("Stop once no request started or finished for this long (default 1500). A long-lived stream does not block it."), mcpgo.DefaultNumber(1500)),
+			mcpgo.WithNumber("timeout_ms", mcpgo.Description("Upper bound for the whole audit (default 15000)"), mcpgo.DefaultNumber(15000)),
+			mcpgo.WithNumber("stack_depth", mcpgo.Description("Application frames kept per initiator (default 4)"), mcpgo.DefaultNumber(4)),
+		), (*Server).handleNetwork},
+
 		{mcpgo.NewTool("press",
 			mcpgo.WithDescription("Press a keyboard key. If `ref` is provided, focus that element first; otherwise the key fires on the document."),
 			mcpgo.WithString("key", mcpgo.Required(), mcpgo.Description("Key name: Enter, Tab, Escape, ArrowDown, ArrowUp, PageDown, Backspace, ...")),
