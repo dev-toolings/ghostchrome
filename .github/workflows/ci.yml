@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  # develop and feature branches are validated locally; CI runs only for main.
   push:
-    branches: ["**"]
+    branches: [main]
   workflow_dispatch:
   pull_request:
     branches: [main]

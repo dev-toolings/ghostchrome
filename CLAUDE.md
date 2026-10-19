@@ -154,8 +154,9 @@ Documentation-only changes require path and diff checks, not a full test run.
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on branch pushes, pull requests to main, and
-manual dispatch. It checks the Linux build with race detection, lint, the
+`.github/workflows/ci.yml` runs on pushes and pull requests to main, and on
+manual dispatch; develop and feature branches get no CI run, so validate them
+locally. It checks the Linux build with race detection, lint, the
 10,000-operation browser loop, Linux integration tests, Windows smoke tests,
 both SDKs, the GitHub launcher on Linux and Windows, and the
 `tools/deploy/chrome` image (CLI, MCP and host-attached CDP modes, a
@@ -174,12 +175,12 @@ against `develop`, which reaches `main` through the release merge.
 `.github/workflows/security-audit.yml` installs the frozen Bun workspace with
 scripts disabled and runs `bun audit --audit-level=high`, plus the JavaScript
 configuration scan. It runs daily, manually, and for relevant manifest,
-lockfile, workflow, or configuration changes. Installation and audit errors
+lockfile, workflow, or configuration changes pushed or proposed to main. Installation and audit errors
 must fail the job; do not mask them or substitute another package manager.
 
 Use Go from `go.mod` and the Bun and golangci-lint versions pinned in the
-workflows when reproducing CI. Verify the branch CI and security runs before
-pushing a release tag, then follow the tag's CI, security, and release runs.
+workflows when reproducing CI. Verify the main CI run before pushing a release
+tag, then follow the tag's release run (it calls CI again).
 
 ## Key design decisions
 

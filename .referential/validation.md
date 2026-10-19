@@ -72,8 +72,9 @@ Do not start a local dev server unless the user explicitly asks for it.
 
 ## CI and release checks
 
-The CI workflow runs on branch pushes, release tags, pull requests to main, and
-manual dispatch. It includes Linux race tests, lint, the 10k-operation
+The CI workflow runs on pushes and pull requests to main, on manual dispatch,
+and through `release.yml` for release tags. develop and feature branches have
+no CI run: validate them locally before merging to main. It includes Linux race tests, lint, the 10k-operation
 conformance loop, Linux integration, Windows smoke tests, both SDKs, the GitHub
 launcher (Linux, Windows) and the Docker image. macOS has no CI job for now.
 Match the Go version in `go.mod` and the Bun/linter versions in
