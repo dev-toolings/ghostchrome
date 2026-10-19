@@ -52,10 +52,11 @@ work with `mcp`:
 | `--timeout N` | Per-tool deadline (seconds, default 30). |
 | `--block-trackers` | Network-layer block of DataDome, PerimeterX, etc. Auto-on with `--stealth`. |
 
-The server prewarms Chrome in the background while the MCP client is
-still negotiating capabilities, so the first user-facing tool call
-doesn't pay the ~1.3s cold-start. Set `GHOSTCHROME_MCP_LAZY=1` to defer
-the spawn until the first tool call instead.
+The server launches Chrome on the first tool call, so an agent session
+that never browses holds no browser. Set `GHOSTCHROME_MCP_PREWARM=1` to
+spawn it in the background while the MCP client is still negotiating
+capabilities instead: the first tool call then skips the ~1.3s cold
+start, but every session holds a Chrome until the idle reaper releases it.
 
 ---
 
@@ -449,7 +450,7 @@ or by shelling out to `ghostchrome <command>`.
 
 | Symptom | Likely cause |
 |---|---|
-| First call hangs ~3s | Chrome cold-start. Set `GHOSTCHROME_MCP_LAZY=0` (default) to prewarm; passing `--connect=auto` skips spawn entirely. |
+| First call hangs ~3s | Chrome cold start. Set `GHOSTCHROME_MCP_PREWARM=1` to prewarm; passing `--connect=auto` skips spawn entirely. |
 | `snapshot` returns `[403]` or `[503]` | Anti-bot challenge. Make sure `--stealth` is on; if the site uses DataDome the script blocker (auto-on with stealth) is what unblocks it. |
 | `click @3` says ref not found | The previous tool was `navigate` (not `snapshot`) — `navigate` doesn't refresh refs. Call `snapshot` first, or use `snapshot` with the URL instead of `navigate`. |
 | `eval` times out at 8000 ms | Heavy fingerprinting script holding the main thread. Try `eval` again immediately (the auto-recovery often succeeds on the second pass) or bump `timeout_ms`. |

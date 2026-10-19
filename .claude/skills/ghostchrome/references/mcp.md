@@ -115,7 +115,7 @@ client supports them:
 | `GHOSTCHROME_STEALTH` | Enable anti-fingerprint patches when policy permits. |
 | `GHOSTCHROME_PROFILE` | Select persistent profile storage. |
 | `GHOSTCHROME_TIMEOUT` | Bound individual tool operations. |
-| `GHOSTCHROME_MCP_LAZY` | Defer browser launch until the first tool call. |
+| `GHOSTCHROME_MCP_PREWARM` | Launch the browser at startup instead of on the first tool call. |
 | `GHOSTCHROME_IDLE_TIMEOUT` | Release idle Chrome while retaining the stdio server. |
 | `GHOSTCHROME_PAGE_IDLE_TIMEOUT` | Earlier cleanup: blank owned pages, or close the server's tab in an attached Chrome. |
 

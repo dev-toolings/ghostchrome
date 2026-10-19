@@ -820,7 +820,7 @@ Environment variables:
 
 | Var | Effect |
 |---|---|
-| `GHOSTCHROME_MCP_LAZY=1` | MCP server defers Chrome spawn until the first tool call. |
+| `GHOSTCHROME_MCP_PREWARM=1` | MCP server spawns Chrome at startup instead of on the first tool call. |
 | `GHOSTCHROME_MCP_NO_BLOCKER=1` | Disable the auto-on script blocker even with `--stealth`. |
 | `GHOSTCHROME_MCP_TRACE=path` | Persist a trace of every MCP tool call to `path` (debugging). |
 | `GHOSTCHROME_BROWSER_PATH=/...` | Pin the Chromium binary explicitly. |

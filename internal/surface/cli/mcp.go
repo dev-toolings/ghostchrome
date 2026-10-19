@@ -115,14 +115,14 @@ The server speaks MCP 2025-11-25 and exposes 16 tools:
 		// Reclaim /tmp from Rod profiles whose owner was SIGKILLed earlier.
 		go engine.SweepDeadRodProfiles()
 
-		// Pre-spawn Chrome in the background while the MCP client is still
-		// negotiating capabilities. The 1-2s cold start is hidden from the
-		// first user-facing tool call. Lazy mode disabled via GHOSTCHROME_MCP_LAZY=1.
-		if os.Getenv("GHOSTCHROME_MCP_LAZY") != "1" {
+		// Chrome launches on the first tool call. GHOSTCHROME_MCP_PREWARM=1
+		// pre-spawns it while the client negotiates, hiding the 1-2s cold
+		// start at the cost of a Chrome per session that never browses.
+		if mcpsurface.PrewarmFromEnv() {
 			s.PrewarmAsync()
 		}
 
-		fmt.Fprintln(os.Stderr, "[ghostchrome mcp] ready on stdio (prewarm in background)")
+		fmt.Fprintln(os.Stderr, "[ghostchrome mcp] ready on stdio")
 		// SIGTERM/SIGINT surface as context.Canceled from ServeStdio: that is a
 		// normal shutdown, not an error. Close Chrome gracefully in both cases —
 		// os.Exit would skip the defer and leave the kill to leakless.

@@ -12,6 +12,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -149,6 +151,19 @@ func (s *Server) recordRecoveryLocked(reason string) {
 	s.lastRecovery = reason
 	s.lastRecoveryAt = time.Now()
 	s.recoveryCount++
+}
+
+// PrewarmFromEnv reports whether an MCP entry point should launch Chrome at
+// startup. Prewarm is opt-in: every agent session that loads the MCP server
+// would otherwise hold an unused Chrome until the idle reaper releases it.
+// GHOSTCHROME_MCP_PREWARM (a boolean) wins; GHOSTCHROME_MCP_LAZY=0 is kept as
+// the legacy way to request a prewarm.
+func PrewarmFromEnv() bool {
+	if v := strings.TrimSpace(os.Getenv("GHOSTCHROME_MCP_PREWARM")); v != "" {
+		on, err := strconv.ParseBool(v)
+		return err == nil && on
+	}
+	return strings.TrimSpace(os.Getenv("GHOSTCHROME_MCP_LAZY")) == "0"
 }
 
 // PrewarmAsync spawns Chrome in the background so the first user-facing tool

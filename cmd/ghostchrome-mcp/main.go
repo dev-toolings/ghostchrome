@@ -10,7 +10,7 @@
 //	GHOSTCHROME_PROFILE     — persistent profile name
 //	GHOSTCHROME_TIMEOUT     — timeout in seconds (default 30)
 //	GHOSTCHROME_VAULT_KEY   — encryption key for state vault
-//	GHOSTCHROME_MCP_LAZY    — "1" to skip Chrome prewarm
+//	GHOSTCHROME_MCP_PREWARM — "1" to launch Chrome at startup (default: first tool call)
 //	GHOSTCHROME_IDLE_TIMEOUT — idle Chrome reap window (default 15m; 0/off disables)
 //	GHOSTCHROME_POLICY      — path to a JSON policy file (fail closed if unreadable)
 package main
@@ -51,7 +51,7 @@ func main() {
 	// Reclaim /tmp from Rod profiles whose owner was SIGKILLed earlier.
 	go engine.SweepDeadRodProfiles()
 
-	if os.Getenv("GHOSTCHROME_MCP_LAZY") != "1" {
+	if mcpsurface.PrewarmFromEnv() {
 		s.PrewarmAsync()
 	}
 

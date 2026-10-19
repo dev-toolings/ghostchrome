@@ -5,6 +5,14 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+- The MCP server (`ghostchrome-mcp` and `ghostchrome mcp`) launches Chrome on
+  the first tool call instead of at startup. Before, every agent session that
+  loaded the server held an unused Chrome (about 180 MB) for the 15-minute
+  idle window. `GHOSTCHROME_MCP_PREWARM=1` restores the startup prewarm;
+  `GHOSTCHROME_MCP_LAZY=0` still requests it, and `GHOSTCHROME_MCP_LAZY=1` is
+  now the default behavior.
+
 ## [0.8.1] - 2026-10-19
 
 ### Added

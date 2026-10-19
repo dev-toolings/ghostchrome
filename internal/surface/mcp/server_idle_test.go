@@ -350,3 +350,25 @@ func TestReapIfIdleBlanksPagesBeforeRelease(t *testing.T) {
 		t.Fatalf("after a call: err=%v blanked=%v", err, again)
 	}
 }
+
+func TestPrewarmFromEnvIsOptIn(t *testing.T) {
+	cases := []struct {
+		prewarm, lazy string
+		want          bool
+	}{
+		{"", "", false},
+		{"", "1", false},
+		{"", "0", true},
+		{"1", "", true},
+		{"true", "1", true},
+		{"0", "0", false},
+		{"bogus", "", false},
+	}
+	for _, c := range cases {
+		t.Setenv("GHOSTCHROME_MCP_PREWARM", c.prewarm)
+		t.Setenv("GHOSTCHROME_MCP_LAZY", c.lazy)
+		if got := PrewarmFromEnv(); got != c.want {
+			t.Errorf("PREWARM=%q LAZY=%q: got %v, want %v", c.prewarm, c.lazy, got, c.want)
+		}
+	}
+}
