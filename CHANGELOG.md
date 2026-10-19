@@ -5,6 +5,8 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-10-19
+
 ### Changed
 - The MCP server releases an idle Chrome after 5 minutes instead of 15
   (`GHOSTCHROME_IDLE_TIMEOUT` still overrides it).

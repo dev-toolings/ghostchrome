@@ -1,6 +1,6 @@
 {
   "name": "@ghostchrome/cli-darwin-x64",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "ghostchrome prebuilt binary for darwin-x64.",
   "repository": {
     "type": "git",
