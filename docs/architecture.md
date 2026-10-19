@@ -25,7 +25,7 @@ SDK contract are generated from it.
   |                                                                   |
   |  cli/          cobra commands, one file per command               |
   |    agent.go    JSONL stdio loop, the SDK transport                |
-  |  mcp/          JSON-RPC over stdio, 19 tools                      |
+  |  mcp/          JSON-RPC over stdio, 20 tools                      |
   |  ai/           LLM tool_use loop, Anthropic + OpenAI providers    |
   +-------------+-----------------+---------------------+-------------+
                 |                 |                     |
@@ -105,7 +105,7 @@ than drawn as if it were already closed.
   | contracts/ | | internal/runtime | | internal/       | | internal/     |
   | commands   | | handlers_gen.go  | | surface/mcp/    | | surface/ai/   |
   | .json      | | 25 jsonl ops     | | tools_gen.go    | | tools_gen.go  |
-  |            | |                  | | 19 mcp tools    | | 14 ai tools   |
+  |            | |                  | | 20 mcp tools    | | 14 ai tools   |
   +-----+------+ +------------------+ +-----------------+ +---------------+
         |
         v
@@ -262,7 +262,7 @@ Legend:
 | Daemon (default) | any command, no flag | reused | Implicit "default" session, persistent across invocations |
 | Explicit attach | `--connect=auto`, `--connect=ws://...` | reused | Share one Chrome between agents |
 | Cold spawn | `GHOSTCHROME_NO_DAEMON=1` | spawned | Documented escape hatch only |
-| MCP server | `ghostchrome mcp`, `ghostchrome-mcp` | reused or spawned | 19 stdio tools for an LLM host |
+| MCP server | `ghostchrome mcp`, `ghostchrome-mcp` | reused or spawned | 20 stdio tools for an LLM host |
 | JSONL agent | `ghostchrome agent` | reused or spawned | The SDK transport, 25 ops over stdio |
 | AI loop | `ghostchrome ai` | reused or spawned | Autonomous LLM-driven browsing, 14 tools |
 | Live dashboard | `ghostchrome dashboard` | reused or spawned | Real-time viewport stream |

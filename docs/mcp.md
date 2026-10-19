@@ -1,8 +1,8 @@
 # MCP server reference
 
 ghostchrome ships an MCP (Model Context Protocol) server that exposes the
-browser as 19 stdio tools to LLM agents — Claude Code, Codex, Cursor, the
-Anthropic Agent SDK, OpenAI Agents SDK, or any other MCP host. One
+browser as 20 stdio tools to LLM agents (Claude Code, Codex, Cursor, the
+Anthropic Agent SDK, OpenAI Agents SDK, or any other MCP host). One
 long-lived Chrome + page is shared across tool calls so refs (`@1`, `@2`)
 extracted by one tool remain valid for the next.
 
@@ -269,6 +269,40 @@ the page has none, so a swipe is never silently discarded.
 
 ---
 
+### `network`
+
+Audit a page load. The tool reloads the current page (or navigates to `url`)
+with its listeners already attached, records every request from the first one,
+and stops once the network has been quiet for `quiet_ms`. A long-lived stream
+(SSE) stays `pending` without blocking it. Only requests of the new document
+are kept: what the page being left had in flight is dropped.
+
+| Arg | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | none | Navigate here while recording; omit to reload. |
+| `match` | string | none | Regex on the request URL, e.g. `/api/`. |
+| `include_static` | boolean | false | Keep scripts, styles, images, fonts, media. |
+| `quiet_ms` | number | 1500 | Quiet window that ends the audit (max 10000). |
+| `timeout_ms` | number | 15000 | Upper bound for the audit (max 60000). |
+| `stack_depth` | number | 4 | Application frames kept per initiator (max 10). |
+
+Each request carries `start_ms`, method, URL, type, status, `duration_ms`,
+`pending`/`failed`, and `initiator`: the application call stack that issued it,
+async parents included, library frames (`node_modules`, Vite deps) skipped.
+`duplicates` groups requests by method and URL with their `starts_ms` (one
+instant means a real duplicate, regular spacing a poll) and their distinct
+`callers` (the deepest application frame). Headers, cookies and bodies are
+never returned, and sensitive query values are redacted.
+
+Frame lines come from the code the browser runs: with a dev server that
+transforms sources (Vite), line numbers point at the transformed module, while
+function and component names stay exact.
+
+```jsonc
+// why does this page call the API twice on a refresh?
+{"match": "/api/"}
+```
+
 ### `emulate`
 
 Device emulation: viewport metrics, `devicePixelRatio`, the mobile flag,
@@ -395,14 +429,14 @@ stable state before returning.
 
 ---
 
-## Why 19 tools (not 38)
+## Why 20 tools (not 38)
 
 Earlier versions of the MCP server exposed 38 tools (cookies + storage +
 viewport + dialogs + network sniffing + trace recording + diagnostics).
 Every entry shows up in the `tools/list` the model sees on every session
 and creates ambiguity.
 
-v2.0 ships 19 tools that cover the complete agent loop: navigate,
+v2.0 ships 20 tools that cover the complete agent loop: navigate,
 observe, interact (click/type/hover/drag/swipe/fill/upload/select/press),
 emulate a device, manage tabs, wait, eval, and screenshot (with
 annotation). Niche

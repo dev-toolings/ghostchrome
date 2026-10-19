@@ -58,7 +58,7 @@ What you get:
 - **Transparent daemon**: every command auto-spawns a persistent background Chrome on first use (no `serve`, no `--connect`, zero config). Just run `ghostchrome goto <url>` and it works.
 - **CDP-native**: built on [Rod](https://github.com/go-rod/rod), so iframe handling, stealth patches, and event capture work out of the box.
 - **Single ~19 MB binary**: no Node.js, no `npm install`, no Playwright browsers download.
-- **Three ways to drive it**: the CLI, an MCP server (19 tools, drop-in for `@playwright/mcp`), or typed Python / TypeScript SDKs over the persistent JSONL `agent` loop.
+- **Three ways to drive it**: the CLI, an MCP server (20 tools, drop-in for `@playwright/mcp`), or typed Python / TypeScript SDKs over the persistent JSONL `agent` loop.
 
 ---
 
