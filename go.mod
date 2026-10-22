@@ -2,6 +2,8 @@ module github.com/dev-toolings/ghostchrome
 
 go 1.26.1
 
+toolchain go1.27.3
+
 require (
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
