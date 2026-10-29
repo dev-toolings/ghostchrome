@@ -79,6 +79,13 @@ Page status + console + network + DOM with refs. The canonical first
 call when an agent visits or revisits a page. Fuses what the CLI does as
 `preview` + `extract` + `errors` into one tool result.
 
+Extraction includes descendant frames through closed shadow roots, with separate
+CDP sessions for out-of-process frames, up to three frame levels. A CSS scope
+includes only frame owners inside that subtree. Frame inspection failures appear
+in `dom.warnings`; refresh the snapshot after a frame navigates or disappears.
+Transparent native controls can receive real input when their geometry and hit
+test permit it. A closed shadow host is not itself evidence of an overlay.
+
 | Param | Type | Default | Description |
 |---|---|---|---|
 | `url` | string | — | Optional. If provided, navigate first; otherwise snapshot the current page. |
@@ -451,6 +458,7 @@ or by shelling out to `ghostchrome <command>`.
 | Symptom | Likely cause |
 |---|---|
 | First call hangs ~3s | Chrome cold start. Set `GHOSTCHROME_MCP_PREWARM=1` to prewarm; passing `--connect=auto` skips spawn entirely. |
+| Turnstile is visible but validation does not complete | Inspect the widget with a scoped full snapshot and interact with its checkbox ref. Check token presence without exposing its value, then verify the site's result after an authorized submission. Headless acceptance can differ from headed Chrome; `GHOSTCHROME_HEADLESS=false` needs a display. Stealth does not guarantee acceptance. See [the investigation](turnstile-frames.md). |
 | `snapshot` returns `[403]` or `[503]` | Anti-bot challenge. Make sure `--stealth` is on; if the site uses DataDome the script blocker (auto-on with stealth) is what unblocks it. |
 | `click @3` says ref not found | The previous tool was `navigate` (not `snapshot`) — `navigate` doesn't refresh refs. Call `snapshot` first, or use `snapshot` with the URL instead of `navigate`. |
 | `eval` times out at 8000 ms | Heavy fingerprinting script holding the main thread. Try `eval` again immediately (the auto-recovery often succeeds on the second pass) or bump `timeout_ms`. |

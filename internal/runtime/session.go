@@ -450,7 +450,7 @@ func (s *Session) withRecovery(b *engine.Browser, page *rod.Page, opName string,
 	ctx := feedback.RecoveryContext{Page: page, Err: err, OpName: opName}
 	retry, hookErr := feedback.RecoveryChain(ctx, s.recoveryHooks)
 	if hookErr != nil {
-		return hookErr
+		return errors.Join(err, hookErr)
 	}
 	if !retry {
 		return err

@@ -6,6 +6,20 @@ import (
 	"testing"
 )
 
+func TestRefOrdinalsAreLocalToFrame(t *testing.T) {
+	refs := assignRefSnapshots(map[string]ExtractedNode{
+		"@1": {BackendNodeID: 1, Role: "button", Name: "Continue"},
+		"@2": {BackendNodeID: 2, Role: "button", Name: "Continue", FrameID: "child"},
+		"@3": {BackendNodeID: 3, Role: "button", Name: "Continue", FrameID: "child"},
+		"@4": {BackendNodeID: 4, Role: "button", Name: "Continue", FrameID: "sibling"},
+	})
+	for ref, want := range map[string]int{"@1": 0, "@2": 0, "@3": 1, "@4": 0} {
+		if refs[ref].Nth != want {
+			t.Errorf("%s ordinal = %d, want %d", ref, refs[ref].Nth, want)
+		}
+	}
+}
+
 func TestSessionStateMergesStaleWriters(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "state.json")
 	a, err := loadSessionState(path)

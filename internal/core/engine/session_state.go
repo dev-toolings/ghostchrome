@@ -361,7 +361,7 @@ func assignRefSnapshots(refs map[string]ExtractedNode) map[string]RefSnapshot {
 		if node.BackendNodeID == 0 {
 			continue
 		}
-		key := strings.ToLower(node.Role) + "|" + strings.ToLower(strings.TrimSpace(node.Name))
+		key := string(node.FrameID) + "|" + strings.ToLower(node.Role) + "|" + strings.ToLower(strings.TrimSpace(node.Name))
 		nth := nthByKey[key]
 		nthByKey[key] = nth + 1
 		out[ref] = RefSnapshot{BackendNodeID: node.BackendNodeID, Role: node.Role, Name: node.Name, Nth: nth, Href: node.Href, FrameID: node.FrameID}

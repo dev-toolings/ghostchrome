@@ -1,6 +1,24 @@
 package runtime
 
-import "testing"
+import (
+	"errors"
+	"testing"
+
+	"github.com/dev-toolings/ghostchrome/internal/core/engine"
+	"github.com/dev-toolings/ghostchrome/internal/core/feedback"
+)
+
+func TestRecoveryFailurePreservesOriginalError(t *testing.T) {
+	original := errors.New("element is not visible")
+	recovery := errors.New("challenge not resolved")
+	s := &Session{recoveryHooks: []feedback.RecoveryHook{
+		func(feedback.RecoveryContext) (bool, error) { return false, recovery },
+	}}
+	err := s.withRecovery(&engine.Browser{}, nil, "click", func(*engine.PageSnapshot) error { return original })
+	if !errors.Is(err, original) || !errors.Is(err, recovery) {
+		t.Fatalf("original operation or recovery error lost: %v", err)
+	}
+}
 
 // TestConsumeChallengeRecoveredIsOneShot verifies that reading the SSR
 // opt-in flag resets it: only the "extract" immediately after a recovered

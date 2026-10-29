@@ -173,3 +173,14 @@ The `errors` op returns a JSON array directly (not a dict):
 
 Ops that produce no output omit `result` entirely (`init`, `close`, `click`, `hover`,
 `type`, `press`, `select`, `wait`).
+
+
+## Vehicle lookup integration
+
+The [iautos-agent integration guide](../../docs/iautos-agent-sdk.md) explains the
+persistent Python client, the Go binary requirement, session isolation and the
+hybrid browser/HTTP lookup boundary. A bounded, process-local cache example with
+TTL and concurrent-request coalescing lives at
+[`sdk/examples/python/vehicle_cache.py`](../examples/python/vehicle_cache.py).
+It wraps an application-supplied validated lookup callable; it is not a built-in
+vehicle lookup SDK method.

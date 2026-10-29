@@ -50,8 +50,11 @@ func ResolveRefSemantic(page *rod.Page, ref string, snapshot *PageSnapshot) (*ro
 	if !ok || (info.BackendNodeID == 0 && info.Role == "") {
 		return nil, fmt.Errorf("%w: ref %s not found in last snapshot", ErrStaleRef, parsed)
 	}
+	src := pageForFrame(page, info.FrameID)
+	if src == nil {
+		return nil, fmt.Errorf("%w: frame for ref %s is no longer attached", ErrStaleRef, parsed)
+	}
 	if info.BackendNodeID != 0 {
-		src := pageForFrame(page, info.FrameID)
 		if el, err := liveElementFromBackend(src, info.BackendNodeID); err == nil {
 			return el, nil
 		}
@@ -59,7 +62,7 @@ func ResolveRefSemantic(page *rod.Page, ref string, snapshot *PageSnapshot) (*ro
 	if strings.TrimSpace(info.Role) == "" {
 		return nil, fmt.Errorf("%w: ref %s is no longer attached", ErrStaleRef, parsed)
 	}
-	el, err := resolveByRoleNameNth(pageForFrame(page, info.FrameID), info.Role, info.Name, info.Nth)
+	el, err := resolveByRoleNameNth(src, info.Role, info.Name, info.Nth)
 	if err != nil {
 		return nil, fmt.Errorf("%w: ref %s", err, parsed)
 	}
@@ -74,15 +77,18 @@ func pageForFrame(page *rod.Page, frame proto.PageFrameID) *rod.Page {
 }
 
 func pageForFrameAt(page *rod.Page, frame proto.PageFrameID, depth int) *rod.Page {
-	if page == nil || frame == "" || page.FrameID == frame || depth >= maxIframeDepth {
+	if page == nil || depth >= maxIframeDepth {
+		return nil
+	}
+	if frame == "" || page.FrameID == frame {
 		return page
 	}
-	iframes, err := page.Elements("iframe")
+	iframes, err := frameElements(page, "")
 	if err != nil {
-		return page
+		return nil
 	}
 	for _, iframe := range iframes {
-		child, err := iframe.Frame()
+		child, err := framePage(iframe)
 		if err != nil || child == nil {
 			continue
 		}
@@ -94,7 +100,7 @@ func pageForFrameAt(page *rod.Page, frame proto.PageFrameID, depth int) *rod.Pag
 			return nested
 		}
 	}
-	return page
+	return nil
 }
 
 func liveElementFromBackend(page *rod.Page, nodeID proto.DOMBackendNodeID) (*rod.Element, error) {
@@ -174,6 +180,10 @@ func collectAXMatches(page *rod.Page, nodes []*proto.AccessibilityAXNode, role, 
 }
 
 func queryAXByRoleName(page *rod.Page, role, name string) ([]*rod.Element, error) {
+	if page.IsIframe() {
+		// DOM.getDocument addresses the session root, not a same-process child.
+		return fullAXByRoleName(page, role, name)
+	}
 	doc, err := proto.DOMGetDocument{}.Call(page)
 	if err != nil || doc == nil || doc.Root == nil || doc.Root.BackendNodeID == 0 {
 		if err == nil {
@@ -196,7 +206,7 @@ func queryAXByRoleName(page *rod.Page, role, name string) ([]*rod.Element, error
 }
 
 func fullAXByRoleName(page *rod.Page, role, name string) ([]*rod.Element, error) {
-	result, err := proto.AccessibilityGetFullAXTree{}.Call(page)
+	result, err := proto.AccessibilityGetFullAXTree{FrameID: page.FrameID}.Call(page)
 	if err != nil {
 		return nil, fmt.Errorf("a11y tree: %w", err)
 	}
@@ -246,7 +256,9 @@ const actionableJS = `() => {
 	})();
 	if (!el.isConnected) return 'detached';
 	const style = window.getComputedStyle(el);
-	if (style.visibility === 'hidden' || style.display === 'none' || Number(style.opacity) === 0) return 'not visible';
+	// Transparent native inputs can still receive trusted pointer events.
+	// Geometry and hit testing below determine whether they are actionable.
+	if (style.visibility === 'hidden' || style.visibility === 'collapse' || style.display === 'none') return 'not visible';
 	if (el.disabled) return 'disabled';
 	const rect = el.getBoundingClientRect();
 	if (rect.width <= 0 || rect.height <= 0) return 'empty box';
@@ -258,11 +270,17 @@ const actionableJS = `() => {
 	const r2 = el.getBoundingClientRect();
 	const px = r2.x + r2.width / 2;
 	const py = r2.y + r2.height / 2;
+	// A closed shadow root is reachable from its own element, even though
+	// host.shadowRoot is null. Follow only this target's known roots while
+	// retaining document-level hit testing for overlays outside the host.
+	const targetRoots = [];
+	for (let root = el.getRootNode(); root && root.host; root = root.host.getRootNode()) targetRoots.push(root);
 	const hit = (function pierce(root, hx, hy) {
 		const node = (root.elementFromPoint ? root.elementFromPoint(hx, hy) : null);
 		if (!node) return null;
-		if (node.shadowRoot) {
-			const inner = pierce(node.shadowRoot, hx, hy);
+		const shadow = node.shadowRoot || targetRoots.find(r => r.host === node);
+		if (shadow) {
+			const inner = pierce(shadow, hx, hy);
 			if (inner) return inner;
 		}
 		return node;
@@ -356,7 +374,11 @@ func withSemanticRetry(page *rod.Page, ref string, snapshot *PageSnapshot, fn fu
 	if !ok || strings.TrimSpace(info.Role) == "" {
 		return err
 	}
-	replaced, rerr := resolveByRoleNameNth(page, info.Role, info.Name, info.Nth)
+	src := pageForFrame(page, info.FrameID)
+	if src == nil {
+		return fmt.Errorf("%w: frame for ref %s is no longer attached", ErrStaleRef, parsed)
+	}
+	replaced, rerr := resolveByRoleNameNth(src, info.Role, info.Name, info.Nth)
 	if rerr != nil {
 		return fmt.Errorf("%w: ref %s", rerr, parsed)
 	}

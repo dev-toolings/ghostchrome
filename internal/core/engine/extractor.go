@@ -273,6 +273,11 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 		rootIDs = treeRoots
 	}
 	extractedNodes := build(rootIDs)
+	frameScope := ""
+	if len(scopeRoots) > 0 {
+		frameScope = selector
+	}
+	appendIframesAt(p, frameScope, level, &extractedNodes, refs, &stats, &refCounter, &warnings, 0)
 
 	// The scope resolved but every node it holds was ignored or filtered out
 	// (an aria-hidden wrapper, a subtree with nothing named). Same deal as a
@@ -282,6 +287,7 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 		warnings = append(warnings, scopeFallbackWarning(fmt.Errorf("selector %q %w", selector, ErrSelectorNoAXNode)))
 		scopeRoots = nil
 		extractedNodes = build(treeRoots)
+		appendIframesAt(p, "", level, &extractedNodes, refs, &stats, &refCounter, &warnings, 0)
 	}
 
 	var ssrPayloads []SSRPayload
@@ -292,12 +298,6 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 		// Fall back to the raw HTML rather than reporting nothing. Only when
 		// the caller opted in — see includeSSR doc on Extract.
 		ssrPayloads = ssrFallbackPayloads(p)
-	}
-
-	// Iframes belong to the whole-page view: skip them only when the
-	// extraction really is scoped to a subtree.
-	if len(scopeRoots) == 0 {
-		appendSameOriginIframes(page, level, &extractedNodes, refs, &stats, &refCounter)
 	}
 
 	return &ExtractionResult{
@@ -324,33 +324,26 @@ func ssrFallbackPayloads(page *rod.Page) []SSRPayload {
 	return ExtractSSRPayloads(html)
 }
 
-func appendSameOriginIframes(page *rod.Page, level ExtractLevel, nodes *[]ExtractedNode, refs map[string]ExtractedNode, stats *ExtractionStats, refCounter *int) {
-	if page == nil || selectorScoped(nodes) {
-		return
-	}
-
-	appendSameOriginIframesAt(page, level, nodes, refs, stats, refCounter, 0)
-}
-
-const maxIframeDepth = 3
-
-func appendSameOriginIframesAt(page *rod.Page, level ExtractLevel, nodes *[]ExtractedNode, refs map[string]ExtractedNode, stats *ExtractionStats, refCounter *int, depth int) {
+func appendIframesAt(page *rod.Page, selector string, level ExtractLevel, nodes *[]ExtractedNode, refs map[string]ExtractedNode, stats *ExtractionStats, refCounter *int, warnings *[]string, depth int) {
 	if page == nil || depth >= maxIframeDepth {
 		return
 	}
-	iframes, err := page.Elements("iframe")
-	if err != nil || len(iframes) == 0 {
+	iframes, err := frameElements(page, selector)
+	if err != nil {
+		*warnings = append(*warnings, "frame discovery: "+err.Error())
 		return
 	}
 	budget := newEnrichmentBudget()
 	for _, iframe := range iframes {
-		frame, err := iframe.Frame()
-		if err != nil || frame == nil {
+		frame, err := framePage(iframe)
+		if err != nil {
+			*warnings = append(*warnings, "frame inspection: "+err.Error())
 			continue
 		}
 		_ = proto.AccessibilityEnable{}.Call(frame)
 		result, err := proto.AccessibilityGetFullAXTree{FrameID: frame.FrameID}.Call(frame)
-		if err != nil || result == nil {
+		if err != nil {
+			*warnings = append(*warnings, "frame accessibility: "+err.Error())
 			continue
 		}
 		StartFileChooserIntercept(frame)
@@ -367,16 +360,12 @@ func appendSameOriginIframesAt(page *rod.Page, level ExtractLevel, nodes *[]Extr
 		}
 		stampFrame(frameNodes, frame.FrameID)
 		syncFrameRefs(frameNodes, refs)
-		appendSameOriginIframesAt(frame, level, &frameNodes, refs, stats, refCounter, depth+1)
+		appendIframesAt(frame, "", level, &frameNodes, refs, stats, refCounter, warnings, depth+1)
 		if len(frameNodes) == 0 {
 			continue
 		}
 		*nodes = append(*nodes, ExtractedNode{Role: "iframe", Name: iframeName(iframe), Children: frameNodes})
 	}
-}
-
-func selectorScoped(nodes *[]ExtractedNode) bool {
-	return nodes == nil
 }
 
 func iframeName(el *rod.Element) string {
@@ -441,7 +430,7 @@ func resolveScope(
 
 	// Describe the whole subtree (depth -1) in one call: the backend node IDs
 	// it carries are what ties the DOM back to the accessibility tree.
-	desc, err := el.CancelTimeout().Timeout(selectorResolveTimeout).Describe(-1, false)
+	desc, err := el.CancelTimeout().Timeout(selectorResolveTimeout).Describe(-1, true)
 	if err != nil {
 		return nil, fmt.Errorf("selector %q: describe element: %w", selector, err)
 	}
@@ -463,8 +452,10 @@ func collectBackendNodeIDs(node *proto.DOMNode, out map[proto.DOMBackendNodeID]b
 		return
 	}
 	out[node.BackendNodeID] = true
-	for _, child := range node.Children {
-		collectBackendNodeIDs(child, out)
+	for _, children := range [][]*proto.DOMNode{node.Children, node.ShadowRoots} {
+		for _, child := range children {
+			collectBackendNodeIDs(child, out)
+		}
 	}
 }
 

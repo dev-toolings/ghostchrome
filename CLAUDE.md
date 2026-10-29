@@ -87,6 +87,10 @@ ghostchrome/
   interaction, and observation through Rod and CDP. Key files include
   `browser.go`, `navigator.go`, `extractor.go`, `interactor.go`,
   `errors.go`, `preview.go`, and `stealth.go`.
+- `internal/core/engine/frames.go` discovers frame owners through DOM and shadow
+  roots and routes out-of-process frames to their own CDP sessions. Extraction
+  and ref resolution share this routing; scoped snapshots include descendant
+  frames without expanding to unrelated page content.
 - Supporting core packages are `antibot`, `artifact`, `coretest`,
   `dashboard`, `feedback`, `inspect`, `interact`, `media`, `overlay`,
   `pagesetup`, `policy`, `provider`, `proxy`, `sites`, `storage`,

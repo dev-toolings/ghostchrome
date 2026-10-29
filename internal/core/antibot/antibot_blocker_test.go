@@ -4,12 +4,29 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/dev-toolings/ghostchrome/internal/core/coretest"
 	"github.com/dev-toolings/ghostchrome/internal/core/engine"
+	"github.com/go-rod/rod/lib/proto"
 )
+
+func TestCuratedBlockerAllowsTurnstileResources(t *testing.T) {
+	for _, url := range []string{
+		"https://challenges.cloudflare.com/turnstile/v0/api.js",
+		"https://challenges.cloudflare.com/turnstile/v0/g/version/api.js",
+		"https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/g/turnstile/example",
+		"https://siv-auto.fr/cdn-cgi/challenge-platform/example",
+	} {
+		for _, pattern := range AntiBotPatterns {
+			if regexp.MustCompile(proto.PatternToReg(pattern)).MatchString(url) {
+				t.Errorf("required challenge resource %s blocked by %s", url, pattern)
+			}
+		}
+	}
+}
 
 // TestAntiBotPatternsCurated guards against accidental list rot — patterns
 // must be unique, non-empty, and use the *://host/path glob form CDP expects.

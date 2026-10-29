@@ -300,6 +300,13 @@ your agent → ghostchrome CLI → Rod (Go) → Chrome DevTools Protocol → Chr
 4. **Output is text first**: no JSON wrapping unless you ask for `--json`. The agent reads what a human would read in DevTools.
 5. **Transparent daemon**: auto-spawns a persistent background Chrome on first use. Named sessions (`-s work`, `-s research`) run parallel isolated browsers. No `serve` needed.
 
+Snapshots include descendant iframes, including cross-origin frames in separate
+renderer processes and frames inside closed shadow roots (up to three frame
+levels). A scoped snapshot keeps frames inside that subtree. Frame refs retain
+their document identity when resolving or recovering after a rerender.
+Browser challenges still depend on the provider's acceptance; stealth is not a
+guarantee. See [the frame investigation](docs/turnstile-frames.md).
+
 Architecture, CLI reference, MCP server, anti-bot, and fast-path docs live in [`docs/`](docs/README.md).
 
 ---
@@ -642,3 +649,8 @@ The root keeps the Go module, workspace configuration, and public entry points.
 Use `just build` to check compilation and `just test-all` for the test suites.
 `just install` and `just e2e` build into `.local/bin/`.
 Bun manages `node_modules/` at the workspace root.
+
+
+For Python vehicle lookup services, see the
+[iautos-agent SDK and cache integration guide](docs/iautos-agent-sdk.md) and its
+[bounded cache example](sdk/examples/python/vehicle_cache.py).

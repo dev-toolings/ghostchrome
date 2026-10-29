@@ -46,6 +46,8 @@ The main `internal/core/engine/` split is:
 - Navigation and waiting: `internal/core/engine/navigator.go`, `internal/core/engine/wait.go`,
   `internal/core/engine/locator_wait.go`.
 - Extraction: `internal/core/engine/extractor.go`, DOM fallback, SSR/RSC extractors.
+- Frames: `internal/core/engine/frames.go`, shared discovery through closed shadow
+  roots and CDP session routing for same-process and out-of-process frames.
 - Interaction: `internal/core/engine/interactor.go`, drag, drop, touch, human mode;
   clipboard and raw mouse live in `internal/core/interact/`.
 - Observation: `internal/core/engine/errors.go`, `internal/core/engine/observer.go`, network tracker,

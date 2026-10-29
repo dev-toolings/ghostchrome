@@ -3,6 +3,12 @@
 Use the smallest check that proves the change, then broaden when the touched
 surface is shared.
 
+Frame changes: `go test ./internal/core/engine -run TestFrameExtractionAndInput
+-count=1` checks scoped extraction, closed shadow roots, trusted mouse/keyboard
+input, and ref recovery in same-process, cross-site OOPIF and nested frames.
+It needs Chrome and uses production launcher flags, because Rod's default test
+launcher disables site isolation. `go test -short ./...` skips this browser test.
+
 ## Core Commands
 
 | Command | What it proves |
@@ -88,3 +94,8 @@ security, and release runs. A successful build alone does not prove CI passed.
 
 `.gitattributes` keeps text files in LF format on every OS. Generated-file
 freshness checks intentionally compare exact bytes, including line endings.
+
+
+The process-local vehicle cache example has focused hermetic coverage:
+`python3 -m unittest discover -s sdk/examples/python -p test_vehicle_cache.py -v`.
+It makes no browser or external HTTP calls.
