@@ -672,11 +672,12 @@ func WaitForBotChallenge(page *rod.Page, timeout time.Duration) bool {
 	for time.Now().Before(deadline) {
 		time.Sleep(1 * time.Second)
 
-		// One page.Info() + one page.HTML() fetch per tick, reused for both
+		// One bounded metadata/markup inspection per tick, reused for both
 		// the "still challenged?" check and the DataDome CAPTCHA check below
-		// (previously each did its own HTML fetch — two round-trips per tick).
-		info, infoErr := page.Info()
-		html, htmlErr := page.HTML()
+		// (previously each did its own HTML fetch, two round trips per tick).
+		inspection := page.Timeout(passiveInspectionTimeout)
+		info, infoErr := InspectionInfo(inspection)
+		html, htmlErr := InspectionHTML(inspection)
 		if htmlErr != nil {
 			html = ""
 		}
@@ -691,8 +692,9 @@ func WaitForBotChallenge(page *rod.Page, timeout time.Duration) bool {
 			matched, _ := classifyBotChallengeHTML(info.URL, info.Title, "")
 			challenged = matched
 		default:
-			challenged = classifyBotChallengeResult(page, info.URL, info.Title, html)
+			challenged = classifyBotChallengeResult(inspection, info.URL, info.Title, html)
 		}
+		inspection.CancelTimeout()
 
 		if !challenged {
 			// Challenge cleared — let the real page settle before returning.
@@ -816,20 +818,22 @@ func clearDataDomeCookies(page *rod.Page) {
 
 // isBotChallenge checks if the current page is a known bot-challenge interstitial.
 func isBotChallenge(page *rod.Page) bool {
-	info, err := page.Info()
+	page = page.Timeout(passiveInspectionTimeout)
+	defer page.CancelTimeout()
+	info, err := InspectionInfo(page)
 	if err != nil {
 		return false
 	}
 
-	// URL/title markers are decisive and don't depend on page.HTML() — check
-	// them first so a transient page.HTML() failure (e.g. the race window
+	// URL/title markers are decisive and don't depend on document markup. Check
+	// them first so a transient markup failure (e.g. the race window
 	// right after a challenge redirect) can't mask an obvious challenge
 	// interstitial.
 	if matched, _ := classifyBotChallengeHTML(info.URL, info.Title, ""); matched {
 		return true
 	}
 
-	html, err := page.HTML()
+	html, err := InspectionHTML(page)
 	if err != nil {
 		return false
 	}
@@ -840,7 +844,7 @@ func isBotChallenge(page *rod.Page) bool {
 // classifyBotChallengeResult applies classifyBotChallengeHTML to an
 // already-fetched html and, for ambient markers, probes the page's visible
 // text length. Factored out so WaitForBotChallenge's poll loop can reuse a
-// single page.HTML() fetch per tick instead of calling isBotChallenge (which
+// single markup fetch per tick instead of calling isBotChallenge (which
 // fetches its own) and then re-fetching HTML for the DataDome CAPTCHA check.
 func classifyBotChallengeResult(page *rod.Page, url, title, html string) bool {
 	matched, ambient := classifyBotChallengeHTML(url, title, html)

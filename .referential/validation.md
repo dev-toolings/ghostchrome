@@ -64,6 +64,11 @@ Do not start a local dev server unless the user explicitly asks for it.
 
 ## Practical Validation Matrix
 
+Passive navigation inspection regressions:
+`go test ./internal/core/engine -run 'TestChallengeInspection|TestPassiveInspection' -count=1`.
+The selector regression requires Chrome; the deadline regression uses a stalled
+CDP client without a browser or network requests.
+
 | Change type | Minimum validation |
 |---|---|
 | README or docs only | Read rendered markdown or inspect diff. |

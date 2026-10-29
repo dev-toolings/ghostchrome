@@ -5,6 +5,11 @@ All notable changes to ghostchrome are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+- Passive challenge and observation scans read markup through bounded CDP DOM
+  calls instead of Rod's page JavaScript selectors. Page scripts that prevent
+  selector resolution no longer stall an otherwise completed navigation.
+
 ## [0.8.3] - 2026-10-19
 
 ### Changed

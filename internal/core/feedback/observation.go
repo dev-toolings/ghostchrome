@@ -2,6 +2,7 @@ package feedback
 
 import (
 	"strings"
+	"time"
 
 	"github.com/dev-toolings/ghostchrome/internal/core/engine"
 	"github.com/go-rod/rod"
@@ -45,8 +46,10 @@ func BuildObservation(page *rod.Page, before, after *engine.PageSnapshot, events
 }
 
 // BuildObservationOpts is BuildObservation with an explicit captcha-scan flag.
-// scanCaptcha=false skips page.HTML() so warm clicks do not pay a full document dump.
+// scanCaptcha=false skips markup inspection so warm clicks do not pay a document dump.
 func BuildObservationOpts(page *rod.Page, before, after *engine.PageSnapshot, events []engine.ObserverEvent, scanCaptcha bool) Observation {
+	page = page.Timeout(2 * time.Second)
+	defer page.CancelTimeout()
 	obs := Observation{}
 
 	// Prefer the snapshot URL so a warm click does not pay Page.getFrameTree.
@@ -54,7 +57,7 @@ func BuildObservationOpts(page *rod.Page, before, after *engine.PageSnapshot, ev
 		obs.URL = after.URL
 	} else if before != nil && before.URL != "" {
 		obs.URL = before.URL
-	} else if info, err := page.Info(); err == nil && info != nil {
+	} else if info, err := engine.InspectionInfo(page); err == nil && info != nil {
 		obs.URL = info.URL
 	}
 
@@ -76,7 +79,7 @@ func BuildObservationOpts(page *rod.Page, before, after *engine.PageSnapshot, ev
 		}
 	}
 
-	// Captcha detection (cheap — single Info()+HTML() check).
+	// Captcha detection uses bounded metadata and CDP markup inspection.
 	if scanCaptcha {
 		obs.CaptchaHint = detectCaptchaHint(page)
 	}
@@ -87,7 +90,9 @@ func BuildObservationOpts(page *rod.Page, before, after *engine.PageSnapshot, ev
 // detectCaptchaHint returns a short label when the page appears to be a
 // bot-challenge page, or empty string otherwise.
 func detectCaptchaHint(page *rod.Page) string {
-	info, err := page.Info()
+	page = page.Timeout(2 * time.Second)
+	defer page.CancelTimeout()
+	info, err := engine.InspectionInfo(page)
 	if err != nil {
 		return ""
 	}
@@ -101,7 +106,7 @@ func detectCaptchaHint(page *rod.Page) string {
 		return "cloudflare"
 	}
 
-	html, err := page.HTML()
+	html, err := engine.InspectionHTML(page)
 	if err != nil {
 		return ""
 	}
