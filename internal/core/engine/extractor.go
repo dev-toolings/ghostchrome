@@ -285,7 +285,6 @@ func ExtractWithTimeout(page *rod.Page, level ExtractLevel, selector string, tim
 	// rather than an empty answer.
 	if len(scopeRoots) > 0 && len(extractedNodes) == 0 {
 		warnings = append(warnings, scopeFallbackWarning(fmt.Errorf("selector %q %w", selector, ErrSelectorNoAXNode)))
-		scopeRoots = nil
 		extractedNodes = build(treeRoots)
 		appendIframesAt(p, "", level, &extractedNodes, refs, &stats, &refCounter, &warnings, 0)
 	}
